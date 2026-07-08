@@ -1,15 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-/*
-  Feature: Artifact Discovery Logging + Field Inspection Assignment.
-
-  Any logged-in user (any role) can log a newly discovered artifact with a
-  map location, material, photos, notes and contact info. A Government/Admin
-  user then assigns an archaeologist to inspect it, suggesting a budget and a
-  report deadline. The assigned researcher later verifies whether the report
-  was genuine.
-*/
 
 const discoveryReportSchema = new Schema(
   {
