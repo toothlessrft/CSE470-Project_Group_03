@@ -36,6 +36,7 @@ npm run dev                # starts on http://localhost:5555
 cd frontend
 npm install
 npm install leaflet
+npm install leaflet lucide-react
 npm run dev                # starts on http://localhost:5173
 ```
 

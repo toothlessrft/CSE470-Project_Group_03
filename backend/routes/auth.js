@@ -28,13 +28,13 @@ function issueSession(res, user) {
   };
 }
 
-// Registerable roles. "admin" is deliberately excluded from public sign-up —
-// in the original system admins were seeded directly into the DB, not
-// self-registered. Add it back here if your group decides otherwise.
-const PUBLIC_ROLES = ["archaeologist", "museum_manager", "site_caretaker"];
+const PUBLIC_ROLES = [
+  "public",
+  "archaeologist",
+  "museum_manager",
+  "site_caretaker",
+];
 
-// GET /api/auth/sites -> used by the registration form's site-caretaker step
-// (no auth required, since the person isn't logged in yet)
 router.get("/sites", async (req, res) => {
   const sites = await Site.find().select("_id name");
   res.json({ sites });
@@ -58,29 +58,40 @@ router.post("/register", async (req, res) => {
 
     const hashed = await bcrypt.hash(password, 10);
 
-    // Only keep the roleProfile fields relevant to the chosen role.
-    let profile = {};
-    if (role === "archaeologist") {
-      profile = { affiliation: roleProfile?.affiliation, biography: roleProfile?.biography };
-    } else if (role === "museum_manager") {
-      profile = {
-        museum_name: roleProfile?.museum_name,
-        m_city: roleProfile?.m_city,
-        m_street: roleProfile?.m_street,
-      };
-    } else if (role === "site_caretaker") {
-      profile = { site: roleProfile?.site || undefined, budget: roleProfile?.budget };
-    }
+    // Only keep the fields relevant to the selected role.
+let profile = {};
 
-    const user = await User.create({
-      nid,
-      name,
-      email: email.toLowerCase(),
-      phone,
-      password: hashed,
-      role,
-      roleProfile: profile,
-    });
+if (role === "archaeologist") {
+  profile = {
+    affiliation: roleProfile?.affiliation,
+    specialization: roleProfile?.specialization,
+  };
+} else if (role === "museum_manager") {
+  profile = {
+    museum_name: roleProfile?.museum_name,
+    designation: roleProfile?.designation,
+    address: roleProfile?.address,
+  };
+} else if (role === "site_caretaker") {
+  profile = {
+    organization: roleProfile?.organization,
+    team_leader: roleProfile?.team_leader,
+  };
+}
+
+    const accountStatus =
+  role === "public" ? "approved" : "pending";
+
+const user = await User.create({
+  nid,
+  name,
+  email: email.toLowerCase(),
+  phone,
+  password: hashed,
+  role,
+  status: accountStatus,
+  roleProfile: profile,
+});
 
     const sessionUser = issueSession(res, user);
     res.status(201).json({ user: sessionUser });
@@ -109,8 +120,31 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid credentials" });
     }
 
-    const sessionUser = issueSession(res, user);
-    res.json({ user: sessionUser });
+    if (user.role !== "admin" && user.status !== "approved") {
+  return res.status(403).json({
+    error: "Your account is waiting for Government/Admin approval.",
+  });
+}
+
+if (user.status === "rejected") {
+  return res.status(403).json({
+    error: "Your registration request has been rejected.",
+  });
+}
+
+  if (user.role !== "admin" && user.status !== "approved") {
+  return res.status(403).json({
+    error: "Your account is waiting for Government/Admin approval.",
+  });
+}
+
+if (user.status === "rejected") {
+  return res.status(403).json({
+    error: "Your registration request has been rejected.",
+  });
+}
+const sessionUser = issueSession(res, user);
+res.json({ user: sessionUser });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error during login." });

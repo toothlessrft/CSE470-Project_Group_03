@@ -13,9 +13,24 @@ export default function Navbar() {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="brand">
+      <Link
+  to={user ? (
+    user.role === "public"
+      ? "/public/dashboard"
+      : user.role === "archaeologist"
+      ? "/arc/dashboard"
+      : user.role === "museum_manager"
+      ? "/mm/dashboard"
+      : user.role === "site_caretaker"
+      ? "/sc/dashboard"
+      : user.role === "admin"
+      ? "/admin/dashboard"
+      : "/"
+  ) : "/"}
+  className="brand"
+>
         <Landmark size={20} strokeWidth={2.2} />
-        Heritage Management System
+         ArchiveEARTH
       </Link>
       <div className="nav-right">
         {user ? (
@@ -28,7 +43,7 @@ export default function Navbar() {
             {user.role === "admin" && (
               <Link to="/admin/reports"><ScanSearch size={15} /> Field Reports</Link>
             )}
-            <span className="nav-user">{user.name} ({user.role})</span>
+            <span className="nav-user">{user.role}</span>
             <button className="btn-link nav-logout" onClick={handleLogout}>
               <LogOut size={15} /> Logout
             </button>

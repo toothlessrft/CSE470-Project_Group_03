@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { MapPin, ScanSearch, Users, Landmark, Globe2 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ROLE_HOME } from "../context/AuthContext";
@@ -14,26 +14,25 @@ const ROLES = [
 export default function Home() {
   const { user } = useAuth();
 
+  if (user) {
+  return <Navigate to={ROLE_HOME[user.role] || "/"} replace />;
+}
+
   return (
     <div className="page">
       <section className="hero">
-        <span className="hero-eyebrow">Heritage Management System</span>
+        <span className="hero-eyebrow">ArchiveEARTH</span>
         <h1 className="hero-title">Protecting history, one discovery at a time</h1>
         <p className="hero-subtitle">
           A centralized platform for managing archaeological excavations, artifact preservation,
-          museum collaboration, and public engagement — with map-based discovery logging and
-          field inspection tracking built in.
+          museum collaboration, and public engagement.
         </p>
         <div className="hero-actions">
-          {user ? (
-            <Link className="btn" to={ROLE_HOME[user.role] || "/"}>Go to your dashboard</Link>
-          ) : (
-            <>
-              <Link className="btn" to="/login">Log in</Link>
-              <Link className="btn btn-outline" to="/register">Create an account</Link>
-            </>
-          )}
-        </div>
+  <Link className="btn" to="/login">Log in</Link>
+  <Link className="btn btn-outline" to="/register">
+    Create an account
+  </Link>
+</div>
       </section>
 
       <h2 className="section-title">Built for every role</h2>

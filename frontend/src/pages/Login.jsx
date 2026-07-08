@@ -47,11 +47,6 @@ export default function Login() {
         <p className="hint">
           New here? <Link to="/register">Create an account</Link>
         </p>
-        <p className="hint">
-          After seeding the database, try nid <code>A001</code> (archaeologist), <code>AD001</code> (admin),{" "}
-          <code>MM001</code> (museum manager), or <code>SC001</code> (site caretaker) with password{" "}
-          <code>password123</code>.
-        </p>
       </div>
     </div>
   );

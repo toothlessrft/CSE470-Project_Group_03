@@ -8,8 +8,11 @@ import Register from "./pages/Register";
 import Unauthorized from "./pages/Unauthorized";
 import ReportDiscovery from "./pages/ReportDiscovery";
 import MyReports from "./pages/MyReports";
+import PublicDashboard from "./pages/public/PublicDashboard";
+
 
 import ArcDashboard from "./pages/arc/ArcDashboard";
+import PendingUsers from "./pages/admin/PendingUsers";
 import RequestExcavation from "./pages/arc/RequestExcavation";
 import ManageProjects from "./pages/arc/ManageProjects";
 import ManageTeam from "./pages/arc/ManageTeam";
@@ -164,6 +167,16 @@ export default function App() {
           }
         />
 
+        {/* Public */}
+        <Route
+    path="/public/dashboard"
+    element={
+        <ProtectedRoute roles={["public"]}>
+            <PublicDashboard />
+        </ProtectedRoute>
+    }
+/>
+
         {/* Admin */}
         <Route
           path="/admin/dashboard"
@@ -237,6 +250,10 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+    path="/admin/pending-users"
+    element={<PendingUsers />}
+/>
 
         <Route path="*" element={<Home />} />
       </Routes>

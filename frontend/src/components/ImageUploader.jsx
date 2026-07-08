@@ -1,6 +1,6 @@
 import { useRef } from "react";
 
-const MAX_IMAGES = 6;
+const MAX_IMAGES = 3;
 
 function fileToDataUrl(file) {
   return new Promise((resolve, reject) => {
@@ -11,17 +11,22 @@ function fileToDataUrl(file) {
   });
 }
 
-// Simple multi-image picker with thumbnail previews. Stores images as
-// base64 data URLs directly on the report document (no file-storage
-// service wired up yet) -- fine for course-project scale.
 export default function ImageUploader({ images, onChange }) {
   const inputRef = useRef(null);
 
   async function handleFiles(e) {
-    const files = Array.from(e.target.files || []).slice(0, MAX_IMAGES - images.length);
+    const MAX_SIZE = 1024 * 1024; // 1 MB
+
+    const files = Array.from(e.target.files || []).filter(file => file.size <= MAX_SIZE).slice(0, MAX_IMAGES - images.length);
+
+    if (files.length === 0) {
+      alert("Please upload images smaller than 1 MB.");
+      return;
+    }
     const dataUrls = await Promise.all(files.map(fileToDataUrl));
     onChange([...images, ...dataUrls]);
     e.target.value = "";
+    
   }
 
   function removeAt(index) {
