@@ -11,12 +11,12 @@ mern-heritage/
 │   ├── scripts/seed.js   loads the same sample data the SQL dump had
 │   └── server.js
 ├── frontend/            React (Vite) app
-│   └── src/
-│       ├── pages/arc, mm, sc, admin   one folder per role
-│       ├── context/AuthContext.jsx    current user + login/logout
-│       ├── components/                Navbar, ProtectedRoute
-│       └── api.js                     fetch wrapper
-└── docs/                 the original schema PDF + SQL dump, for reference
+    └── src/
+        ├── pages/arc, mm, sc, admin   one folder per role
+        ├── context/AuthContext.jsx    current user + login/logout
+        ├── components/                Navbar, ProtectedRoute
+        └── api.js                     fetch wrapper
+
 ```
 
 ## Running it locally
@@ -27,7 +27,6 @@ MongoDB Atlas cluster — either works, just change `MONGO_URI`).
 ```bash
 # 1. Backend
 cd backend
-cp .env.example .env       # edit MONGO_URI / JWT_SECRET if needed
 npm install
 npm run seed               # loads the sample data (same as the SQL dump)
 npm run dev                # starts on http://localhost:5555
