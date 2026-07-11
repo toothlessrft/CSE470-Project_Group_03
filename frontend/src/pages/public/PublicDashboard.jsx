@@ -1,13 +1,13 @@
-import { Landmark, MapPin, FileText, Images } from "lucide-react";
+import { Landmark, MapPin, FileText, Images, Search } from "lucide-react";
 import ActionGrid from "../../components/ActionGrid";
 
 export default function PublicDashboard() {
   const actions = [
     {
-      to: "/gallery",
-      icon: Images,
-      title: "Artifact Gallery",
-      description: "Browse historical artifacts and discoveries. (Coming Soon)",
+      to: "/search",
+      icon: Search,
+      title: "Smart Artifact Search",
+      description: "Search artifacts by civilization, era, region, material, usage, or location.",
     },
     {
       to: "/heritage-sites",

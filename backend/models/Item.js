@@ -46,6 +46,14 @@ const itemSchema = new Schema(
       default: "other",
     },
     specialization: specializationSchema,
+
+    // Smart Artifact Search Engine - searchable tags, optional so existing
+    // AddItem flow keeps working even if these are left blank.
+    civilization: { type: String, trim: true },
+    era: { type: String, trim: true },
+    region: { type: String, trim: true },
+    material: { type: String, trim: true },
+    usage: { type: String, trim: true },
   },
   { timestamps: true }
 );

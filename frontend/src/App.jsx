@@ -39,6 +39,8 @@ import AssignInspection from "./pages/admin/AssignInspection";
 import RequestLoan from "./pages/mm/RequestLoan";
 import MyLoanRequests from "./pages/mm/MyLoanRequests";
 import IncomingLoanRequests from "./pages/mm/IncomingLoanRequests";
+import ArtifactSearch from "./pages/public/ArtifactSearch";
+
 
 export default function App() {
   return (
@@ -195,13 +197,17 @@ export default function App() {
 
         {/* Public */}
         <Route
-    path="/public/dashboard"
-    element={
-        <ProtectedRoute roles={["public"]}>
+        path="/public/dashboard"
+        element={
+          <ProtectedRoute roles={["public"]}>
             <PublicDashboard />
-        </ProtectedRoute>
-    }
-/>
+          </ProtectedRoute>
+        }
+        />
+        <Route 
+          path="/search" 
+          element={<ArtifactSearch />} 
+        />
 
         {/* Admin */}
         <Route

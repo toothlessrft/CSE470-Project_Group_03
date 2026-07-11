@@ -11,6 +11,11 @@ const siteSchema = new Schema(
     description: String,
     architecture: String,
     pictures: String,
+
+    // Smart Artifact Search Engine - lets the map view plot this site.
+    // Optional: sites without coordinates simply won't have a pin.
+    latitude: { type: Number, default: null },
+    longitude: { type: Number, default: null },
   },
   { timestamps: true }
 );
