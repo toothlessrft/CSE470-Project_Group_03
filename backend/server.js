@@ -11,6 +11,7 @@ const adminRoutes = require("./routes/admin");
 const museumManagerRoutes = require("./routes/museumManager");
 const siteCaretakerRoutes = require("./routes/siteCaretaker");
 const reportsRoutes = require("./routes/reports");
+const artifactLoanRoutes = require("./routes/artifactLoan");
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.use("/api/admin", approvalRoutes);
 app.use("/api/arc", archaeologistRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/mm", museumManagerRoutes);
+app.use("/api/loans", artifactLoanRoutes);
 app.use("/api/sc", siteCaretakerRoutes);
 app.use("/api/reports", reportsRoutes);
 
