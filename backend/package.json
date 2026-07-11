@@ -1,7 +1,7 @@
 {
   "name": "heritage-backend",
   "version": "1.0.0",
-  "description": "MERN backend for the Archaeological Heritage Management System (converted from Flask/MySQL base)",
+  "description": "MERN backend for the Archaeological Heritage Management System: ArchiveEARTH",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
