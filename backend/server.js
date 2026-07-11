@@ -12,6 +12,7 @@ const museumManagerRoutes = require("./routes/museumManager");
 const siteCaretakerRoutes = require("./routes/siteCaretaker");
 const reportsRoutes = require("./routes/reports");
 const artifactLoanRoutes = require("./routes/artifactLoan");
+const searchRoutes = require("./routes/search");
 
 const app = express();
 
@@ -35,6 +36,7 @@ app.use("/api/mm", museumManagerRoutes);
 app.use("/api/loans", artifactLoanRoutes);
 app.use("/api/sc", siteCaretakerRoutes);
 app.use("/api/reports", reportsRoutes);
+app.use("/api/search", searchRoutes);
 
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));

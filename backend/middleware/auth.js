@@ -34,4 +34,20 @@ function requireRole(...allowedRoles) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+// For public routes (like Smart Artifact Search) that everyone can access,
+// but should show more detail to logged-in users. Never blocks the request -
+// it just attaches req.user when a valid session cookie is present.
+async function optionalAuth(req, res, next) {
+  try {
+    const token = req.cookies?.token;
+    if (!token) return next();
+    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(payload.id);
+    if (user) req.user = user;
+  } catch (err) {
+    // Bad/expired token on a public route - just treat them as a guest.
+  }
+  next();
+}
+
+module.exports = { requireAuth, requireRole, optionalAuth };

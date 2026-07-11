@@ -1,5 +1,5 @@
 import { Link, Navigate } from "react-router-dom";
-import { MapPin, ScanSearch, Users, Landmark, Globe2 } from "lucide-react";
+import { MapPin, ScanSearch, Users, Landmark, Globe2, Search } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ROLE_HOME } from "../context/AuthContext";
 
@@ -32,8 +32,32 @@ export default function Home() {
   <Link className="btn btn-outline" to="/register">
     Create an account
   </Link>
+  <Link className="btn btn-outline" to="/search">
+    <Search size={16} /> Search Artifacts
+  </Link>
 </div>
       </section>
+
+      <div
+        className="card"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "1rem",
+          flexWrap: "wrap",
+        }}
+      >
+        <div>
+          <h3 style={{ margin: "0 0 0.4rem" }}>Explore the artifact knowledge hub</h3>
+          <p style={{ margin: 0, color: "#8a7a68" }}>
+            Search artifacts by civilization, era, region, material, usage, or discovery location - no account needed.
+          </p>
+        </div>
+        <Link className="btn" to="/search">
+          <Search size={16} /> Start Searching
+        </Link>
+      </div>
 
       <h2 className="section-title">Built for every role</h2>
       <div className="role-grid">
