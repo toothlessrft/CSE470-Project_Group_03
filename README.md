@@ -10,7 +10,7 @@ mern-heritage/
 │   ├── middleware/       auth.js (JWT + role guard)
 │   ├── scripts/seed.js   loads the same sample data the SQL dump had
 │   └── server.js
-├── frontend/            React (Vite) app
+└── frontend/            React (Vite) app
     └── src/
         ├── pages/arc, mm, sc, admin   one folder per role
         ├── context/AuthContext.jsx    current user + login/logout
