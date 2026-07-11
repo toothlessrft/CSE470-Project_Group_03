@@ -46,17 +46,17 @@ async function run() {
 
   console.log("Creating users...");
   const [alice, bob, charlie, dina, adcd, fatima, tariq, nusrat, rahim, sultana, jamal] = await User.create([
-    { nid: "A001", role: "archaeologist", name: "Alice Rahman", email: "alice@g.bracu.ac.bd", phone: "+8801712345678", password: hash, roleProfile: { affiliation: "BRAC University", biography: "Expert in ancient South Asian sites." } },
-    { nid: "A002", role: "archaeologist", name: "Bob Karim", email: "bob@g.bracu.ac.bd", phone: "+8801723456789", password: hash, roleProfile: { affiliation: "BRAC University", biography: "Specialist in Mughal architecture." } },
-    { nid: "A003", role: "archaeologist", name: "Charlie Hasan", email: "charlie@g.bracu.ac.bd", phone: "+8801734567890", password: hash, roleProfile: { affiliation: "BRAC University", biography: "Focus on archaeological excavation methods." } },
-    { nid: "AD001", role: "admin", name: "System Administrator", email: "admin@gov.bd", phone: "+8801745678901", password: hash, roleProfile: { administration: "Department of Archaeology" } },
-    { nid: "adcd", role: "manager", name: "adcd", email: "adcd@kisuekta.com", phone: "34567", password: hash },
-    { nid: "MM001", role: "museum_manager", name: "Fatima Begum", email: "fatima.begum@bracu.ac.bd", phone: "+8801789012345", password: hash, roleProfile: { museum_name: "National Museum of Bangladesh", m_city: "Dhaka", m_street: "Shahbag Avenue" } },
-    { nid: "MM002", role: "museum_manager", name: "Tariq Islam", email: "tariq.islam@bracu.ac.bd", phone: "+8801790123456", password: hash, roleProfile: { museum_name: "Bangladesh Folk Art Museum", m_city: "Dhaka", m_street: "Sonargaon Road" } },
-    { nid: "MM003", role: "museum_manager", name: "Nusrat Jahan", email: "nusrat.jahan@bracu.ac.bd", phone: "+8801801234567", password: hash, roleProfile: { museum_name: "Varendra Research Museum", m_city: "Rajshahi", m_street: "University Road" } },
-    { nid: "SC001", role: "site_caretaker", name: "Rahim Khan", email: "rahim.khan@outlook.com", phone: "+8801756789012", password: hash, roleProfile: { site: mahasthangarh._id, budget: 50000 } },
-    { nid: "SC002", role: "site_caretaker", name: "Sultana Ahmed", email: "sultana.ahmed@outlook.com", phone: "+8801767890123", password: hash, roleProfile: { site: somapura._id, budget: 75000 } },
-    { nid: "SC003", role: "site_caretaker", name: "Jamal Uddin", email: "jamal.uddin@outlook.com", phone: "+8801778901234", password: hash, roleProfile: { site: mainamati._id, budget: 60000 } },
+    { nid: "A001", role: "archaeologist", status: "approved", name: "Alice Rahman", email: "alice@g.bracu.ac.bd", phone: "+8801712345678", password: hash, roleProfile: { affiliation: "BRAC University", biography: "Expert in ancient South Asian sites." } },
+    { nid: "A002", role: "archaeologist", status: "approved", name: "Bob Karim", email: "bob@g.bracu.ac.bd", phone: "+8801723456789", password: hash, roleProfile: { affiliation: "BRAC University", biography: "Specialist in Mughal architecture." } },
+    { nid: "A003", role: "archaeologist", status: "approved", name: "Charlie Hasan", email: "charlie@g.bracu.ac.bd", phone: "+8801734567890", password: hash, roleProfile: { affiliation: "BRAC University", biography: "Focus on archaeological excavation methods." } },
+    { nid: "AD001", role: "admin", status: "approved", name: "System Administrator", email: "admin@gov.bd", phone: "+8801745678901", password: hash, roleProfile: { administration: "Department of Archaeology" } },
+    { nid: "adcd", role: "manager", status: "approved", name: "adcd", email: "adcd@kisuekta.com", phone: "34567", password: hash },
+    { nid: "MM001", role: "museum_manager", status: "approved", name: "Fatima Begum", email: "fatima.begum@bracu.ac.bd", phone: "+8801789012345", password: hash, roleProfile: { museum_name: "National Museum of Bangladesh", m_city: "Dhaka", m_street: "Shahbag Avenue" } },
+    { nid: "MM002", role: "museum_manager", status: "approved", name: "Tariq Islam", email: "tariq.islam@bracu.ac.bd", phone: "+8801790123456", password: hash, roleProfile: { museum_name: "Bangladesh Folk Art Museum", m_city: "Dhaka", m_street: "Sonargaon Road" } },
+    { nid: "MM003", role: "museum_manager", status: "approved", name: "Nusrat Jahan", email: "nusrat.jahan@bracu.ac.bd", phone: "+8801801234567", password: hash, roleProfile: { museum_name: "Varendra Research Museum", m_city: "Rajshahi", m_street: "University Road" } },
+    { nid: "SC001", role: "site_caretaker", status: "approved", name: "Rahim Khan", email: "rahim.khan@outlook.com", phone: "+8801756789012", password: hash, roleProfile: { site: mahasthangarh._id, budget: 50000 } },
+    { nid: "SC002", role: "site_caretaker", status: "approved", name: "Sultana Ahmed", email: "sultana.ahmed@outlook.com", phone: "+8801767890123", password: hash, roleProfile: { site: somapura._id, budget: 75000 } },
+    { nid: "SC003", role: "site_caretaker", status: "approved", name: "Jamal Uddin", email: "jamal.uddin@outlook.com", phone: "+8801778901234", password: hash, roleProfile: { site: mainamati._id, budget: 60000 } },
   ]);
 
   console.log("Creating excavation project + request...");
