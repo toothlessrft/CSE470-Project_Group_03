@@ -40,6 +40,7 @@ import RequestLoan from "./pages/mm/RequestLoan";
 import MyLoanRequests from "./pages/mm/MyLoanRequests";
 import IncomingLoanRequests from "./pages/mm/IncomingLoanRequests";
 import ArtifactSearch from "./pages/public/ArtifactSearch";
+import KnowledgeHub from "./pages/KnowledgeHub";
 
 
 export default function App() {
@@ -207,6 +208,10 @@ export default function App() {
         <Route 
           path="/search" 
           element={<ArtifactSearch />} 
+        />
+        <Route 
+          path="/knowledge" 
+          element={<KnowledgeHub />} 
         />
 
         {/* Admin */}

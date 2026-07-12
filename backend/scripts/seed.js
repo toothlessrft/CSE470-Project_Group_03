@@ -14,6 +14,7 @@ const ItemRequest = require("../models/ItemRequest");
 const Tool = require("../models/Tool");
 const ToolRentalRequest = require("../models/ToolRentalRequest");
 const RequestMaintenance = require("../models/RequestMaintenance");
+const KnowledgeResource = require("../models/KnowledgeResource");
 
 const DEFAULT_PASSWORD = "password123"; // every seeded user gets this password
 
@@ -32,6 +33,7 @@ async function run() {
     Tool.deleteMany({}),
     ToolRentalRequest.deleteMany({}),
     RequestMaintenance.deleteMany({}),
+    KnowledgeResource.deleteMany({}),
   ]);
 
   const hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
@@ -145,6 +147,58 @@ async function run() {
     { site: mainamati._id, caretaker: jamal._id, damage: "Visitor pathway has deteriorated and become unsafe. Needs resurfacing and safety railings installed.", approved_budget: 10000, repair_cost: 12000, status: "Approved" },
     { site: mahasthangarh._id, caretaker: rahim._id, damage: "Drainage system around the site is clogged and causing water accumulation during rains. Needs cleaning and repair.", approved_budget: 8000, repair_cost: 8000, status: "Approved", admin: dina._id },
     { site: somapura._id, caretaker: sultana._id, damage: "Security fencing has been damaged in several sections. Needs replacement to prevent unauthorized access.", repair_cost: 18000, status: "Pending" },
+  ]);
+
+  console.log("Creating knowledge resources...");
+  await KnowledgeResource.create([
+    {
+      title: "Excavation and Analysis of Somapura Mahavihara",
+      type: "research_paper",
+      author: "Dr. Alice Rahman",
+      content: "A comprehensive archaeological study documenting the architectural evolution and terracotta plaques discovered at Somapura Mahavihara during the 2024 excavation season.",
+      url: "https://example.com/papers/somapura-excavation-2024.pdf",
+      addedBy: alice._id,
+    },
+    {
+      title: "Pala Period Art and Iconography",
+      type: "book",
+      author: "Bob Karim",
+      content: "An extensive book describing the rich iconographic patterns and artistic traditions of the Pala empire in ancient Bengal, focusing on bronze sculptures.",
+      url: "https://example.com/books/pala-period-art.pdf",
+      addedBy: bob._id,
+    },
+    {
+      title: "Discovering Pundravardhana: The Mahasthan Chronicles",
+      type: "article",
+      author: "Alice Rahman",
+      content: "A detailed article exploring the history of Mahasthangarh, one of the earliest urban archaeological sites in Bangladesh, tracing its roots to the 3rd century BCE.",
+      url: "https://example.com/articles/mahasthan-chronicles.html",
+      addedBy: alice._id,
+    },
+    {
+      title: "The Epigraphic Records of Mainamati Sites",
+      type: "historical_reference",
+      author: "National Museum Archives",
+      content: "A reference guide detailing the copperplate inscriptions and royal charters discovered across Mainamati temples, verifying land grants of the Chandra and Deva dynasties.",
+      url: "https://example.com/references/mainamati-epigraphy.pdf",
+      addedBy: dina._id,
+    },
+    {
+      title: "Walking Through Somapura: A Video Tour",
+      type: "vlog_audio",
+      author: "Dr. Alice Rahman",
+      content: "A vlog showcasing the spatial layout of Paharpur Buddhist Vihara, with narration detailing the structural significance of the central temple tower.",
+      url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+      addedBy: alice._id,
+    },
+    {
+      title: "Audio Diary: Day 42 at Mahasthangarh Dig Site",
+      type: "vlog_audio",
+      author: "Bob Karim",
+      content: "An audio journal recording the exciting discovery of a new bronze sword and associated pottery shards near the eastern ramparts.",
+      url: "https://example.com/audio/mahasthan-day42.mp3",
+      addedBy: bob._id,
+    }
   ]);
 
   console.log("\nDone! Every seeded user's password is:", DEFAULT_PASSWORD);

@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Landmark, MapPin, FileText, ScanSearch, ClipboardList, LogOut, Search } from "lucide-react";
+import { Landmark, MapPin, FileText, ScanSearch, ClipboardList, LogOut, Search, BookOpen } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
@@ -34,6 +34,7 @@ export default function Navbar() {
       </Link>
       <div className="nav-right">
         <Link to="/search"><Search size={15} /> Search Artifacts</Link>
+        <Link to="/knowledge"><BookOpen size={15} /> Knowledge Hub</Link>
         {user ? (
           <>
             <Link to="/report-discovery"><MapPin size={15} /> Report Discovery</Link>

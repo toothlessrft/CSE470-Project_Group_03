@@ -13,6 +13,7 @@ const siteCaretakerRoutes = require("./routes/siteCaretaker");
 const reportsRoutes = require("./routes/reports");
 const artifactLoanRoutes = require("./routes/artifactLoan");
 const searchRoutes = require("./routes/search");
+const knowledgeRoutes = require("./routes/knowledge");
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use("/api/loans", artifactLoanRoutes);
 app.use("/api/sc", siteCaretakerRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/knowledge", knowledgeRoutes);
 
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
