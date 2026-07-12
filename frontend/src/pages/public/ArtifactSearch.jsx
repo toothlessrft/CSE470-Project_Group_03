@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Search, MapPin, LayoutGrid, X } from "lucide-react";
+import { Search, MapPin, LayoutGrid, X, Plus, Edit, Trash2 } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import ArtifactResultsMap from "../../components/ArtifactResultsMap";
@@ -27,6 +27,18 @@ export default function ArtifactSearch() {
 
   const [sites, setSites] = useState([]);
   const [selectedSite, setSelectedSite] = useState(null);
+
+  // Add/Edit Artifact Modal State
+  const [showModal, setShowModal] = useState(false);
+  const [editingItem, setEditingItem] = useState(null);
+  const [itemForm, setItemForm] = useState({
+    name: "", picture: "", description: "", location: "Govt. repository",
+    civilization: "", era: "", region: "", material: "", usage: "",
+    latitude: "", longitude: "", site_name: ""
+  });
+  const [modalBusy, setModalBusy] = useState(false);
+  const [modalError, setModalError] = useState("");
+
 
   useEffect(() => {
     api.get("/search/filters").then(setOptions);
@@ -84,6 +96,38 @@ export default function ArtifactSearch() {
     runQuery({});
   }
 
+  async function handleDeleteItem(id) {
+    if (!window.confirm("Are you sure you want to delete this artifact? This cannot be undone.")) return;
+    try {
+      await api.del(`/items/${id}`);
+      setResults((prev) => prev.filter((item) => item._id !== id));
+    } catch (err) {
+      alert(err.message || "Could not delete artifact.");
+    }
+  }
+
+  async function handleModalSubmit(e) {
+    e.preventDefault();
+    setModalError("");
+    setModalBusy(true);
+
+    try {
+      if (editingItem) {
+        await api.put(`/items/${editingItem._id}`, itemForm);
+      } else {
+        await api.post(`/items`, itemForm);
+      }
+
+      setShowModal(false);
+      // Reload current query
+      runQuery({ ...filters, ...(selectedSite ? { site: selectedSite._id } : {}), ...(q ? { q } : {}) });
+    } catch (err) {
+      setModalError(err.message);
+    } finally {
+      setModalBusy(false);
+    }
+  }
+
   return (
     <div className="page">
       <h1>Smart Artifact Search</h1>
@@ -125,13 +169,21 @@ export default function ArtifactSearch() {
       </form>
 
       {/* Buttons that reveal the filter panel / map panel - closed by default */}
-      <div className="link-grid" style={{ marginBottom: "1rem" }}>
-        <button className={panelOpen === "filters" ? "btn" : "btn-small"} onClick={() => togglePanel("filters")}>
-          <LayoutGrid size={15} /> Filter Search
-        </button>
-        <button className={panelOpen === "map" ? "btn" : "btn-small"} onClick={() => togglePanel("map")}>
-          <MapPin size={15} /> Search by Location
-        </button>
+      <div className="link-grid" style={{ marginBottom: "1rem", display: "flex", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button className={panelOpen === "filters" ? "btn" : "btn-small"} onClick={() => togglePanel("filters")}>
+            <LayoutGrid size={15} /> Filter Search
+          </button>
+          <button className={panelOpen === "map" ? "btn" : "btn-small"} onClick={() => togglePanel("map")}>
+            <MapPin size={15} /> Search by Location
+          </button>
+        </div>
+
+        {user?.role === "archaeologist" && (
+          <button className="btn" onClick={() => { setEditingItem(null); setItemForm({ name: "", picture: "", description: "", location: "Govt. repository", civilization: "", era: "", region: "", material: "", usage: "", latitude: "", longitude: "", site_name: "" }); setShowModal(true); setModalError(""); }}>
+            <Plus size={15} /> Add Artifact
+          </button>
+        )}
       </div>
 
       {panelOpen === "filters" && (
@@ -230,10 +282,97 @@ export default function ArtifactSearch() {
                 {item.district && <>Location: {item.thana ? `${item.thana}, ` : ""}{item.district}</>}
               </p>
             )}
+
+            {user?.role === "archaeologist" && (
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
+                <button
+                  className="btn-small btn-outline"
+                  style={{ color: "var(--primary)", borderColor: "var(--primary)" }}
+                  onClick={() => {
+                    setEditingItem(item);
+                    setItemForm({
+                      name: item.name || "",
+                      picture: item.picture || "",
+                      description: item.description || "",
+                      location: item.location || "",
+                      civilization: item.civilization || "",
+                      era: item.era || "",
+                      region: item.region || "",
+                      material: item.material || "",
+                      usage: item.usage || "",
+                      latitude: "",
+                      longitude: "",
+                      site_name: ""
+                    });
+                    setModalError("");
+                    setShowModal(true);
+                  }}
+                >
+                  <Edit size={14} /> Edit
+                </button>
+                <button
+                  className="btn-small"
+                  style={{ color: "#fff", background: "var(--danger, #c0392b)", border: "none" }}
+                  onClick={() => handleDeleteItem(item._id)}
+                  title="Delete artifact"
+                >
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+            )}
           </div>
         ))}
         {!loading && results.length === 0 && <p>No artifacts match this search yet.</p>}
       </div>
+
+      {showModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div className="card" style={{ width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto", margin: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h2>{editingItem ? "Edit Artifact" : "Add New Artifact"}</h2>
+              <button className="btn-link" onClick={() => setShowModal(false)}><X size={20} /></button>
+            </div>
+
+            {modalError && <div className="alert alert-danger">{modalError}</div>}
+
+            <form onSubmit={handleModalSubmit} className="form">
+              <label>Artifact Name required <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} required /></label>
+              <label>Description <textarea rows={3} value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} /></label>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <label>Civilization <input value={itemForm.civilization} onChange={e => setItemForm(f => ({ ...f, civilization: e.target.value }))} /></label>
+                <label>Era <input value={itemForm.era} onChange={e => setItemForm(f => ({ ...f, era: e.target.value }))} /></label>
+                <label>Region <input value={itemForm.region} onChange={e => setItemForm(f => ({ ...f, region: e.target.value }))} /></label>
+                <label>Material <input value={itemForm.material} onChange={e => setItemForm(f => ({ ...f, material: e.target.value }))} /></label>
+                <label>Usage <input value={itemForm.usage} onChange={e => setItemForm(f => ({ ...f, usage: e.target.value }))} /></label>
+                <label>Current Location <input value={itemForm.location} onChange={e => setItemForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. Govt. repository" /></label>
+              </div>
+
+              {!editingItem && (
+                <fieldset>
+                  <legend>Discovery Location (Optional)</legend>
+                  <p className="hint">If this artifact is completely new, you can provide its GPS coordinates.</p>
+                  <label>Latitude <input type="number" step="any" value={itemForm.latitude} onChange={e => setItemForm(f => ({ ...f, latitude: e.target.value }))} /></label>
+                  <label>Longitude <input type="number" step="any" value={itemForm.longitude} onChange={e => setItemForm(f => ({ ...f, longitude: e.target.value }))} /></label>
+                </fieldset>
+              )}
+
+              {editingItem && (
+                <fieldset>
+                  <legend>Update Discovery Location (Optional)</legend>
+                  <p className="hint">Overwrites existing location coordinates for this artifact&apos;s site.</p>
+                  <label>Latitude <input type="number" step="any" value={itemForm.latitude} onChange={e => setItemForm(f => ({ ...f, latitude: e.target.value }))} placeholder="Leave blank to keep existing" /></label>
+                  <label>Longitude <input type="number" step="any" value={itemForm.longitude} onChange={e => setItemForm(f => ({ ...f, longitude: e.target.value }))} placeholder="Leave blank to keep existing" /></label>
+                </fieldset>
+              )}
+
+              <button type="submit" className="btn" disabled={modalBusy}>
+                {modalBusy ? "Saving..." : (editingItem ? "Save Changes" : "Create Artifact")}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

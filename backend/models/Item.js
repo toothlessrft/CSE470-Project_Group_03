@@ -42,7 +42,7 @@ const itemSchema = new Schema(
     A_flag: { type: String, enum: ["yes", "no"], default: "yes" },
     Type: {
       type: String,
-      enum: ["Pottery", "Metal_Object", "Paintings", "Human_Remains", "other"],
+      enum: ["Pottery", "Metal_Object", "Paintings", "Human_Remains", "Rock", "Jewelry", "Bone/Ivory", "other"],
       default: "other",
     },
     specialization: specializationSchema,

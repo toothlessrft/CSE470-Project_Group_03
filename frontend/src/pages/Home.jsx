@@ -1,5 +1,5 @@
-import { Link, Navigate } from "react-router-dom";
-import { MapPin, ScanSearch, Users, Landmark, Globe2, Search } from "lucide-react";
+import { Link } from "react-router-dom";
+import { MapPin, ScanSearch, Users, Landmark, Globe2, Search, LayoutDashboard } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ROLE_HOME } from "../context/AuthContext";
 
@@ -11,12 +11,16 @@ const ROLES = [
   { icon: MapPin, label: "General Public", description: "Report a newly discovered artifact" },
 ];
 
+const ROLE_LABELS = {
+  admin: "Admin",
+  archaeologist: "Archaeologist",
+  museum_manager: "Museum Manager",
+  site_caretaker: "Site Caretaker",
+  public: "Public Member",
+};
+
 export default function Home() {
   const { user } = useAuth();
-
-  if (user) {
-  return <Navigate to={ROLE_HOME[user.role] || "/"} replace />;
-}
 
   return (
     <div className="page">
@@ -28,14 +32,21 @@ export default function Home() {
           museum collaboration, and public engagement.
         </p>
         <div className="hero-actions">
-  <Link className="btn" to="/login">Log in</Link>
-  <Link className="btn btn-outline" to="/register">
-    Create an account
-  </Link>
-  <Link className="btn btn-outline" to="/search">
-    <Search size={16} /> Search Artifacts
-  </Link>
-</div>
+          {user ? (
+            <>
+              <Link className="btn" to={ROLE_HOME[user.role] || "/"}>
+                <LayoutDashboard size={16} /> My Dashboard ({ROLE_LABELS[user.role] || user.role})
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link className="btn" to="/login">Log in</Link>
+              <Link className="btn btn-outline" to="/register">
+                Create an account
+              </Link>
+            </>
+          )}
+        </div>
       </section>
 
       <div

@@ -15,6 +15,12 @@ export default function PublicDashboard() {
       title: "Heritage Sites",
       description: "Explore famous heritage locations. (Coming Soon)",
     },
+    {
+      to: "/my-reports",
+      icon: FileText,
+      title: "My Reports",
+      description: "Track the status of discoveries you have submitted to ArchiveEARTH.",
+    },
   ];
 
   return (
