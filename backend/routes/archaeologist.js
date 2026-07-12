@@ -8,6 +8,7 @@ const Item = require("../models/Item");
 const Tool = require("../models/Tool");
 const ToolRentalRequest = require("../models/ToolRentalRequest");
 const DiscoveryReport = require("../models/DiscoveryReport");
+const ResearcherReport = require("../models/ResearcherReport"); // Researcher Report: Ahad
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
@@ -34,7 +35,15 @@ router.get("/sites", async (req, res) => {
   res.json({ sites });
 });
 
-// GET/POST /api/arc/request_excavation  (was /arc/request_excavation)
+// GET /api/arc/request_excavation -> Fetch all existing requests for this archaeologist
+router.get("/request_excavation", async (req, res) => {
+  const requests = await ExcavationRequest.find({ archaeologist: req.user._id })
+    .populate("site", "name era")
+    .sort("-createdAt");
+  res.json({ requests });
+});
+
+// POST /api/arc/request_excavation
 router.post("/request_excavation", async (req, res) => {
   try {
     const { existing_site, new_site_name, era, description, architecture, proposal, budget } = req.body;
@@ -231,8 +240,19 @@ router.post("/projects/:id/items", async (req, res) => {
 router.get("/assignments", async (req, res) => {
   const reports = await DiscoveryReport.find({ "assignment.researcher": req.user._id })
     .populate("reporter", "name email phone")
-    .sort("-assignment.assigned_at");
-  res.json({ reports });
+    .sort("-assignment.assigned_at")
+    .lean();
+
+  // Find all researcher reports mapped to these discovery reports
+  const discoveryIds = reports.map(r => r._id);
+  const researcherReports = await ResearcherReport.find({ discoveryReport: { $in: discoveryIds } }).lean();
+
+  const reportsWithStatus = reports.map(r => {
+    const rReport = researcherReports.find(rr => rr.discoveryReport.toString() === r._id.toString());
+    return { ...r, researcherReportStatus: rReport ? rReport.status : null };
+  });
+
+  res.json({ reports: reportsWithStatus });
 });
 
 // POST /api/arc/assignments/:id/verify -> submit field verification result

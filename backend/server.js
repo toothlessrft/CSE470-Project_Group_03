@@ -13,6 +13,8 @@ const siteCaretakerRoutes = require("./routes/siteCaretaker");
 const reportsRoutes = require("./routes/reports");
 const artifactLoanRoutes = require("./routes/artifactLoan");
 const searchRoutes = require("./routes/search");
+const itemsRoutes = require("./routes/items");
+const researcherReportRoutes = require("./routes/researcherReport"); //Researcher Report: Ahad
 const knowledgeRoutes = require("./routes/knowledge");
 
 const app = express();
@@ -38,6 +40,8 @@ app.use("/api/loans", artifactLoanRoutes);
 app.use("/api/sc", siteCaretakerRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/items", itemsRoutes);
+app.use("/api/researcher-report", researcherReportRoutes); //Researcher Report: Ahad
 app.use("/api/knowledge", knowledgeRoutes);
 
 // 404 fallback

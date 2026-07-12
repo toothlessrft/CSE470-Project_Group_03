@@ -16,7 +16,7 @@ export default function ArcDashboard() {
   const actions = [
     { to: "/arc/request-excavation", icon: MapPinned, title: "Request Excavation", description: "Propose a new or existing dig site" },
     { to: "/arc/projects", icon: FolderKanban, title: "Manage Projects", description: "Teams, tools, items, and site details" },
-    { to: "/arc/assignments", icon: ClipboardList, title: "Field Inspections", description: "Discoveries assigned to you for verification" },
+    { to: "/arc/assignments", icon: ClipboardList, title: "Field Inspections & Reports", description: "Verify assigned discoveries and compile researcher reports" },
   ];
 
   return (

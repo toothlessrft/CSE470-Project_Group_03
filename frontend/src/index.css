@@ -33,7 +33,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4 {
+h1,
+h2,
+h3,
+h4 {
   font-family: "Poppins", "Inter", sans-serif;
   color: var(--primary-dark);
   line-height: 1.25;
@@ -53,7 +56,7 @@ h1 {
   padding: 0.9rem 1.75rem;
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 1000;
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
 }
 
@@ -119,10 +122,15 @@ h1 {
 
 .nav-user {
   font-size: 0.85rem;
-  color: rgba(255, 255, 255, 0.85);
-  margin: 0 0.5rem 0 0.75rem;
-  padding-left: 0.75rem;
-  border-left: 1px solid rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.9);
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-user:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
 }
 
 .page {
