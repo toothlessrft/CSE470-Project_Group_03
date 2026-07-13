@@ -348,6 +348,12 @@ fieldset legend {
   border-color: #c3e6cb;
 }
 
+.alert-info {
+  background: #fbf7f0;
+  color: var(--primary-dark);
+  border-color: var(--border);
+}
+
 .hint {
   font-size: 0.85rem;
   color: var(--muted);

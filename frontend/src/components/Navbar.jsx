@@ -32,7 +32,7 @@ export default function Navbar() {
       {/* ArchiveEarth logo goes to the general informational homepage */}
       <Link to="/" className="brand">
         <Landmark size={20} strokeWidth={2.2} />
-        ArchiveEARTH
+        ArchiveEarth
       </Link>
       <div className="nav-right">
         <Link to="/search"><Search size={15} /> Search Artifacts</Link>

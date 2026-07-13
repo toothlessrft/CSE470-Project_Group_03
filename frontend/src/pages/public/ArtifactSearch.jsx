@@ -136,7 +136,7 @@ export default function ArtifactSearch() {
       </p>
 
       {!user && (
-        <div className="alert alert-success">
+        <div className="alert alert-info">
           You're browsing as a guest, so descriptions are shortened and provenance details are hidden.{" "}
           <a href="/register">Register</a> or <a href="/login">log in</a> for full access to the knowledge hub.
         </div>

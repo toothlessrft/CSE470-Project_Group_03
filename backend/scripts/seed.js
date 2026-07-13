@@ -156,6 +156,21 @@ async function run() {
     { site: bhitagarh, name: "Fortification Brick Stamp", description: "Kiln-stamped brick from the outer rampart", discovery_date: "2024-08-14", Type: "Pottery", civilization: "Pundravardhana", era: "4th Century CE", region: "Panchagarh", material: "Terracotta", usage: "Structural" },
     { site: bhitagarh, name: "Copper Alloy Ring", description: "Plain finger ring recovered from the moat silt", discovery_date: "2024-08-19", Type: "Metal_Object", civilization: "Early Historic Bengal", era: "5th Century CE", region: "Panchagarh", material: "Copper Alloy", usage: "Ornament" },
     { site: bhitagarh, name: "Grey Ware Bowl", description: "Wheel-thrown grey ware serving bowl", discovery_date: "2024-09-02", Type: "Pottery", civilization: "Early Historic Bengal", era: "3rd Century CE", region: "Panchagarh", material: "Ceramic", usage: "Household Vessel" },
+    { site: mainamati, name: "Bronze Vajra", description: "Ritual thunderbolt used in Vajrayana Buddhism worship", discovery_date: "2018-05-12", Type: "Metal_Object", civilization: "Candra Dynasty", era: "10th Century CE", region: "Comilla", material: "Bronze", usage: "Ritual" },
+    { site: mainamati, name: "Silver Dinars", description: "Hoard of Abbasid and local silver coins indicating trade", discovery_date: "2019-11-20", Type: "Metal_Object", civilization: "Harikela", era: "8th Century CE", region: "Comilla", material: "Silver", usage: "Currency" },
+    { site: mahasthangarh, name: "Northern Black Polished Ware Bowl", description: "Highly lustrous fine pottery from early urbanization period", discovery_date: "2020-03-14", Type: "Pottery", civilization: "Mauryan", era: "3rd Century BCE", region: "Bogra", material: "Ceramic", usage: "Luxury Goods" },
+    { site: somapura, name: "Terracotta Plaque - Monkey", description: "Detailed plaque showing a monkey holding a fruit", discovery_date: "2021-01-22", Type: "Pottery", civilization: "Pala", era: "8th Century CE", region: "Naogaon", material: "Terracotta", usage: "Decorative Architecture" },
+    { site: somapura, name: "Stone Reliquary", description: "Carved stone casket containing small ashes and beads", discovery_date: "2017-09-05", Type: "Rock", civilization: "Pala", era: "9th Century CE", region: "Naogaon", material: "Sandstone", usage: "Religious Container" },
+    { site: wari_bateshwar, name: "Knobbed Vessel Fragment", description: "Base of a high-tin bronze knobbed vessel", discovery_date: "2015-02-18", Type: "Metal_Object", civilization: "Early Historic Bengal", era: "3rd Century BCE", region: "Narsingdi", material: "Bronze", usage: "Ritual/Luxury" },
+    { site: paundra, name: "Sunga Terracotta Female Figurine", description: "Exquisitely molded figurine with elaborate headdress", discovery_date: "2022-06-11", Type: "Pottery", civilization: "Sunga", era: "2nd Century BCE", region: "Bogra", material: "Terracotta", usage: "Votive/Decorative" },
+    { site: paundra, name: "Carved Ivory Dice", description: "Elongated cubical dice with circled dot markings", discovery_date: "2023-08-30", Type: "Bone/Ivory", civilization: "Gupta", era: "5th Century CE", region: "Bogra", material: "Ivory", usage: "Gaming" },
+    { site: bhitagarh, name: "Iron Slag and Crucible Fragments", description: "Evidence of local iron smelting and forging", discovery_date: "2024-08-25", Type: "Metal_Object", civilization: "Pundravardhana", era: "4th Century CE", region: "Panchagarh", material: "Iron/Ceramic", usage: "Industrial" },
+    { site: mahasthangarh, name: "Gold Amulet", description: "Small cylindrical gold case with repousse motifs", discovery_date: "2016-12-04", Type: "Jewelry", civilization: "Gupta", era: "4th Century CE", region: "Bogra", material: "Gold", usage: "Ornament/Religious" },
+    { site: wari_bateshwar, name: "Banded Agate Bead", description: "Barrel-shaped bead with distinct white bands", discovery_date: "2019-04-19", Type: "Jewelry", civilization: "Early Historic Bengal", era: "400 BCE", region: "Narsingdi", material: "Agate", usage: "Ornament" },
+    { site: somapura, name: "Bronze Tara Statue", description: "Miniature standing figure of Buddhist goddess Tara", discovery_date: "2020-11-28", Type: "Metal_Object", civilization: "Pala", era: "10th Century CE", region: "Naogaon", material: "Bronze", usage: "Religious Icon" },
+    { site: mainamati, name: "Candra Dynasty Copper Plate", description: "Land grant inscription of Śrīcandra", discovery_date: "2014-10-15", Type: "Metal_Object", civilization: "Candra Dynasty", era: "10th Century CE", region: "Comilla", material: "Copper", usage: "Royal Record" },
+    { site: bhitagarh, name: "Stucco Head Fragment", description: "Molded stucco face showing Hellenistic influence", discovery_date: "2024-09-05", Type: "Rock", civilization: "Kushan influence", era: "2nd Century CE", region: "Panchagarh", material: "Stucco", usage: "Sculptural" },
+    { site: paundra, name: "Black and Red Ware Sherd", description: "Ceramic fragment typical of the early iron age levels", discovery_date: "2021-03-25", Type: "Pottery", civilization: "Pre-Mauryan", era: "5th Century BCE", region: "Bogra", material: "Ceramic", usage: "Household Vessel" }
   ];
 
   const items = await Item.create(itemDefs.map((i) => ({ ...i, site: i.site._id })));
@@ -254,6 +269,36 @@ async function run() {
     { title: "Audio Diary: Day 42 at Mahasthangarh Dig Site", type: "vlog_audio", author: "Bob Karim", content: "An audio journal recording the exciting discovery of a new bronze sword and associated pottery shards near the eastern ramparts.", url: "https://example.com/audio/mahasthan-day42.mp3", addedBy: bob._id },
     { title: "Concentric Moats of Bhitagarh: A Survey", type: "research_paper", author: "Mizanur Rahman", content: "Field survey documenting the hydraulic defensive design of the Bhitagarh fort city.", url: "https://example.com/papers/bhitagarh.pdf", addedBy: mizan._id },
     { title: "Trade Beads of Ancient Bengal", type: "article", author: "Mizanur Rahman", content: "Overview of glass and semi-precious stone beads as evidence of long-distance trade.", url: "https://example.com/beads.html", addedBy: mizan._id },
+    { title: "Lalbagh Fort Architectural Survey", type: "research_paper", author: "Bob Karim", content: "Comprehensive analysis of Mughal architectural features at Lalbagh Fort.", url: "https://example.com/papers/lalbagh.pdf", addedBy: bob._id },
+    { title: "Kantajew Temple Terracotta Art", type: "historical_reference", author: "National Museum Archives", content: "Catalogue of mythological terracotta panels at Kantajew Temple.", addedBy: dina._id },
+    { title: "Sixty Dome Mosque Virtual Tour", type: "vlog_audio", author: "Dr. Alice Rahman", content: "Audio tour covering the Bagerhat UNESCO site.", addedBy: alice._id },
+  ]);
+
+  console.log("Adding additional discovery reports and maintenance requests...");
+  const dr_lalbagh = await DiscoveryReport.create({
+    reporter: publicUser._id,
+    location: { lat: 23.718, lng: 90.388, address: "Old Dhaka Lalbagh Area" },
+    material: "Old Mughal period coins found during drainage digging",
+    contact_email: "javed@gmail.com",
+    contact_phone: "+8801999999999",
+    status: "Verified",
+    assignment: { researcher: bob._id, budget: 10000, assigned_by: dina._id, assigned_at: new Date("2024-08-01") },
+    verification: { result: "true", notes: "Identified as authentic rupees from Emperor Aurangzeb's reign.", submitted_at: new Date("2024-08-05") },
+  });
+
+  await ResearcherReport.create({
+    discoveryReport: dr_lalbagh._id,
+    researcher: bob._id,
+    possibleArtifact: true,
+    notes: "The coins belong to the provincial mint at Jahangirnagar. We need to secure the site to check for more hoards.",
+    budgetRequested: 15000,
+    requestExcavationTeam: true,
+    status: "Submitted",
+  });
+
+  await RequestMaintenance.create([
+    { site: bhitagarh._id, caretaker: rahim._id, damage: "South-eastern corner of the inner moat has collapsed due to heavy flooding.", repair_cost: 65000, status: "Approved", admin: dina._id },
+    { site: paundra._id, caretaker: sultana._id, damage: "Vegetation growth threatening the structural integrity of Govinda Bhita.", repair_cost: 25000, status: "Pending" }
   ]);
 
   console.log("\nDone! Database seeded with 20+ artifacts, 3 ongoing projects, 5+ users per role.");
