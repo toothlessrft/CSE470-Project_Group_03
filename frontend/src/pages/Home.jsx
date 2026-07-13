@@ -25,7 +25,7 @@ export default function Home() {
   return (
     <div className="page">
       <section className="hero">
-        <span className="hero-eyebrow">ArchiveEARTH</span>
+        <span className="hero-eyebrow">ArchiveEarth</span>
         <h1 className="hero-title">Protecting history, one discovery at a time</h1>
         <p className="hero-subtitle">
           A centralized platform for managing archaeological excavations, artifact preservation,

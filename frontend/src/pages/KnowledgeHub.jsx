@@ -157,7 +157,7 @@ export default function KnowledgeHub() {
       {/* Premium Header Banner */}
       <section className="hero" style={{ background: "linear-gradient(135deg, #7c4a2d 0%, #3e1b0c 100%)", borderRadius: "16px", padding: "2.5rem" }}>
         <span className="hero-eyebrow" style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}>
-          <Sparkles size={12} /> ArchiveEARTH Knowledge Hub
+          <Sparkles size={12} /> ArchiveEarth Knowledge Hub
         </span>
         <h1 className="hero-title" style={{ fontSize: "2.2rem" }}>Centralized Historical Library</h1>
         <p className="hero-subtitle">
@@ -246,7 +246,7 @@ export default function KnowledgeHub() {
           </div>
           <h2 style={{ fontSize: "1.4rem", margin: "0 0 0.5rem" }}>Private Knowledge Resource</h2>
           <p style={{ maxWidth: "480px", margin: "0 auto 1.5rem", color: "var(--muted)", fontSize: "0.95rem", lineHeight: 1.5 }}>
-            To view <strong>{activeCategory?.label}</strong>, you must possess a registered ArchiveEARTH account. Access is restricted to protect research provenance and intellectual property.
+            To view <strong>{activeCategory?.label}</strong>, you must possess a registered ArchiveEarth account. Access is restricted to protect research provenance and intellectual property.
           </p>
           <div style={{ display: "flex", justifyContent: "center", gap: "1rem" }}>
             <a href="/login" className="btn">Sign In</a>

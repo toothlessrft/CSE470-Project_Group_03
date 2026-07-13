@@ -19,7 +19,7 @@ export default function PublicDashboard() {
       to: "/my-reports",
       icon: FileText,
       title: "My Reports",
-      description: "Track the status of discoveries you have submitted to ArchiveEARTH.",
+      description: "Track the status of discoveries you have submitted to ArchiveEarth.",
     },
   ];
 
@@ -28,7 +28,7 @@ export default function PublicDashboard() {
       <h1>General Public Dashboard</h1>
 
       <p className="page-subtitle">
-        Welcome to ArchiveEARTH. Help preserve history by reporting newly
+        Welcome to ArchiveEarth. Help preserve history by reporting newly
         discovered artifacts and exploring Bangladesh's cultural heritage.
       </p>
 
