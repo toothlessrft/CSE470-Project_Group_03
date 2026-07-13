@@ -1,73 +1,86 @@
+# Archaeology Management System
 
+A comprehensive web application for managing archaeological excavation projects, artifact loans, research reports, and field teams.
 
-## Project structure
+## Project Overview
+
+This system supports multiple user roles (Admin, Archaeologist, Museum Manager, Site Caretaker) with role-based access control, artifact management, team coordination, and reporting capabilities.
+
+## Architecture
+
+This project follows **MVC (Model-View-Controller) architecture**:
+
+### Backend Structure
+- **Models** (`backend/models/`) - Database schemas and data entities
+- **Routes** (`backend/routes/`) - Controllers handling API endpoints and business logic
+- **Middleware** (`backend/middleware/`) - Authentication and request processing
+- **Config** (`backend/config/`) - Database and environment configuration
+
+### Frontend Structure
+- **Pages** (`frontend/src/pages/`) - Page-level components organized by user role
+- **Components** (`frontend/src/components/`) - Reusable UI components
+- **Context** (`frontend/src/context/`) - Global state management (Auth)
+- **API** (`frontend/src/api.js`) - Centralized API communication layer
+
+## Tech Stack
+
+- **Backend**: Node.js, Express
+- **Frontend**: React, Vite
+- **Database**: MongoDB (based on model structure)
+- **Authentication**: JWT (middleware-based)
+
+## Folder Structure
 
 ```
-mern-heritage/
-├── backend/            Express + MongoDB API
-│   ├── models/          Mongoose schemas
-│   ├── routes/          auth.js, archaeologist.js, admin.js, museumManager.js, siteCaretaker.js
-│   ├── middleware/       auth.js (JWT + role guard)
-│   ├── scripts/seed.js   loads the same sample data the SQL dump had
-│   └── server.js
-└── frontend/            React (Vite) app
-    └── src/
-        ├── pages/arc, mm, sc, admin   one folder per role
-        ├── context/AuthContext.jsx    current user + login/logout
-        ├── components/                Navbar, ProtectedRoute
-        └── api.js                     fetch wrapper
-
+├── backend/
+│   ├── models/          # Data models and schemas
+│   ├── routes/          # API endpoints (Controllers)
+│   ├── middleware/      # Auth and request processing
+│   ├── config/          # Database configuration
+│   ├── scripts/         # Seed data and utilities
+│   └── server.js        # Express server entry point
+├── frontend/
+│   ├── src/
+│   │   ├── pages/       # Page components by role
+│   │   ├── components/  # Shared UI components
+│   │   ├── context/     # Global state (Auth)
+│   │   ├── api.js       # API communication
+│   │   └── main.jsx     # React entry point
+│   └── index.html       # HTML template
 ```
 
-## Running it locally
+## Setup & Installation
 
-You'll need Node.js and a MongoDB instance (local `mongod`, or a free
-MongoDB Atlas cluster — either works, just change `MONGO_URI`).
+1. **Backend Setup**
+   ```bash
+   cd backend
+   npm install
+   # Configure .env with database credentials
+   npm start
+   ```
 
-```bash
-# 1. Backend
-cd backend
-npm install
-npm run seed               # loads the sample data (same as the SQL dump)
-npm run dev                # starts on http://localhost:5555
+2. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
 
-# 2. Frontend (in a second terminal)
-cd frontend
-npm install
-npm install leaflet
-npm install leaflet lucide-react
-npm run dev                # starts on http://localhost:5173
-```
+## User Roles
 
-Open http://localhost:5173. The dev server proxies `/api/*` to the backend
-(see `vite.config.js`), and login uses an httpOnly cookie, so no extra config
-is needed.
+- **Admin** - System management, request approvals, user verification
+- **Archaeologist** - Excavation projects, team management, artifact documentation
+- **Museum Manager** - Artifact loans, inventory management
+- **Site Caretaker** - Maintenance requests, site operations
 
-### Test logins (after `npm run seed`)
+## Features
 
-Every seeded user's password is `password123`. Log in with either the email
-or the `nid`:
-
-| Role | nid | 
-|---|---|
-| Archaeologist | `A001`, `A002`, `A003` |
-| Admin | `AD001` |
-| Museum manager | `MM001`, `MM002`, `MM003` |
-| Site caretaker | `SC001`, `SC002`, `SC003` |
-
-## What's implemented
-
-Every route from the original `app.py` has an equivalent here:
-
-- **Auth** — login (email or nid), logout, session check
-- **Archaeologist** — dashboard, request excavation (existing or new site),
-  manage projects (ongoing/past, end project), manage team (create/disband,
-  auto-promotes/creates the manager user), edit site, add item (with the
-  4 specialization types), request a tool
-- **Museum manager** — dashboard, browse sites → items → request an item loan
-- **Site caretaker** — dashboard, request maintenance
-- **Admin** — dashboard, approve/deny item requests, maintenance requests,
-  and tool requests; view all approved requests; review & approve/deny
-  excavation requests (approving auto-creates the `ExcavationProject`, same
-  as the original)
+- Role-based access control (RBAC)
+- Excavation project management
+- Artifact loan system
+- Research report generation
+- Team assignment and coordination
+- Maintenance request tracking
+- Knowledge resource hub
+- Advanced search capabilities
 
