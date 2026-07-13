@@ -1,4 +1,4 @@
-# Archaeology Management System
+# ArchiveEarth
 
 A comprehensive web application for managing archaeological excavation projects, artifact loans, research reports, and field teams.
 
