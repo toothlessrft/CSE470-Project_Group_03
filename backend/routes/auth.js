@@ -52,8 +52,6 @@ router.post("/register", async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, 10);
-
-    // Only keep the fields relevant to the selected role.
     let profile = {};
 
     if (role === "archaeologist") {
