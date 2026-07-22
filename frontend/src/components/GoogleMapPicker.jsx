@@ -115,14 +115,19 @@ export default function GoogleMapPicker({ value, onChange, editable = true, heig
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value?.lat, value?.lng]);
 
-  async function handleSearch(e) {
-    e.preventDefault();
+  function handleSearch(e) {
+    e?.preventDefault();
     if (!query.trim()) return;
     setSearching(true);
-    try {
-      setResults(await searchPlace(query));
-    } finally {
-      setSearching(false);
+    searchPlace(query)
+      .then(setResults)
+      .finally(() => setSearching(false));
+  }
+
+  function handleSearchKeyDown(e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSearch();
     }
   }
 
@@ -138,18 +143,19 @@ export default function GoogleMapPicker({ value, onChange, editable = true, heig
   return (
     <div className="map-picker">
       {editable && (
-        <form onSubmit={handleSearch} className="map-search-row">
+        <div className="map-search-row">
           <input
             type="text"
             className="map-search"
             placeholder="Search for a place or address..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
           />
-          <button type="submit" className="btn-small" disabled={searching}>
+          <button type="button" className="btn-small" disabled={searching} onClick={() => handleSearch()}>
             {searching ? "..." : "Search"}
           </button>
-        </form>
+        </div>
       )}
       {results.length > 0 && (
         <ul className="map-results">

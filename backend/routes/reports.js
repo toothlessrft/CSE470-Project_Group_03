@@ -3,8 +3,6 @@ const DiscoveryReport = require("../models/DiscoveryReport");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
-
-// Any logged-in user, regardless of role, can log a discovery.
 router.use(requireAuth);
 
 // POST /api/reports  -> log a newly discovered artifact

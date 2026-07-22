@@ -9,7 +9,7 @@ export default function ReportDiscovery() {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [location, setLocation] = useState(null); // { lat, lng, address }
+  const [location, setLocation] = useState(null); // { lat, lng, address}
   const [material, setMaterial] = useState("");
   const [images, setImages] = useState([]);
   const [notes, setNotes] = useState("");

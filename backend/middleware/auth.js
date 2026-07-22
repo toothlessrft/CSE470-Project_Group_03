@@ -14,6 +14,14 @@ async function requireAuth(req, res, next) {
     if (!user) {
       return res.status(401).json({ error: "User no longer exists." });
     }
+    if (user.role !== "admin" && user.status !== "approved") {
+      return res.status(403).json({
+        error:
+          user.status === "rejected"
+            ? "Your registration request has been rejected."
+            : "Your account is waiting for Government/Admin approval.",
+      });
+    }
     req.user = user;
     next();
   } catch (err) {

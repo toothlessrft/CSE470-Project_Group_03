@@ -9,11 +9,11 @@ const discoveryReportSchema = new Schema(
     location: {
       lat: { type: Number, required: true },
       lng: { type: Number, required: true },
-      address: { type: String, default: "" }, // reverse-geocoded label from Google Maps
+      address: { type: String, default: "" }, 
     },
 
     material: { type: String, required: true, trim: true },
-    images: [String], // data-URIs or image URLs, capped client-side
+    images: [String], 
     notes: { type: String, default: "" },
 
     contact_email: { type: String, required: true, trim: true },
