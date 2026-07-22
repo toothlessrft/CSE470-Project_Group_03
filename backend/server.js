@@ -41,7 +41,7 @@ app.use("/api/sc", siteCaretakerRoutes);
 app.use("/api/reports", reportsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/items", itemsRoutes);
-app.use("/api/researcher-report", researcherReportRoutes); //Researcher Report: Ahad
+app.use("/api/researcher-report", researcherReportRoutes);
 app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/exhibitions", exhibitionsRoutes);
 

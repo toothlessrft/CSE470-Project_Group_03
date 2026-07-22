@@ -31,7 +31,7 @@ const EMPTY_FORM = {
   type: "exhibition",
   description: "",
   image: "",
-  location: null, // { lat, lng, address }
+  location: null,
   start_date: "",
   end_date: "",
   start_time: "",
@@ -137,7 +137,7 @@ export default function ExhibitionManagement() {
   async function handleImageFile(e) {
     setImageError("");
     const file = e.target.files?.[0];
-    e.target.value = ""; // allow re-selecting the same file later
+    e.target.value = ""; 
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setImageError("Please choose an image file.");

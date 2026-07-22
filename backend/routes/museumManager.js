@@ -62,11 +62,6 @@ router.get("/my-requests", async (req, res) => {
   res.json({ requests });
 });
 
-// ---------------------------------------------------------------------
-// Exhibition Management: schedule/manage Exhibitions, Educational tours,
-// and Cultural events, then publish them for public discovery.
-// ---------------------------------------------------------------------
-
 // GET /api/mm/exhibitions -> all of this manager's own listings (any status)
 router.get("/exhibitions", async (req, res) => {
   const exhibitions = await Exhibition.find({ museum_manager: req.user._id }).sort({ start_date: 1 });

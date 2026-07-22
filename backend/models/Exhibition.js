@@ -1,10 +1,5 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
-
-// Exhibition Management (Museum Authority):
-// Schedule and manage Exhibitions, Educational tours, and Cultural events,
-// then publish the details so the public can discover them ("Near Me" and
-// other pages).
 const exhibitionSchema = new Schema(
   {
     museum_manager: { type: Schema.Types.ObjectId, ref: "User", required: true },
@@ -32,11 +27,11 @@ const exhibitionSchema = new Schema(
 
     start_date: { type: Date, required: true },
     end_date: { type: Date, required: true },
-    start_time: { type: String, default: "" }, // e.g. "10:00 AM"
+    start_time: { type: String, default: "" },
     end_time: { type: String, default: "" },
 
     capacity: { type: Number, default: null },
-    ticket_info: { type: String, default: "" }, // e.g. "Free entry" / "BDT 50"
+    ticket_info: { type: String, default: "" }, 
     contact: { type: String, default: "" },
 
     status: {
