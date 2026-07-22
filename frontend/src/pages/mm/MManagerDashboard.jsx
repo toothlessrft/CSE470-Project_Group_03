@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PackageSearch, HandCoins, Inbox } from "lucide-react";
+import { PackageSearch, HandCoins, Inbox, CalendarDays } from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -26,6 +26,7 @@ export default function MManagerDashboard() {
   if (!manager) return <div className="page">Loading...</div>;
 
   const actions = [
+    { to: "/mm/exhibitions", icon: CalendarDays, title: "Exhibition Management", description: "Schedule and publish exhibitions, educational tours, and cultural events" },
     { to: "/mm/request-items", icon: PackageSearch, title: "Request Items", description: "Ask to borrow artifacts for exhibition" },
     { to: "/mm/request-loan", icon: HandCoins, title: "Request Artifact Loan", description: "Ask another museum to loan an artifact" },
     { to: "/mm/my-loans", icon: PackageSearch, title: "My Loan Requests", description: "Track loans you've requested" },

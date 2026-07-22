@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, ScanSearch, Users, Landmark, Globe2, Search, LayoutDashboard } from "lucide-react";
+import { MapPin, ScanSearch, Users, Landmark, Globe2, Search, LayoutDashboard, CalendarDays } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { ROLE_HOME } from "../context/AuthContext";
+import { api } from "../api";
 
 const ROLES = [
   { icon: ScanSearch, label: "Archaeologist / Researcher", description: "Run digs, log finds, verify field reports" },
@@ -21,6 +23,14 @@ const ROLE_LABELS = {
 
 export default function Home() {
   const { user } = useAuth();
+  const [exhibitions, setExhibitions] = useState([]);
+
+  useEffect(() => {
+    api
+      .get("/exhibitions?upcoming=true&limit=3")
+      .then((data) => setExhibitions(data.exhibitions))
+      .catch(() => setExhibitions([]));
+  }, []);
 
   return (
     <div className="page">
@@ -82,6 +92,27 @@ export default function Home() {
           </div>
         ))}
       </div>
+
+      {exhibitions.length > 0 && (
+        <>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1.5rem" }}>
+            <h2 className="section-title" style={{ margin: 0 }}>Upcoming exhibitions & events</h2>
+            <Link className="btn-link" to="/exhibitions">
+              <CalendarDays size={15} /> See all
+            </Link>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+            {exhibitions.map((e) => (
+              <div className="card" key={e._id} style={{ margin: 0 }}>
+                <h4 style={{ margin: "0 0 0.3rem" }}>{e.title}</h4>
+                <p style={{ margin: 0, fontSize: "0.85rem", color: "#8a7a68" }}>
+                  {e.museum_name || "Museum"} · {new Date(e.start_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </p>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }

@@ -1,8 +1,14 @@
-import { Landmark, MapPin, FileText, Images, Search } from "lucide-react";
+import { Landmark, MapPin, FileText, Images, Search, CalendarDays } from "lucide-react";
 import ActionGrid from "../../components/ActionGrid";
 
 export default function PublicDashboard() {
   const actions = [
+    {
+      to: "/exhibitions",
+      icon: CalendarDays,
+      title: "Exhibitions & Events",
+      description: "Discover exhibitions, educational tours, and cultural events near you.",
+    },
     {
       to: "/search",
       icon: Search,

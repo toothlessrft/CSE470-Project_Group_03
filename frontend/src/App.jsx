@@ -23,6 +23,8 @@ import MyAssignments from "./pages/arc/MyAssignments";
 
 import MManagerDashboard from "./pages/mm/MManagerDashboard";
 import RequestItems from "./pages/mm/RequestItems";
+import ExhibitionManagement from "./pages/mm/ExhibitionManagement";
+import Exhibitions from "./pages/public/Exhibitions";
 
 import SCaretakerDashboard from "./pages/sc/SCaretakerDashboard";
 import RequestMaintenance from "./pages/sc/RequestMaintenance";
@@ -178,6 +180,14 @@ export default function App() {
             </ProtectedRoute>
             }
         />
+        <Route
+  path="/mm/exhibitions"
+  element={
+    <ProtectedRoute role="museum_manager">
+      <ExhibitionManagement />
+    </ProtectedRoute>
+  }
+/>
         {/* Site caretaker */}
         <Route
           path="/sc/dashboard"
@@ -213,6 +223,7 @@ export default function App() {
           path="/knowledge" 
           element={<KnowledgeHub />} 
         />
+        <Route path="/exhibitions" element={<Exhibitions />} />
 
         {/* Admin */}
         <Route

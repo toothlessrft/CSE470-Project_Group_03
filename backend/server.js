@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const connectDB = require("./config/db");
-
+const exhibitionsRoutes = require("./routes/exhibitions");
 const authRoutes = require("./routes/auth");
 const approvalRoutes = require("./routes/userApproval");
 const archaeologistRoutes = require("./routes/archaeologist");
@@ -43,6 +43,7 @@ app.use("/api/search", searchRoutes);
 app.use("/api/items", itemsRoutes);
 app.use("/api/researcher-report", researcherReportRoutes); //Researcher Report: Ahad
 app.use("/api/knowledge", knowledgeRoutes);
+app.use("/api/exhibitions", exhibitionsRoutes);
 
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
