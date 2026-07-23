@@ -54,6 +54,16 @@ const itemSchema = new Schema(
     region: { type: String, trim: true },
     material: { type: String, trim: true },
     usage: { type: String, trim: true },
+
+    // Report Approval & Artifact Allocation: where the admin decided a newly
+    // discovered artifact should go. Defaults to Unallocated for every other
+    // existing/legacy item, so nothing already in the catalogue is affected.
+    allocation: {
+      type: String,
+      enum: ["Unallocated", "Museum", "Auction"],
+      default: "Unallocated",
+    },
+    museumName: { type: String, trim: true, default: "" },
   },
   { timestamps: true }
 );

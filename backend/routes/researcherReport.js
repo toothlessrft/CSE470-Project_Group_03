@@ -46,7 +46,7 @@ router.get("/:discoveryId", async (req, res) => {
 router.post("/:discoveryId/save", async (req, res) => {
     try {
         const { discoveryId } = req.params;
-        const { possibleArtifact, notes, budgetRequested, requestExcavationTeam } = req.body;
+        const { possibleArtifact, notes, budgetRequested, requestExcavationTeam, artifacts } = req.body;
 
         const report = await ResearcherReport.findOne({
             discoveryReport: discoveryId,
@@ -54,14 +54,30 @@ router.post("/:discoveryId/save", async (req, res) => {
         });
 
         if (!report) return res.status(404).json({ error: "Report draft not found." });
-        if (report.status === "Submitted") {
-            return res.status(400).json({ error: "Cannot modify a submitted report." });
+        if (report.status !== "Draft") {
+            return res.status(400).json({ error: "Cannot modify a report that has already been submitted." });
         }
 
         report.possibleArtifact = Boolean(possibleArtifact);
         report.notes = notes || "";
         report.budgetRequested = budgetRequested ? Number(budgetRequested) : null;
         report.requestExcavationTeam = Boolean(requestExcavationTeam);
+
+        // Report Approval & Artifact Allocation: persist the list of artifacts
+        // found on site, same shape as the Smart Artifact Search "Add Artifact" form.
+        if (Array.isArray(artifacts)) {
+            report.artifacts = artifacts.map((a) => ({
+                name: a.name,
+                description: a.description || "",
+                Type: a.Type || "other",
+                civilization: a.civilization || "",
+                era: a.era || "",
+                region: a.region || "",
+                material: a.material || "",
+                usage: a.usage || "",
+                picture: a.picture || "",
+            }));
+        }
 
         await report.save();
         res.json({ message: "Draft saved.", report });
@@ -73,7 +89,7 @@ router.post("/:discoveryId/save", async (req, res) => {
 
 
 // POST /api/researcher-report/:discoveryId/submit
-// Submit final draft
+// Submit final draft -> goes to Pending, awaiting admin approval
 router.post("/:discoveryId/submit", async (req, res) => {
     try {
         const { discoveryId } = req.params;
@@ -84,11 +100,14 @@ router.post("/:discoveryId/submit", async (req, res) => {
         });
 
         if (!report) return res.status(404).json({ error: "Report not found." });
+        if (report.status !== "Draft") {
+            return res.status(400).json({ error: "This report has already been submitted." });
+        }
 
-        report.status = "Submitted";
+        report.status = "Pending";
         await report.save();
 
-        res.json({ message: "Final report submitted.", report });
+        res.json({ message: "Final report submitted and is now pending admin approval.", report });
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: "Failed to submit final report." });
