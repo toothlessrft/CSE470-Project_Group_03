@@ -223,6 +223,40 @@ async function run() {
     verification: { result: "true", notes: "A genuine limestone architectural block, likely Guptan.", submitted_at: new Date("2024-05-15") },
   });
 
+  // Report Approval & Artifact Allocation demo: an already-approved report
+  // whose artifacts have been added to the catalogue - one sent to a museum,
+  // one sent to auction - so Smart Artifact Search reflects both outcomes.
+  const approvedArtifactItems = await Item.create([
+    {
+      name: "Carved Stone Deity Fragment",
+      description: "Lower portion of a Gupta-era deity sculpture recovered near Bhasu Vihara.",
+      Type: "Rock",
+      civilization: "Gupta",
+      era: "5th Century CE",
+      region: "Bogra",
+      material: "Sandstone",
+      usage: "Religious",
+      discovery_date: new Date("2024-05-15"),
+      allocation: "Museum",
+      museumName: "Varendra Research Museum",
+      location: "Varendra Research Museum",
+    },
+    {
+      name: "Fragmentary Inscribed Tablet",
+      description: "Limestone tablet fragment with worn Brahmi-derived script, non-diagnostic.",
+      Type: "Rock",
+      civilization: "Gupta",
+      era: "5th Century CE",
+      region: "Bogra",
+      material: "Limestone",
+      usage: "Record",
+      discovery_date: new Date("2024-05-15"),
+      allocation: "Auction",
+      museumName: "",
+      location: "Scheduled for Auction",
+    },
+  ]);
+
   await ResearcherReport.create({
     discoveryReport: dr1._id,
     researcher: alice._id,
@@ -230,7 +264,13 @@ async function run() {
     notes: "Detailed structural analysis of the stone shows it belongs to a heavily destroyed temple base. We recovered the piece to the lab.",
     budgetRequested: 25000,
     requestExcavationTeam: false,
-    status: "Submitted",
+    artifacts: [
+      { name: "Carved Stone Deity Fragment", description: "Lower portion of a Gupta-era deity sculpture recovered near Bhasu Vihara.", Type: "Rock", civilization: "Gupta", era: "5th Century CE", region: "Bogra", material: "Sandstone", usage: "Religious" },
+      { name: "Fragmentary Inscribed Tablet", description: "Limestone tablet fragment with worn Brahmi-derived script, non-diagnostic.", Type: "Rock", civilization: "Gupta", era: "5th Century CE", region: "Bogra", material: "Limestone", usage: "Record" },
+    ],
+    status: "Approved",
+    adminReview: { reviewedBy: dina._id, reviewedAt: new Date("2024-05-20"), notes: "Approved after site cross-check." },
+    allocatedItems: approvedArtifactItems.map((i) => i._id),
   });
 
   const dr2 = await DiscoveryReport.create({
@@ -286,6 +326,9 @@ async function run() {
     verification: { result: "true", notes: "Identified as authentic rupees from Emperor Aurangzeb's reign.", submitted_at: new Date("2024-08-05") },
   });
 
+  // Report Approval & Artifact Allocation demo: a final report already
+  // submitted by the researcher and sitting Pending, waiting on the admin to
+  // approve it (test the "Approve Final Report" button on this one).
   await ResearcherReport.create({
     discoveryReport: dr_lalbagh._id,
     researcher: bob._id,
@@ -293,7 +336,11 @@ async function run() {
     notes: "The coins belong to the provincial mint at Jahangirnagar. We need to secure the site to check for more hoards.",
     budgetRequested: 15000,
     requestExcavationTeam: true,
-    status: "Submitted",
+    artifacts: [
+      { name: "Mughal Silver Rupee Hoard", description: "Cache of silver rupees from Emperor Aurangzeb's reign found together in a clay pot.", Type: "Metal_Object", civilization: "Mughal", era: "17th Century CE", region: "Dhaka", material: "Silver", usage: "Currency" },
+      { name: "Provincial Mint Die Fragment", description: "Broken iron die used for striking coins at the Jahangirnagar mint.", Type: "Metal_Object", civilization: "Mughal", era: "17th Century CE", region: "Dhaka", material: "Iron", usage: "Minting Tool" },
+    ],
+    status: "Pending",
   });
 
   await RequestMaintenance.create([

@@ -3,6 +3,7 @@ const COLORS = {
   Assigned: "#2563eb",
   Verified: "#2e7d32",
   Rejected: "#c62828",
+  Approved: "#2e7d32",
 };
 
 export default function StatusBadge({ status }) {

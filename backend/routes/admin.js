@@ -7,6 +7,8 @@ const ItemRequest = require("../models/ItemRequest");
 const RequestMaintenance = require("../models/RequestMaintenance");
 const ToolRentalRequest = require("../models/ToolRentalRequest");
 const DiscoveryReport = require("../models/DiscoveryReport");
+const ResearcherReport = require("../models/ResearcherReport"); // Report Approval & Artifact Allocation
+const Item = require("../models/Item"); // Report Approval & Artifact Allocation
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 // Haversine distance in km, used to suggest researchers near a report's location
@@ -269,6 +271,88 @@ router.post("/reports/:id/assign", async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Could not assign field inspection." });
   }
+});
+
+// ---- Researcher Report Approval & Artifact Allocation ----------------------
+
+// GET /api/admin/researcher-reports/:discoveryId -> researcher report for a discovery, with any allocated items
+router.get("/researcher-reports/:discoveryId", async (req, res) => {
+  const report = await ResearcherReport.findOne({ discoveryReport: req.params.discoveryId })
+    .populate("researcher", "name nid email")
+    .populate("adminReview.reviewedBy", "name")
+    .populate("allocatedItems");
+  if (!report) return res.status(404).json({ error: "Researcher report not found." });
+  res.json({ report });
+});
+
+// POST /api/admin/researcher-reports/:discoveryId/approve
+// Approves a final (Pending) researcher report. Every artifact the researcher
+// listed is added straight to the artifact catalogue (Smart Artifact Search),
+// unallocated until the admin sends it to a museum or to auction below.
+router.post("/researcher-reports/:discoveryId/approve", async (req, res) => {
+  try {
+    const report = await ResearcherReport.findOne({ discoveryReport: req.params.discoveryId }).populate(
+      "discoveryReport"
+    );
+    if (!report) return res.status(404).json({ error: "Researcher report not found." });
+    if (report.status !== "Pending") {
+      return res.status(400).json({ error: "Only a submitted report awaiting review can be approved." });
+    }
+
+    const createdItems = await Item.create(
+      report.artifacts.map((a) => ({
+        name: a.name,
+        description: a.description,
+        Type: a.Type,
+        civilization: a.civilization,
+        era: a.era,
+        region: a.region,
+        material: a.material,
+        usage: a.usage,
+        picture: a.picture,
+        discovery_date: report.discoveryReport?.verification?.submitted_at || new Date(),
+        location: "Pending Allocation",
+      }))
+    );
+
+    report.status = "Approved";
+    report.adminReview = { reviewedBy: req.user._id, reviewedAt: new Date(), notes: req.body.notes || "" };
+    report.allocatedItems = createdItems.map((i) => i._id);
+    await report.save();
+
+    // Populate before sending back so the frontend gets real Item objects
+    // (with a real _id, name, Type, etc.) instead of bare ObjectId strings -
+    // otherwise every artifact card ends up sharing the same "undefined" key.
+    await report.populate("allocatedItems");
+
+    res.json({ message: "Report approved and artifacts added to the catalogue.", report, items: createdItems });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not approve report." });
+  }
+});
+
+// POST /api/admin/artifacts/:itemId/allocate -> send a discovered artifact to museum storage or auction
+router.post("/artifacts/:itemId/allocate", async (req, res) => {
+  const { destination, museumName } = req.body;
+  if (!["Museum", "Auction"].includes(destination)) {
+    return res.status(400).json({ error: "destination must be 'Museum' or 'Auction'." });
+  }
+  if (destination === "Museum" && !museumName) {
+    return res.status(400).json({ error: "Museum name is required." });
+  }
+
+  const item = await Item.findByIdAndUpdate(
+    req.params.itemId,
+    {
+      allocation: destination,
+      museumName: destination === "Museum" ? museumName : "",
+      location: destination === "Museum" ? museumName : "Scheduled for Auction",
+    },
+    { new: true }
+  );
+  if (!item) return res.status(404).json({ error: "Artifact not found." });
+  res.json({ message: "Allocation updated.", item });
 });
 
 module.exports = router;

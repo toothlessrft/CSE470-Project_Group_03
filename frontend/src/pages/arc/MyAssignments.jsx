@@ -38,14 +38,15 @@ export default function MyAssignments() {
     }
   }
 
-  // Current: waiting to verify, or verified true and report not submitted yet
+  // Current: waiting to verify, or verified true and report not yet approved by admin
+  // (Draft or Pending admin approval both stay here)
   const currentProjects = reports.filter(
-    (r) => r.verification?.result !== "false" && r.researcherReportStatus !== "Submitted"
+    (r) => r.verification?.result !== "false" && r.researcherReportStatus !== "Approved"
   );
 
-  // Previous: rejected/unverifiable OR report fully submitted
+  // Previous: rejected/unverifiable OR report approved by admin
   const previousProjects = reports.filter(
-    (r) => r.verification?.result === "false" || r.researcherReportStatus === "Submitted"
+    (r) => r.verification?.result === "false" || r.researcherReportStatus === "Approved"
   );
 
   // Full card for current projects (with map, verification form, report)
@@ -163,7 +164,7 @@ export default function MyAssignments() {
         >
           {isRejected
             ? "❌ Verification: Could not be verified"
-            : "✅ Report Submitted"}
+            : "✅ Report Approved"}
         </div>
         {r.reporter?.name && (
           <p className="hint" style={{ margin: 0, fontSize: "0.8rem" }}>
