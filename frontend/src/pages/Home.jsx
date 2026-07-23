@@ -106,7 +106,7 @@ export default function Home() {
               <div className="card" key={e._id} style={{ margin: 0 }}>
                 <h4 style={{ margin: "0 0 0.3rem" }}>{e.title}</h4>
                 <p style={{ margin: 0, fontSize: "0.85rem", color: "#8a7a68" }}>
-                  {e.museum_name || "Museum"} · {new Date(e.start_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                 Hosted By {e.museum_name || "Museum"} · {new Date(e.start_date).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                 </p>
               </div>
             ))}

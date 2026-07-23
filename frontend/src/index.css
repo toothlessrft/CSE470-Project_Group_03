@@ -561,6 +561,20 @@ fieldset legend {
   background: rgba(255, 255, 255, 0.15);
 }
 
+.btn-outline-light {
+  background: transparent;
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+
+.btn-outline-light:hover {
+  background: rgba(90, 51, 30, 0.08);
+}
+
+.btn-outline-light:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .hero {
   background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
   color: white;
