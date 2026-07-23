@@ -100,8 +100,8 @@ export default function Exhibitions() {
 
         <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>
           {nearMeActive ? (
-            <button className="btn-small btn-outline" onClick={clearNearMe}>
-              Clear "Near Me"
+            <button className="btn-small btn-outline-light" onClick={clearNearMe}>
+             Clear "Near Me"
             </button>
           ) : (
             <button className="btn" onClick={useNearMe} disabled={locating}>
@@ -130,7 +130,7 @@ export default function Exhibitions() {
               {TYPE_LABELS[item.type] || item.type}
             </span>
             <h4 style={{ margin: 0 }}>{item.title}</h4>
-            {item.museum_name && <p style={{ margin: 0, fontSize: "0.85rem", color: "#8a7a68" }}>{item.museum_name}</p>}
+            {item.museum_name && (<p style={{ margin: 0, fontSize: "0.85rem", color: "#8a7a68" }}>Hosted by {item.museum_name}</p>)}
             <p style={{ margin: 0, fontSize: "0.88rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
               <CalendarDays size={14} /> {fmtDate(item.start_date)} - {fmtDate(item.end_date)}
               {item.start_time && ` · ${item.start_time}${item.end_time ? ` - ${item.end_time}` : ""}`}
