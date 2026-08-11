@@ -3,6 +3,9 @@ import { Search, MapPin, LayoutGrid, X, Plus, Edit, Trash2 } from "lucide-react"
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import ArtifactResultsMap from "../../components/ArtifactResultsMap";
+import GoogleMapPicker from "../../components/GoogleMapPicker";
+import SearchableSelect from "../../components/SearchableSelect";
+import { MUSEUMS, DEFAULT_LOCATION } from "../../data/museums";
 
 const FIELD_LABELS = {
   civilization: "Civilization",
@@ -27,12 +30,17 @@ export default function ArtifactSearch() {
 
   const [sites, setSites] = useState([]);
   const [selectedSite, setSelectedSite] = useState(null);
+  const [mapSearchQuery, setMapSearchQuery] = useState("");
+  const [mapSearchLocation, setMapSearchLocation] = useState(null);
+  const [mapSearchError, setMapSearchError] = useState("");
+  const [mapSearchBusy, setMapSearchBusy] = useState(false);
+  const [mapSearchResults, setMapSearchResults] = useState([]);
 
   // Add/Edit Artifact Modal State
   const [showModal, setShowModal] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [itemForm, setItemForm] = useState({
-    name: "", picture: "", description: "", location: "Govt. repository",
+    name: "", picture: "", description: "", discovery_date: "", location: "",
     civilization: "", era: "", region: "", material: "", usage: "",
     latitude: "", longitude: "", site_name: ""
   });
@@ -96,11 +104,68 @@ export default function ArtifactSearch() {
     runQuery({});
   }
 
+  async function handleMapLocationSearch() {
+    const trimmed = mapSearchQuery.trim();
+    if (!trimmed) return;
+
+    setMapSearchError("");
+    setMapSearchBusy(true);
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(trimmed)}&limit=5`
+      );
+      const data = await res.json();
+      const results = Array.isArray(data) ? data : [];
+      setMapSearchResults(results);
+
+      if (results.length === 0) {
+        setMapSearchLocation(null);
+        setMapSearchError("No matching location found.");
+        return;
+      }
+
+      const first = results[0];
+      const lat = parseFloat(first.lat);
+      const lng = parseFloat(first.lon);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        setMapSearchLocation(null);
+        setMapSearchError("That location could not be resolved.");
+        return;
+      }
+
+      setSelectedSite(null);
+      setMapSearchLocation({ lat, lng, label: first.display_name || trimmed });
+      setPanelOpen("map");
+      runQuery({ ...filters, lat, lng, radius_km: 50, ...(q ? { q } : {}) });
+    } catch {
+      setMapSearchLocation(null);
+      setMapSearchResults([]);
+      setMapSearchError("Could not search that location right now.");
+    } finally {
+      setMapSearchBusy(false);
+    }
+  }
+
+  function selectMapSearchResult(result) {
+    const lat = parseFloat(result.lat);
+    const lng = parseFloat(result.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+    setMapSearchQuery(result.display_name || "");
+    setMapSearchLocation({ lat, lng, label: result.display_name || "Selected location" });
+    setMapSearchResults([]);
+    setMapSearchError("");
+    setSelectedSite(null);
+    setPanelOpen("map");
+    runQuery({ ...filters, lat, lng, radius_km: 50, ...(q ? { q } : {}) });
+  }
+
   async function handleDeleteItem(id) {
     if (!window.confirm("Are you sure you want to delete this artifact? This cannot be undone.")) return;
     try {
       await api.del(`/items/${id}`);
       setResults((prev) => prev.filter((item) => item._id !== id));
+      api.get("/search/map").then((data) => setSites(data.sites));
     } catch (err) {
       alert(err.message || "Could not delete artifact.");
     }
@@ -109,8 +174,21 @@ export default function ArtifactSearch() {
   async function handleModalSubmit(e) {
     e.preventDefault();
     setModalError("");
-    setModalBusy(true);
 
+    if (!itemForm.discovery_date || !itemForm.discovery_date.trim()) {
+      setModalError("Please enter the discovered date.");
+      return;
+    }
+    if (!itemForm.location || !itemForm.location.trim()) {
+      setModalError("Please choose a current location (museum or Govt. Repository).");
+      return;
+    }
+    if (itemForm.latitude === "" || itemForm.longitude === "") {
+      setModalError("Please set the discovery location by clicking on the map.");
+      return;
+    }
+
+    setModalBusy(true);
     try {
       if (editingItem) {
         await api.put(`/items/${editingItem._id}`, itemForm);
@@ -119,8 +197,11 @@ export default function ArtifactSearch() {
       }
 
       setShowModal(false);
-      // Reload current query
+      // Reload current query, plus the map pins and filter dropdowns (a new
+      // artifact may have created a brand new site pin, or a new tag value).
       runQuery({ ...filters, ...(selectedSite ? { site: selectedSite._id } : {}), ...(q ? { q } : {}) });
+      api.get("/search/map").then((data) => setSites(data.sites));
+      api.get("/search/filters").then(setOptions);
     } catch (err) {
       setModalError(err.message);
     } finally {
@@ -180,7 +261,7 @@ export default function ArtifactSearch() {
         </div>
 
         {user?.role === "archaeologist" && (
-          <button className="btn" onClick={() => { setEditingItem(null); setItemForm({ name: "", picture: "", description: "", location: "Govt. repository", civilization: "", era: "", region: "", material: "", usage: "", latitude: "", longitude: "", site_name: "" }); setShowModal(true); setModalError(""); }}>
+          <button className="btn" onClick={() => { setEditingItem(null); setItemForm({ name: "", picture: "", description: "", discovery_date: "", location: "", civilization: "", era: "", region: "", material: "", usage: "", latitude: "", longitude: "", site_name: "" }); setShowModal(true); setModalError(""); }}>
             <Plus size={15} /> Add Artifact
           </button>
         )}
@@ -235,13 +316,48 @@ export default function ArtifactSearch() {
             </button>
           </div>
           <p className="page-subtitle" style={{ marginTop: 0 }}>
-            Click a pin to see artifacts discovered at that heritage site.
+            Search a place name to center the map and view artifacts within about 50 km of it.
           </p>
-          <ArtifactResultsMap sites={sites} selectedSiteId={selectedSite?._id} onSelectSite={handleSelectSite} />
-          {selectedSite && (
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+            <input
+              type="text"
+              value={mapSearchQuery}
+              onChange={(e) => setMapSearchQuery(e.target.value)}
+              placeholder="Search for a location like Dhaka"
+              style={{ flex: 1, padding: "0.6rem 0.7rem", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}
+            />
+            <button type="button" className="btn-small" onClick={handleMapLocationSearch} disabled={mapSearchBusy}>
+              {mapSearchBusy ? "Searching..." : "Search"}
+            </button>
+          </div>
+          {mapSearchResults.length > 0 && (
+            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 0.75rem", display: "grid", gap: "0.35rem" }}>
+              {mapSearchResults.map((result) => (
+                <li
+                  key={result.place_id || `${result.lat}-${result.lon}`}
+                  onClick={() => selectMapSearchResult(result)}
+                  style={{ padding: "0.55rem 0.7rem", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", cursor: "pointer", background: "#fff" }}
+                >
+                  {result.display_name}
+                </li>
+              ))}
+            </ul>
+          )}
+          {mapSearchError && <div className="alert alert-danger" style={{ marginBottom: "0.75rem" }}>{mapSearchError}</div>}
+          <ArtifactResultsMap
+            sites={sites}
+            selectedSiteId={selectedSite?._id}
+            onSelectSite={handleSelectSite}
+            searchLocation={mapSearchLocation}
+          />
+          {(selectedSite || mapSearchLocation) && (
             <p style={{ marginTop: "0.75rem" }}>
-              Showing artifacts from <strong>{selectedSite.name}</strong>.{" "}
-              <button className="btn-link" onClick={clearSiteFilter}>
+              {selectedSite ? (
+                <>Showing artifacts from <strong>{selectedSite.name}</strong>.</>
+              ) : (
+                <>Showing artifacts within 50 km of <strong>{mapSearchLocation.label}</strong>.</>
+              )}{" "}
+              <button className="btn-link" onClick={() => { clearSiteFilter(); setMapSearchLocation(null); setMapSearchQuery(""); setMapSearchError(""); setMapSearchResults([]); }}>
                 Clear
               </button>
             </p>
@@ -279,7 +395,8 @@ export default function ArtifactSearch() {
             ) : (
               <p style={{ fontSize: "0.8rem", color: "#777" }}>
                 {item.discovery_date && <>Discovered: {item.discovery_date.slice(0, 10)}<br /></>}
-                {item.district && <>Location: {item.thana ? `${item.thana}, ` : ""}{item.district}</>}
+                {item.location && <>Current Location: {item.location}<br /></>}
+                {item.district && <>Site Location: {item.thana ? `${item.thana}, ` : ""}{item.district}</>}
               </p>
             )}
 
@@ -294,14 +411,15 @@ export default function ArtifactSearch() {
                       name: item.name || "",
                       picture: item.picture || "",
                       description: item.description || "",
-                      location: item.location || "",
+                      discovery_date: item.discovery_date ? new Date(item.discovery_date).toISOString().split("T")[0] : "",
+                      location: item.location || "", 
                       civilization: item.civilization || "",
                       era: item.era || "",
                       region: item.region || "",
                       material: item.material || "",
                       usage: item.usage || "",
-                      latitude: "",
-                      longitude: "",
+                      latitude: item.latitude ?? "",
+                      longitude: item.longitude ?? "",
                       site_name: ""
                     });
                     setModalError("");
@@ -336,8 +454,12 @@ export default function ArtifactSearch() {
             {modalError && <div className="alert alert-danger">{modalError}</div>}
 
             <form onSubmit={handleModalSubmit} className="form">
-              <label>Artifact Name required <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} required /></label>
+              <label>Artifact Name (required) <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} required /></label>
               <label>Description <textarea rows={3} value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} /></label>
+              <label>
+                Discovered Date (required)
+                <input type="date" value={itemForm.discovery_date} onChange={e => setItemForm(f => ({ ...f, discovery_date: e.target.value }))} required />
+              </label>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                 <label>Civilization <input value={itemForm.civilization} onChange={e => setItemForm(f => ({ ...f, civilization: e.target.value }))} /></label>
@@ -345,26 +467,33 @@ export default function ArtifactSearch() {
                 <label>Region <input value={itemForm.region} onChange={e => setItemForm(f => ({ ...f, region: e.target.value }))} /></label>
                 <label>Material <input value={itemForm.material} onChange={e => setItemForm(f => ({ ...f, material: e.target.value }))} /></label>
                 <label>Usage <input value={itemForm.usage} onChange={e => setItemForm(f => ({ ...f, usage: e.target.value }))} /></label>
-                <label>Current Location <input value={itemForm.location} onChange={e => setItemForm(f => ({ ...f, location: e.target.value }))} placeholder="e.g. Govt. repository" /></label>
+                <label>
+                  Current Location (required)
+                  <SearchableSelect
+                    options={[DEFAULT_LOCATION, ...MUSEUMS]}
+                    value={itemForm.location}
+                    onChange={(v) => setItemForm((f) => ({ ...f, location: v }))}
+                    placeholder="Type to search, or click to pick from the list"
+                    required
+                  />
+                </label>
               </div>
 
-              {!editingItem && (
-                <fieldset>
-                  <legend>Discovery Location (Optional)</legend>
-                  <p className="hint">If this artifact is completely new, you can provide its GPS coordinates.</p>
-                  <label>Latitude <input type="number" step="any" value={itemForm.latitude} onChange={e => setItemForm(f => ({ ...f, latitude: e.target.value }))} /></label>
-                  <label>Longitude <input type="number" step="any" value={itemForm.longitude} onChange={e => setItemForm(f => ({ ...f, longitude: e.target.value }))} /></label>
-                </fieldset>
-              )}
-
-              {editingItem && (
-                <fieldset>
-                  <legend>Update Discovery Location (Optional)</legend>
-                  <p className="hint">Overwrites existing location coordinates for this artifact&apos;s site.</p>
-                  <label>Latitude <input type="number" step="any" value={itemForm.latitude} onChange={e => setItemForm(f => ({ ...f, latitude: e.target.value }))} placeholder="Leave blank to keep existing" /></label>
-                  <label>Longitude <input type="number" step="any" value={itemForm.longitude} onChange={e => setItemForm(f => ({ ...f, longitude: e.target.value }))} placeholder="Leave blank to keep existing" /></label>
-                </fieldset>
-              )}
+              <fieldset>
+                <legend>Discovery Location on Map (required)</legend>
+                <p className="hint">
+                  {editingItem
+                    ? "Click anywhere on the map, or drag the pin, to update where this artifact was discovered."
+                    : "Click anywhere on the map, or drag the pin, to set where this artifact was discovered."}
+                </p>
+                <GoogleMapPicker
+                  value={itemForm.latitude !== "" && itemForm.longitude !== "" ? { lat: parseFloat(itemForm.latitude), lng: parseFloat(itemForm.longitude) } : null}
+                  onChange={({ lat, lng, address }) =>
+                    setItemForm((f) => ({ ...f, latitude: lat, longitude: lng, site_name: address || f.site_name }))
+                  }
+                  height={280}
+                />
+              </fieldset>
 
               <button type="submit" className="btn" disabled={modalBusy}>
                 {modalBusy ? "Saving..." : (editingItem ? "Save Changes" : "Create Artifact")}
