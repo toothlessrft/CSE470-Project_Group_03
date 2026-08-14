@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ClipboardCheck, Wrench, Hammer, MapPinned, ListChecks, ScanSearch, Users } from "lucide-react";
+import { ClipboardCheck, Wrench, Hammer, MapPinned, ListChecks, ScanSearch, Users, Gavel } from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -21,6 +21,7 @@ export default function AdminDashboard() {
     { to: "/admin/excavation-requests", icon: MapPinned, title: "Excavation Requests", description: "Turn proposals into active projects" },
     { to: "/admin/approved-requests", icon: ListChecks, title: "Approved Requests", description: "See everything that's already been approved" },
     { to: "/admin/pending-users", icon: Users, title: "Pending User Approvals", description: "Approve or reject user registrations."},
+    { to: "/admin/auctions", icon: Gavel, title: "Manage Auctions", description: "Create auctions and track bidding through to close" },
   ];
 
   return (

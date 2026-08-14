@@ -4,6 +4,12 @@ const COLORS = {
   Verified: "#2e7d32",
   Rejected: "#c62828",
   Approved: "#2e7d32",
+  Active: "#2563eb",
+  Sold: "#2e7d32",
+  Unsold: "#6b6258",
+  Cancelled: "#c62828",
+  Secured: "#2e7d32",
+  "Not Secured": "#c62828",
 };
 
 export default function StatusBadge({ status }) {

@@ -43,6 +43,10 @@ import MyLoanRequests from "./pages/mm/MyLoanRequests";
 import IncomingLoanRequests from "./pages/mm/IncomingLoanRequests";
 import ArtifactSearch from "./pages/public/ArtifactSearch";
 import KnowledgeHub from "./pages/KnowledgeHub";
+import Auctions from "./pages/public/Auctions";
+import AuctionDetail from "./pages/public/AuctionDetail";
+import ManageAuctions from "./pages/admin/ManageAuctions";
+import CreateAuction from "./pages/admin/CreateAuction";
 
 
 export default function App() {
@@ -225,6 +229,10 @@ export default function App() {
         />
         <Route path="/exhibitions" element={<Exhibitions />} />
 
+        {/* Auctions - browsing is open to everyone, bidding/wishlist require login (enforced in the page/API) */}
+        <Route path="/auctions" element={<Auctions />} />
+        <Route path="/auctions/:id" element={<AuctionDetail />} />
+
         {/* Admin */}
         <Route
           path="/admin/dashboard"
@@ -302,6 +310,30 @@ export default function App() {
     path="/admin/pending-users"
     element={<PendingUsers />}
 />
+        <Route
+          path="/admin/auctions"
+          element={
+            <ProtectedRoute role="admin">
+              <ManageAuctions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/auctions/new"
+          element={
+            <ProtectedRoute role="admin">
+              <CreateAuction />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/auctions/:id/edit"
+          element={
+            <ProtectedRoute role="admin">
+              <CreateAuction />
+            </ProtectedRoute>
+          }
+        />
 
         <Route path="*" element={<Home />} />
       </Routes>
