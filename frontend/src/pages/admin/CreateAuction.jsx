@@ -110,7 +110,7 @@ export default function CreateAuction() {
     <div className="page narrow">
       <h1>{isEdit ? "Edit Auction" : "Create New Auction"}</h1>
       <p className="page-subtitle">
-        {isEdit ? "Update this auction's rules." : "Put an artifact up for auction and set the bidding rules."}
+        {isEdit ? "Update this auction's rules." : "Only artifacts marked for auction during report approval can be listed here."}
       </p>
       {error && <div className="alert alert-danger">{error}</div>}
       {isEdit && bidCount > 0 && (

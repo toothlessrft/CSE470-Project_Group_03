@@ -6,10 +6,9 @@ const { requireAuth, requireRole } = require("../middleware/auth");
 const router = express.Router();
 
 router.use(requireAuth);
-router.use(requireRole("archaeologist"));
 
 // POST /api/items -> Create a new artifact directly
-router.post("/", async (req, res) => {
+router.post("/", requireRole("archaeologist"), async (req, res) => {
     try {
         const { name, picture, description, discovery_date, location, Type, civilization, era, region, material, usage, latitude, longitude, site_name } = req.body;
 
@@ -58,10 +57,19 @@ router.put("/:id", async (req, res) => {
             if (req.body[key] !== undefined) updates[key] = req.body[key];
         }
 
-        // if lat/lng are supplied but the item has a site, maybe update the site's coordinates?
-        // or if the item doesn't have a site, create one.
         const item = await Item.findById(req.params.id);
         if (!item) return res.status(404).json({ error: "Item not found." });
+
+        if (req.user.role === "museum_manager") {
+            const managerMuseum = req.user.roleProfile?.museum_name;
+            const isOwnedMuseumArtifact =
+                (item.allocation === "Museum" && (item.museumName === managerMuseum || item.location === managerMuseum));
+            if (!managerMuseum || !isOwnedMuseumArtifact) {
+                return res.status(403).json({ error: "You can only edit artifacts stored in your own museum." });
+            }
+        } else if (req.user.role !== "archaeologist") {
+            return res.status(403).json({ error: "You are not allowed to edit artifacts." });
+        }
 
         if (req.body.latitude && req.body.longitude) {
             if (item.site) {
@@ -88,7 +96,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/items/:id -> Delete an artifact
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireRole("archaeologist"), async (req, res) => {
     try {
         const item = await Item.findByIdAndDelete(req.params.id);
         if (!item) return res.status(404).json({ error: "Item not found." });

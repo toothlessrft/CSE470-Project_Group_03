@@ -264,10 +264,16 @@ router.delete("/wishlist/:itemId", requireAuth, async (req, res) => {
 // Admin management
 // ---------------------------------------------------------------------------
 
-// GET /api/auctions/admin/candidates -> items available to put up for auction
+// GET /api/auctions/admin/candidates -> items explicitly marked for auction and not already active
 router.get("/admin/candidates", requireRole("admin"), async (req, res) => {
   const activeAuctionItemIds = (await Auction.find({ status: "Active" }).select("item")).map((a) => String(a.item));
-  const items = await Item.find({ _id: { $nin: activeAuctionItemIds } }).select("name Type civilization era allocation").sort({ allocation: -1, name: 1 });
+  const items = await Item.find({
+    allocation: "Auction",
+    _id: { $nin: activeAuctionItemIds },
+  })
+    .select("name Type civilization era allocation")
+    .sort({ name: 1 });
+
   res.json({ items });
 });
 
@@ -281,6 +287,15 @@ router.post("/", requireRole("admin"), async (req, res) => {
     }
     if (new Date(deadline) <= new Date()) {
       return res.status(400).json({ error: "Deadline must be in the future." });
+    }
+
+    // Verify the item is actually marked for auction
+    const itemDoc = await Item.findById(item);
+    if (!itemDoc) {
+      return res.status(404).json({ error: "Artifact not found." });
+    }
+    if (itemDoc.allocation !== "Auction") {
+      return res.status(400).json({ error: "Only artifacts marked for auction can be auctioned." });
     }
 
     const alreadyActive = await Auction.findOne({ item, status: "Active" });

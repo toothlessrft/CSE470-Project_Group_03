@@ -10,6 +10,7 @@ const DiscoveryReport = require("../models/DiscoveryReport");
 const ResearcherReport = require("../models/ResearcherReport"); // Report Approval & Artifact Allocation
 const Item = require("../models/Item"); // Report Approval & Artifact Allocation
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { MUSEUMS, normalizeMuseumName } = require("../config/museums");
 
 // Haversine distance in km, used to suggest researchers near a report's location
 function distanceKm(a, b) {
@@ -338,16 +339,19 @@ router.post("/artifacts/:itemId/allocate", async (req, res) => {
   if (!["Museum", "Auction"].includes(destination)) {
     return res.status(400).json({ error: "destination must be 'Museum' or 'Auction'." });
   }
-  if (destination === "Museum" && !museumName) {
-    return res.status(400).json({ error: "Museum name is required." });
+  if (destination === "Museum") {
+    const cleanMuseumName = normalizeMuseumName(museumName);
+    if (!cleanMuseumName || !MUSEUMS.includes(cleanMuseumName)) {
+      return res.status(400).json({ error: "Please choose a valid recognized museum from the list." });
+    }
   }
 
   const item = await Item.findByIdAndUpdate(
     req.params.itemId,
     {
       allocation: destination,
-      museumName: destination === "Museum" ? museumName : "",
-      location: destination === "Museum" ? museumName : "Scheduled for Auction",
+      museumName: destination === "Museum" ? normalizeMuseumName(museumName) : "",
+      location: destination === "Museum" ? normalizeMuseumName(museumName) : "Scheduled for Auction",
     },
     { new: true }
   );

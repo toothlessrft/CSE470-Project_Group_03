@@ -14,6 +14,12 @@ function toRegex(value) {
   return new RegExp(value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
 }
 
+function toExactMatch(value) {
+  const cleaned = String(value || "").trim();
+  if (!cleaned) return null;
+  return new RegExp(`^${cleaned.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i");
+}
+
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -68,7 +74,7 @@ router.get("/map", async (req, res) => {
 // GET /api/search/artifacts -> the main search
 // query params: civilization, era, region, material, usage, q, site, lat, lng, radius_km
 router.get("/artifacts", async (req, res) => {
-  const { civilization, era, region, material, usage, q, site, lat, lng, radius_km } = req.query;
+  const { civilization, era, region, material, usage, q, site, lat, lng, radius_km, museumName, location } = req.query;
 
   const filter = {};
   if (civilization) filter.civilization = toRegex(civilization);
@@ -77,10 +83,40 @@ router.get("/artifacts", async (req, res) => {
   if (material) filter.material = toRegex(material);
   if (usage) filter.usage = toRegex(usage);
   if (site) filter.site = site;
+
+  const exactMuseumFilters = [];
+  const locationFilters = [];
+
+  if (museumName) {
+    filter.allocation = "Museum";
+    exactMuseumFilters.push(
+      { museumName: toExactMatch(museumName) },
+      { location: toExactMatch(museumName) }
+    );
+  }
+
+  if (location) {
+    locationFilters.push(
+      { museumName: toExactMatch(location) },
+      { location: toExactMatch(location) }
+    );
+  }
+
+  if (exactMuseumFilters.length > 0 && locationFilters.length > 0) {
+    filter.$and = [
+      { $or: exactMuseumFilters },
+      { $or: locationFilters },
+    ];
+  } else if (exactMuseumFilters.length > 0) {
+    filter.$or = [...(filter.$or || []), ...exactMuseumFilters];
+  } else if (locationFilters.length > 0) {
+    filter.$or = [...(filter.$or || []), ...locationFilters];
+  }
+
   if (q) {
     const rx = toRegex(q);
     const matchingSites = await Site.find({ name: rx }).select("_id");
-    filter.$or = [
+    const textMatches = [
       { name: rx },
       { description: rx },
       { civilization: rx },
@@ -90,7 +126,10 @@ router.get("/artifacts", async (req, res) => {
       { usage: rx },
       { Type: rx },
       { site: { $in: matchingSites.map((s) => s._id) } },
+      { location: rx },
+      { museumName: rx },
     ];
+    filter.$or = [...(filter.$or || []), ...textMatches];
   }
 
   let items = await Item.find(filter).populate("site", "name s_district s_thana latitude longitude era").limit(200);
@@ -134,6 +173,8 @@ router.get("/artifacts", async (req, res) => {
       limited: false,
       discovery_date: i.discovery_date,
       location: i.location,
+      allocation: i.allocation,
+      museumName: i.museumName,
       district: i.site?.s_district,
       thana: i.site?.s_thana,
       specialization: i.specialization,

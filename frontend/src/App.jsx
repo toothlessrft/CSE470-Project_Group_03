@@ -41,6 +41,7 @@ import AssignInspection from "./pages/admin/AssignInspection";
 import RequestLoan from "./pages/mm/RequestLoan";
 import MyLoanRequests from "./pages/mm/MyLoanRequests";
 import IncomingLoanRequests from "./pages/mm/IncomingLoanRequests";
+import MyMuseumArtifacts from "./pages/mm/MyMuseumArtifacts";
 import ArtifactSearch from "./pages/public/ArtifactSearch";
 import KnowledgeHub from "./pages/KnowledgeHub";
 import Auctions from "./pages/public/Auctions";
@@ -183,6 +184,14 @@ export default function App() {
               <IncomingLoanRequests />
             </ProtectedRoute>
             }
+        />
+        <Route
+          path="/mm/my-museum-items"
+          element={
+            <ProtectedRoute role="museum_manager">
+              <MyMuseumArtifacts />
+            </ProtectedRoute>
+          }
         />
         <Route
   path="/mm/exhibitions"

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Search, MapPin, LayoutGrid, X, Plus, Edit, Trash2 } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
@@ -13,13 +14,17 @@ const FIELD_LABELS = {
   region: "Region",
   material: "Material",
   usage: "Usage",
+  location: "Current location",
 };
 
 export default function ArtifactSearch() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
 
   const [q, setQ] = useState("");
-  const [filters, setFilters] = useState({ civilization: "", era: "", region: "", material: "", usage: "" });
+  const [searchMode, setSearchMode] = useState(null);
+  const [activeMuseumFilter, setActiveMuseumFilter] = useState(searchParams.get("museum") || "");
+  const [filters, setFilters] = useState({ civilization: "", era: "", region: "", material: "", usage: "", location: "" });
   const [options, setOptions] = useState({ civilizations: [], eras: [], regions: [], materials: [], usages: [] });
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -55,23 +60,49 @@ export default function ArtifactSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function runQuery(params) {
+  async function runQuery(params, mode = null) {
     setLoading(true);
     try {
       const usp = new URLSearchParams();
-      Object.entries(params).forEach(([k, v]) => v != null && v !== "" && usp.set(k, v));
+      const queryParams = { ...params };
+      if (activeMuseumFilter) queryParams.museumName = activeMuseumFilter;
+      Object.entries(queryParams).forEach(([k, v]) => v != null && v !== "" && usp.set(k, v));
       const data = await api.get(`/search/artifacts?${usp.toString()}`);
       setResults(data.results);
+      if (mode) setSearchMode(mode);
     } finally {
       setLoading(false);
     }
   }
 
+  useEffect(() => {
+    const museumFilter = searchParams.get("museum") || "";
+    setActiveMuseumFilter(museumFilter);
+
+    if (museumFilter) {
+      setQ("");
+      setSelectedSite(null);
+      setMapSearchLocation(null);
+      setMapSearchQuery("");
+      setFilters({ civilization: "", era: "", region: "", material: "", usage: "", location: "" });
+      setSearchMode("museum");
+      runQuery({ museumName: museumFilter }, "museum");
+      return;
+    }
+    setSearchMode(null);
+    runQuery({});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   // --- 1. Text bar: searches name/description/site/civilization/etc, ignores filters + map selection ---
   function handleTextSearch(e) {
     e.preventDefault();
     setSelectedSite(null);
-    runQuery({ q });
+    setMapSearchLocation(null);
+    setMapSearchQuery("");
+    setMapSearchError("");
+    setMapSearchResults([]);
+    runQuery({ q }, "text");
   }
 
   // --- 2. Filter panel: uses only the dropdown values, ignores the text bar + map selection ---
@@ -85,22 +116,40 @@ export default function ArtifactSearch() {
 
   function applyFilters() {
     setSelectedSite(null);
-    runQuery({ ...filters });
+    setMapSearchLocation(null);
+    setMapSearchQuery("");
+    setMapSearchError("");
+    setMapSearchResults([]);
+    runQuery({ ...filters }, "filters");
   }
 
   function clearFilters() {
-    setFilters({ civilization: "", era: "", region: "", material: "", usage: "" });
+    setFilters({ civilization: "", era: "", region: "", material: "", usage: "", location: "" });
+    setSelectedSite(null);
+    setMapSearchLocation(null);
+    setMapSearchQuery("");
+    setMapSearchError("");
+    setMapSearchResults([]);
+    setSearchMode(null);
     runQuery({});
   }
 
   // --- 3. Map panel: uses only the selected site, ignores the text bar + filters ---
   function handleSelectSite(site) {
     setSelectedSite(site);
-    runQuery({ site: site._id });
+    setMapSearchLocation(null);
+    setMapSearchError("");
+    setMapSearchResults([]);
+    runQuery({ site: site._id }, "map");
   }
 
   function clearSiteFilter() {
     setSelectedSite(null);
+    setMapSearchLocation(null);
+    setMapSearchQuery("");
+    setMapSearchError("");
+    setMapSearchResults([]);
+    setSearchMode(null);
     runQuery({});
   }
 
@@ -136,7 +185,7 @@ export default function ArtifactSearch() {
       setSelectedSite(null);
       setMapSearchLocation({ lat, lng, label: first.display_name || trimmed });
       setPanelOpen("map");
-      runQuery({ ...filters, lat, lng, radius_km: 50, ...(q ? { q } : {}) });
+      runQuery({ lat, lng, radius_km: 50 }, "map");
     } catch {
       setMapSearchLocation(null);
       setMapSearchResults([]);
@@ -157,7 +206,7 @@ export default function ArtifactSearch() {
     setMapSearchError("");
     setSelectedSite(null);
     setPanelOpen("map");
-    runQuery({ ...filters, lat, lng, radius_km: 50, ...(q ? { q } : {}) });
+    runQuery({ lat, lng, radius_km: 50 }, "map");
   }
 
   async function handleDeleteItem(id) {
@@ -197,9 +246,24 @@ export default function ArtifactSearch() {
       }
 
       setShowModal(false);
-      // Reload current query, plus the map pins and filter dropdowns (a new
-      // artifact may have created a brand new site pin, or a new tag value).
-      runQuery({ ...filters, ...(selectedSite ? { site: selectedSite._id } : {}), ...(q ? { q } : {}) });
+      // Reload the currently active search method only. Do not merge other unrelated modes.
+      if (searchMode === "filters") {
+        runQuery({ ...filters }, "filters");
+      } else if (searchMode === "map") {
+        if (selectedSite) {
+          runQuery({ site: selectedSite._id }, "map");
+        } else if (mapSearchLocation) {
+          runQuery({ lat: mapSearchLocation.lat, lng: mapSearchLocation.lng, radius_km: 50 }, "map");
+        } else {
+          runQuery({});
+        }
+      } else if (searchMode === "text") {
+        runQuery({ q }, "text");
+      } else if (activeMuseumFilter) {
+        runQuery({ museumName: activeMuseumFilter }, "museum");
+      } else {
+        runQuery({});
+      }
       api.get("/search/map").then((data) => setSites(data.sites));
       api.get("/search/filters").then(setOptions);
     } catch (err) {
@@ -285,14 +349,23 @@ export default function ArtifactSearch() {
             {Object.entries(FIELD_LABELS).map(([field, label]) => (
               <label key={field} style={{ display: "flex", flexDirection: "column", gap: "0.4rem", fontWeight: 600, fontSize: "0.9rem" }}>
                 {label}
-                <select value={filters[field]} onChange={(e) => handleFilterChange(field, e.target.value)}>
-                  <option value="">Any</option>
-                  {options[`${field}s`]?.map((v) => (
-                    <option key={v} value={v}>
-                      {v}
-                    </option>
-                  ))}
-                </select>
+                {field === "location" ? (
+                  <SearchableSelect
+                    options={[DEFAULT_LOCATION, ...MUSEUMS]}
+                    value={filters.location}
+                    onChange={(value) => handleFilterChange("location", value)}
+                    placeholder="Search a museum or repository"
+                  />
+                ) : (
+                  <select value={filters[field]} onChange={(e) => handleFilterChange(field, e.target.value)}>
+                    <option value="">Any</option>
+                    {options[`${field}s`]?.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </label>
             ))}
           </div>
@@ -400,7 +473,10 @@ export default function ArtifactSearch() {
               </p>
             )}
 
-            {user?.role === "archaeologist" && (
+            {(user?.role === "archaeologist" ||
+              (user?.role === "museum_manager" &&
+                item.allocation === "Museum" &&
+                (item.museumName === user?.museum_name || item.location === user?.museum_name))) && (
               <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
                 <button
                   className="btn-small btn-outline"
@@ -412,7 +488,7 @@ export default function ArtifactSearch() {
                       picture: item.picture || "",
                       description: item.description || "",
                       discovery_date: item.discovery_date ? new Date(item.discovery_date).toISOString().split("T")[0] : "",
-                      location: item.location || "", 
+                      location: item.location || "",
                       civilization: item.civilization || "",
                       era: item.era || "",
                       region: item.region || "",
@@ -428,14 +504,16 @@ export default function ArtifactSearch() {
                 >
                   <Edit size={14} /> Edit
                 </button>
-                <button
-                  className="btn-small"
-                  style={{ color: "#fff", background: "var(--danger, #c0392b)", border: "none" }}
-                  onClick={() => handleDeleteItem(item._id)}
-                  title="Delete artifact"
-                >
-                  <Trash2 size={14} /> Delete
-                </button>
+                {user?.role === "archaeologist" && (
+                  <button
+                    className="btn-small"
+                    style={{ color: "#fff", background: "var(--danger, #c0392b)", border: "none" }}
+                    onClick={() => handleDeleteItem(item._id)}
+                    title="Delete artifact"
+                  >
+                    <Trash2 size={14} /> Delete
+                  </button>
+                )}
               </div>
             )}
           </div>

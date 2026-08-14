@@ -20,6 +20,7 @@ const ResearcherReport = require("../models/ResearcherReport");
 const Auction = require("../models/Auction");
 const Bid = require("../models/Bid");
 const Wishlist = require("../models/Wishlist");
+const { MUSEUMS } = require("../config/museums");
 
 const DEFAULT_PASSWORD = "password123"; // every seeded user gets this password
 
@@ -42,9 +43,18 @@ async function run() {
     DiscoveryReport.deleteMany({}),
     ResearcherReport.deleteMany({}),
     Auction.deleteMany({}),
-    Bid.deleteMany({}),
     Wishlist.deleteMany({}),
   ]);
+
+  // Some older seed runs left stale unique indexes on the bids collection.
+  // Dropping the collection ensures the current schema can be recreated cleanly.
+  try {
+    await Bid.collection.drop();
+  } catch (err) {
+    if (err.code !== 26) {
+      throw err;
+    }
+  }
 
   const hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
@@ -179,8 +189,89 @@ async function run() {
     { site: paundra, name: "Black and Red Ware Sherd", description: "Ceramic fragment typical of the early iron age levels", discovery_date: "2021-03-25", Type: "Pottery", civilization: "Pre-Mauryan", era: "5th Century BCE", region: "Bogra", material: "Ceramic", usage: "Household Vessel" }
   ];
 
-  const items = await Item.create(itemDefs.map((i) => ({ ...i, site: i.site._id })));
+  const baseMuseumItems = itemDefs.map((item, index) => ({
+    ...item,
+    site: item.site._id,
+    allocation: "Museum",
+    museumName: MUSEUMS[index % MUSEUMS.length],
+    location: MUSEUMS[index % MUSEUMS.length],
+  }));
+
+  const items = await Item.create(baseMuseumItems);
   const itemByName = Object.fromEntries(items.map((i) => [i.name, i]));
+
+  const museumAssignments = [
+    { name: "Bronze Buddha", museumName: "National Museum of Bangladesh" },
+    { name: "Punch-marked Silver Coin", museumName: "Folk Art Museum" },
+    { name: "Terracotta Plaque", museumName: "Varendra Research Museum" },
+    { name: "Copper Plate Grant", museumName: "National Museum of Bangladesh" },
+    { name: "Gold Earring", museumName: "Folk Art Museum" },
+  ];
+
+  const extraMuseumItems = [
+    { name: "Buddhist Miniature Manuscript Fragment", description: "Part of a palm-leaf manuscript from the Pala period.", Type: "Rock", civilization: "Pala", era: "10th Century", region: "Dhaka", material: "Palm Leaf", usage: "Manuscript", museumName: "Bangladesh National Museum", site: mahasthangarh },
+    { name: "Copper Bell Fragment", description: "Hand bell fragment with embossed lotus pattern.", Type: "Metal_Object", civilization: "Gupta", era: "5th Century", region: "Comilla", material: "Bronze", usage: "Ritual", museumName: "Ahsan Manzil Museum", site: mainamati },
+    { name: "Terracotta Female Figurine", description: "Votive figurine of a female deity from a local shrine.", Type: "Pottery", civilization: "Sena", era: "12th Century", region: "Bogra", material: "Terracotta", usage: "Religious", museumName: "Mainamati Museum", site: mainamati },
+    { name: "Silver Headdress Pin", description: "Decorative pin used on ceremonial headwear.", Type: "Jewelry", civilization: "Early Historic Bengal", era: "3rd Century BCE", region: "Narsingdi", material: "Silver", usage: "Adornment", museumName: "Liberation War Museum", site: wari_bateshwar },
+    { name: "Stone Doorjamb Fragment", description: "Carved architectural fragment used in a temple doorway.", Type: "Rock", civilization: "Chandra Dynasty", era: "10th Century", region: "Comilla", material: "Sandstone", usage: "Architecture", museumName: "Chittagong University Museum", site: mainamati },
+    { name: "Bronze Censer Stand", description: "Portable incense burner with decorative lotus feet.", Type: "Metal_Object", civilization: "Pala", era: "9th Century CE", region: "Naogaon", material: "Bronze", usage: "Religious", museumName: "Paharpur Museum", site: somapura },
+    { name: "Painted Pottery Jar", description: "Decorated jar from a domestic storage context.", Type: "Pottery", civilization: "Mauryan", era: "3rd Century BCE", region: "Bogra", material: "Ceramic", usage: "Domestic", museumName: "Mahasthangarh Museum", site: mahasthangarh },
+    { name: "Shell Inlay Plaque", description: "Shell inlay work from a ceremonial object.", Type: "Jewelry", civilization: "Early Historic Bengal", era: "1st Century CE", region: "Narsingdi", material: "Shell", usage: "Adornment", museumName: "Rangpur Museum", site: wari_bateshwar },
+    { name: "Stone Tablet with Script", description: "Fragment of a memorial tablet with early writing.", Type: "Rock", civilization: "Mauryan", era: "3rd Century BCE", region: "Bogra", material: "Limestone", usage: "Record", museumName: "Varendra Research Museum", site: mahasthangarh },
+    { name: "Ancient Mirror Fragment", description: "Polished bronze mirror with a surviving handle.", Type: "Metal_Object", civilization: "Gupta", era: "5th Century CE", region: "Bogra", material: "Bronze", usage: "Personal Item", museumName: "Rajshahi Museum", site: paundra },
+    { name: "Bone Hairpin", description: "Decorative hairpin from a burial context.", Type: "Bone/Ivory", civilization: "Early Historic Bengal", era: "450 BCE", region: "Narsingdi", material: "Bone", usage: "Adornment", museumName: "Narayanganj Heritage Museum", site: wari_bateshwar },
+    { name: "Copper Alloy Bowl", description: "Ritual or ceremonial serving basin.", Type: "Metal_Object", civilization: "Candra Dynasty", era: "10th Century", region: "Comilla", material: "Copper Alloy", usage: "Ceremonial", museumName: "Dhaka City Museum", site: mainamati },
+    { name: "Miniature Stone Idol Fragment", description: "Fragment of a small devotional stone image.", Type: "Rock", civilization: "Pala", era: "8th Century CE", region: "Naogaon", material: "Sandstone", usage: "Religious", museumName: "Bangladesh Heritage Museum", site: somapura },
+    { name: "Glass Bead Necklace", description: "String of colourful beads used in adornment.", Type: "Jewelry", civilization: "Early Historic Bengal", era: "2nd Century BCE", region: "Narsingdi", material: "Glass", usage: "Adornment", museumName: "Chattogram Museum", site: wari_bateshwar },
+    { name: "Iron Tool Fragment", description: "Part of a working agricultural or craft tool.", Type: "Metal_Object", civilization: "Pre-Mauryan", era: "5th Century BCE", region: "Bogra", material: "Iron", usage: "Tool", museumName: "Bogura Museum", site: mahasthangarh },
+    { name: "Pottery Lamp Stand", description: "Lamp refractory stand from a temple setting.", Type: "Pottery", civilization: "Pala", era: "9th Century CE", region: "Naogaon", material: "Terracotta", usage: "Religious", museumName: "Sundarbans Museum", site: somapura },
+    { name: "Ivory Carving Fragment", description: "Decorative ivory carving from a composite object.", Type: "Bone/Ivory", civilization: "Gupta", era: "5th Century", region: "Bogra", material: "Ivory", usage: "Adornment", museumName: "Khulna Museum", site: paundra },
+    { name: "Copper Seal Impression", description: "Stamp seal used in administration or trade.", Type: "Metal_Object", civilization: "Harikela", era: "8th Century CE", region: "Comilla", material: "Copper", usage: "Administrative", museumName: "Barishal Museum", site: mainamati },
+    { name: "Terracotta Stamp Seal", description: "Small circular seal with geometric motifs.", Type: "Pottery", civilization: "Pala", era: "9th Century", region: "Naogaon", material: "Terracotta", usage: "Administrative", museumName: "Coxs Bazar Discovery Museum", site: somapura },
+    { name: "Stone Weight Fragment", description: "Fragment of a balanced measuring weight.", Type: "Rock", civilization: "Early Historic Bengal", era: "1st Century CE", region: "Narsingdi", material: "Stone", usage: "Trade", museumName: "Bogra District Museum", site: wari_bateshwar },
+  ];
+
+  const additionalMuseumArtifacts = [
+    { name: "Bronze Offering Bowl", description: "Ceremonial bowl recovered near the temple courtyard.", site: somapura, Type: "Metal_Object", civilization: "Pala", era: "9th Century CE", region: "Naogaon", material: "Bronze", usage: "Religious", museumName: "Paharpur Museum" },
+    { name: "Stone Sculpture Fragment", description: "Ancient temple sculpture fragment from the eastern wall.", site: mainamati, Type: "Rock", civilization: "Candra Dynasty", era: "10th Century", region: "Comilla", material: "Sandstone", usage: "Religious", museumName: "Mainamati Museum" },
+    { name: "Copper Hooked Pin", description: "Decorative hooked pin used in ceremonial dress.", site: wari_bateshwar, Type: "Metal_Object", civilization: "Early Historic Bengal", era: "450 BCE", region: "Narsingdi", material: "Copper", usage: "Adornment", museumName: "Narsingdi Museum" },
+    { name: "Terracotta Gaming Token", description: "Game token or marked piece from a domestic setting.", site: mahasthangarh, Type: "Pottery", civilization: "Mauryan", era: "3rd Century BCE", region: "Bogra", material: "Terracotta", usage: "Gaming", museumName: "Mahasthangarh Museum" },
+    { name: "Gold Coin Hoard Fragment", description: "Fragment of a gold coin cache found near the western trench.", site: paundra, Type: "Metal_Object", civilization: "Gupta", era: "5th Century", region: "Bogra", material: "Gold", usage: "Currency", museumName: "Bogura Museum" },
+    { name: "Bone Needle", description: "Long bone needle used in textile or ritual activity.", site: mainamati, Type: "Bone/Ivory", civilization: "Candra Dynasty", era: "10th Century", region: "Comilla", material: "Bone", usage: "Tool", museumName: "Cumilla Museum" },
+    { name: "Terracotta Stupa Plaque", description: "Decorative plaque from a shrine or monastery wall.", site: somapura, Type: "Pottery", civilization: "Pala", era: "8th Century CE", region: "Naogaon", material: "Terracotta", usage: "Decorative Architecture", museumName: "Bangladesh National Museum" },
+    { name: "Bronze Mirror Fragment", description: "Broken ceremonial bronze mirror with a decorated back.", site: bhitagarh, Type: "Metal_Object", civilization: "Pundravardhana", era: "4th Century CE", region: "Panchagarh", material: "Bronze", usage: "Personal Item", museumName: "Panchagarh Museum" },
+    { name: "Stone Weight Set", description: "Balance weight used in trade or taxation.", site: wari_bateshwar, Type: "Rock", civilization: "Early Historic Bengal", era: "1st Century CE", region: "Narsingdi", material: "Stone", usage: "Trade", museumName: "Rangpur Museum" },
+    { name: "Silver Armlet Fragment", description: "Decorative silver armlet from a high-status burial.", site: mahasthangarh, Type: "Jewelry", civilization: "Gupta", era: "4th Century CE", region: "Bogra", material: "Silver", usage: "Adornment", museumName: "Varendra Research Museum" },
+    { name: "Painted Ceramic Dish", description: "Fine painted dish from a ritual or domestic context.", site: somapura, Type: "Pottery", civilization: "Pala", era: "9th Century CE", region: "Naogaon", material: "Ceramic", usage: "Domestic", museumName: "Bangladesh Heritage Museum" },
+    { name: "Ivory Inlay Piece", description: "Decorative ivory inlay from a jeweled object or casket.", site: paundra, Type: "Bone/Ivory", civilization: "Gupta", era: "5th Century", region: "Bogra", material: "Ivory", usage: "Adornment", museumName: "Rajshahi Museum" },
+  ];
+
+  const createdExtraMuseumItems = await Item.create(
+    [...extraMuseumItems, ...additionalMuseumArtifacts].map((item) => ({
+      ...item,
+      site: item.site?._id || null,
+      location: item.museumName,
+      allocation: "Museum",
+      museumName: item.museumName,
+      description: item.description || "Museum-assigned archaeological object.",
+      discovery_date: item.discovery_date || new Date("2024-01-01"),
+    }))
+  );
+
+  for (const assignment of museumAssignments) {
+    const item = itemByName[assignment.name];
+    if (!item) continue;
+    item.allocation = "Museum";
+    item.museumName = assignment.museumName;
+    item.location = assignment.museumName;
+    await item.save();
+  }
+
+  for (const item of createdExtraMuseumItems) {
+    item.location = item.museumName;
+    item.allocation = "Museum";
+    await item.save();
+  }
 
   console.log("Creating tools...");
   const tools = await Tool.create([
@@ -257,6 +348,79 @@ async function run() {
       material: "Limestone",
       usage: "Record",
       discovery_date: new Date("2024-05-15"),
+      allocation: "Auction",
+      museumName: "",
+      location: "Scheduled for Auction",
+    },
+  ]);
+
+  const additionalAuctionItems = await Item.create([
+    {
+      name: "Ancient Mirror Fragment",
+      description: "Broken bronze mirror with a polished back and decorative edge pattern.",
+      Type: "Metal_Object",
+      civilization: "Gupta",
+      era: "5th Century CE",
+      region: "Bogra",
+      material: "Bronze",
+      usage: "Personal Item",
+      discovery_date: new Date("2024-05-17"),
+      allocation: "Auction",
+      museumName: "",
+      location: "Scheduled for Auction",
+    },
+    {
+      name: "Banded Agate Bead",
+      description: "Striated agate bead recovered in a trade context near the riverbank.",
+      Type: "Jewelry",
+      civilization: "Early Historic Bengal",
+      era: "400 BCE",
+      region: "Narsingdi",
+      material: "Agate",
+      usage: "Adornment",
+      discovery_date: new Date("2024-05-22"),
+      allocation: "Auction",
+      museumName: "",
+      location: "Scheduled for Auction",
+    },
+    {
+      name: "Black and Red Ware Sherd",
+      description: "Fine black-and-red pottery fragment from a storage jar or service vessel.",
+      Type: "Pottery",
+      civilization: "Pre-Mauryan",
+      era: "5th Century BCE",
+      region: "Bogra",
+      material: "Ceramic",
+      usage: "Household Vessel",
+      discovery_date: new Date("2024-05-29"),
+      allocation: "Auction",
+      museumName: "",
+      location: "Scheduled for Auction",
+    },
+    {
+      name: "Bone Hairpin",
+      description: "A slender bone hairpin from a burial or domestic assemblage.",
+      Type: "Bone/Ivory",
+      civilization: "Early Historic Bengal",
+      era: "3rd Century BCE",
+      region: "Narsingdi",
+      material: "Bone",
+      usage: "Adornment",
+      discovery_date: new Date("2024-06-03"),
+      allocation: "Auction",
+      museumName: "",
+      location: "Scheduled for Auction",
+    },
+    {
+      name: "Bone Needle",
+      description: "Long bone needle used in sewing or textile work.",
+      Type: "Bone/Ivory",
+      civilization: "Candra Dynasty",
+      era: "10th Century",
+      region: "Comilla",
+      material: "Bone",
+      usage: "Tool",
+      discovery_date: new Date("2024-06-08"),
       allocation: "Auction",
       museumName: "",
       location: "Scheduled for Auction",
@@ -355,12 +519,17 @@ async function run() {
   ]);
 
   console.log("Creating sample auctions and bids...");
+  
+  // Rebuild itemByName to include all items created after the initial batch
+  const allItems = await Item.find({});
+  const itemByNameUpdated = Object.fromEntries(allItems.map((i) => [i.name, i]));
+  
   const now = Date.now();
   const day = 24 * 60 * 60 * 1000;
 
   // --- 1. Active, several bids already placed ---
   const auctionGoldEarring = await Auction.create({
-    item: itemByName["Gold Earring"]._id,
+    item: itemByNameUpdated["Gold Earring"]._id,
     created_by: dina._id,
     starting_bid: 5000,
     min_increment: 500,
@@ -379,7 +548,7 @@ async function run() {
 
   // --- 2. Active, nobody has bid yet ---
   await Auction.create({
-    item: itemByName["Bronze Bell"]._id,
+    item: itemByNameUpdated["Bronze Bell"]._id,
     created_by: dina._id,
     starting_bid: 3000,
     min_increment: 300,
@@ -390,7 +559,7 @@ async function run() {
 
   // --- 3. Active, deadline coming up soon (demoes the countdown/urgency UI) ---
   const auctionSilverDinars = await Auction.create({
-    item: itemByName["Silver Dinars"]._id,
+    item: itemByNameUpdated["Silver Dinars"]._id,
     created_by: dina._id,
     starting_bid: 8000,
     min_increment: 1000,
@@ -431,7 +600,7 @@ async function run() {
 
   // --- 5. Closed-Sold ---
   const auctionIvoryComb = await Auction.create({
-    item: itemByName["Ivory Comb"]._id,
+    item: itemByNameUpdated["Ivory Comb"]._id,
     created_by: dina._id,
     starting_bid: 2000,
     min_increment: 200,
@@ -456,7 +625,7 @@ async function run() {
 
   // --- 6. Closed-Unsold (bids came in, but never reached the hidden reserve) ---
   const auctionTaraStatue = await Auction.create({
-    item: itemByName["Bronze Tara Statue"]._id,
+    item: itemByNameUpdated["Bronze Tara Statue"]._id,
     created_by: dina._id,
     starting_bid: 15000,
     min_increment: 1000,
@@ -477,7 +646,7 @@ async function run() {
 
   // --- 7. Cancelled by admin ---
   const auctionStoneReliquary = await Auction.create({
-    item: itemByName["Stone Reliquary"]._id,
+    item: itemByNameUpdated["Stone Reliquary"]._id,
     created_by: dina._id,
     starting_bid: 6000,
     min_increment: 500,
@@ -493,15 +662,64 @@ async function run() {
   });
   await Bid.create({ auction: auctionStoneReliquary._id, bidder: rahim._id, amount: 6000, placed_at: new Date(now - 1 * day) });
 
-  console.log("Creating sample wishlist entries...");
-  await Wishlist.create([
-    { user: shirin._id, item: itemByName["Gold Amulet"]._id }, // not currently up for auction
-    { user: publicUser._id, item: itemByName["Bronze Bell"]._id }, // is currently up for auction
-    { user: rahim._id, item: itemByName["Gold Earring"]._id },
+  // --- 8. Active auction with user bids (user winning position) ---
+  const auctionMirrorFragment = await Auction.create({
+    item: itemByNameUpdated["Ancient Mirror Fragment"]._id,
+    created_by: elias._id,
+    starting_bid: 3500,
+    min_increment: 250,
+    deadline: new Date(now + 1.5 * day), // ends in 1.5 days
+    reserve_price: 4000,
+    source_percentage: 8,
+    source_name: "Gupta Era Research Project",
+    current_bid: 4250,
+    current_bidder: publicUser._id, // User in winning position
+    bid_count: 5,
+    status: "Active",
+  });
+  await Bid.create([
+    { auction: auctionMirrorFragment._id, bidder: bob._id, amount: 3500, placed_at: new Date(now - 8 * 60 * 60 * 1000) },
+    { auction: auctionMirrorFragment._id, bidder: mizan._id, amount: 3750, placed_at: new Date(now - 6 * 60 * 60 * 1000) },
+    { auction: auctionMirrorFragment._id, bidder: rahim._id, amount: 4000, placed_at: new Date(now - 4 * 60 * 60 * 1000) },
+    { auction: auctionMirrorFragment._id, bidder: publicUser._id, amount: 4250, placed_at: new Date(now - 2 * 60 * 60 * 1000) }, // Last bid by user
   ]);
 
-  console.log("\nDone! Database seeded with 20+ artifacts, 3 ongoing projects, 5+ users per role, and 7 sample auctions.");
+  // --- 9. Closed auction where user won (secured) ---
+  const auctionBeadNecklace = await Auction.create({
+    item: itemByNameUpdated["Banded Agate Bead"]._id,
+    created_by: elias._id,
+    starting_bid: 2000,
+    min_increment: 150,
+    deadline: new Date(now - 6 * 60 * 60 * 1000), // closed 6 hours ago
+    reserve_price: 2200,
+    source_percentage: 7,
+    source_name: "Narsingdi Excavation Team",
+    current_bid: 2650,
+    current_bidder: publicUser._id,
+    bid_count: 4,
+    status: "Closed-Sold",
+    winner: publicUser._id,
+    final_price: 2650,
+    closed_at: new Date(now - 6 * 60 * 60 * 1000),
+  });
+  await Bid.create([
+    { auction: auctionBeadNecklace._id, bidder: charlie._id, amount: 2000, placed_at: new Date(now - 24 * 60 * 60 * 1000) },
+    { auction: auctionBeadNecklace._id, bidder: mizan._id, amount: 2150, placed_at: new Date(now - 18 * 60 * 60 * 1000) },
+    { auction: auctionBeadNecklace._id, bidder: shirin._id, amount: 2450, placed_at: new Date(now - 12 * 60 * 60 * 1000) },
+    { auction: auctionBeadNecklace._id, bidder: publicUser._id, amount: 2650, placed_at: new Date(now - 8 * 60 * 60 * 1000) }, // Won by user
+  ]);
+
+  console.log("Creating sample wishlist entries...");
+  await Wishlist.create([
+    { user: shirin._id, item: itemByNameUpdated["Gold Amulet"]._id }, // not currently up for auction
+    { user: publicUser._id, item: itemByNameUpdated["Bronze Bell"]._id }, // is currently up for auction
+    { user: publicUser._id, item: itemByNameUpdated["Ancient Mirror Fragment"]._id }, // active auction user is winning
+    { user: rahim._id, item: itemByNameUpdated["Gold Earring"]._id },
+  ]);
+
+  console.log("\nDone! Database seeded with 20+ artifacts, 3 ongoing projects, 5+ users per role, and 9 sample auctions (including active bids and user-won items).");
   console.log("Log in with any nid or email, e.g. nid 'A001' (archaeologist), 'AD001' (admin), 'MM001' (museum).");
+  console.log("Try logging in as 'PUB001' or 'PUB002' (public) to see auction bids and won items!");
   process.exit(0);
 }
 

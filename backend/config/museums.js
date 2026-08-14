@@ -1,6 +1,4 @@
-export const DEFAULT_LOCATION = "Govt. Repository";
-
-export const MUSEUMS = [
+const MUSEUMS = [
   "National Museum of Bangladesh",
   "Bangladesh National Museum",
   "Folk Art Museum",
@@ -123,3 +121,16 @@ export const MUSEUMS = [
   "Ramu Museum",
   "Coxs Bazar Discovery Museum"
 ];
+
+const MUSEUM_SET = new Set(MUSEUMS.map((name) => name.trim()));
+
+function normalizeMuseumName(name) {
+  return (name || "").trim();
+}
+
+function isValidMuseumName(name) {
+  const cleaned = normalizeMuseumName(name);
+  return Boolean(cleaned) && MUSEUM_SET.has(cleaned);
+}
+
+module.exports = { MUSEUMS, MUSEUM_SET, normalizeMuseumName, isValidMuseumName };
