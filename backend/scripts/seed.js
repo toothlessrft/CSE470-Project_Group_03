@@ -17,6 +17,9 @@ const RequestMaintenance = require("../models/RequestMaintenance");
 const KnowledgeResource = require("../models/KnowledgeResource");
 const DiscoveryReport = require("../models/DiscoveryReport");
 const ResearcherReport = require("../models/ResearcherReport");
+const Auction = require("../models/Auction");
+const Bid = require("../models/Bid");
+const Wishlist = require("../models/Wishlist");
 
 const DEFAULT_PASSWORD = "password123"; // every seeded user gets this password
 
@@ -38,6 +41,9 @@ async function run() {
     KnowledgeResource.deleteMany({}),
     DiscoveryReport.deleteMany({}),
     ResearcherReport.deleteMany({}),
+    Auction.deleteMany({}),
+    Bid.deleteMany({}),
+    Wishlist.deleteMany({}),
   ]);
 
   const hash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
@@ -348,7 +354,153 @@ async function run() {
     { site: paundra._id, caretaker: sultana._id, damage: "Vegetation growth threatening the structural integrity of Govinda Bhita.", repair_cost: 25000, status: "Pending" }
   ]);
 
-  console.log("\nDone! Database seeded with 20+ artifacts, 3 ongoing projects, 5+ users per role.");
+  console.log("Creating sample auctions and bids...");
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+
+  // --- 1. Active, several bids already placed ---
+  const auctionGoldEarring = await Auction.create({
+    item: itemByName["Gold Earring"]._id,
+    created_by: dina._id,
+    starting_bid: 5000,
+    min_increment: 500,
+    deadline: new Date(now + 3 * day),
+    source_percentage: 10,
+    source_name: "Alice Rahman (excavation lead)",
+    current_bid: 7000,
+    current_bidder: publicUser._id,
+    bid_count: 3,
+  });
+  await Bid.create([
+    { auction: auctionGoldEarring._id, bidder: bob._id, amount: 5000, placed_at: new Date(now - 2 * day) },
+    { auction: auctionGoldEarring._id, bidder: shirin._id, amount: 6000, placed_at: new Date(now - 1 * day) },
+    { auction: auctionGoldEarring._id, bidder: publicUser._id, amount: 7000, placed_at: new Date(now - 3 * 60 * 60 * 1000) },
+  ]);
+
+  // --- 2. Active, nobody has bid yet ---
+  await Auction.create({
+    item: itemByName["Bronze Bell"]._id,
+    created_by: dina._id,
+    starting_bid: 3000,
+    min_increment: 300,
+    deadline: new Date(now + 5 * day),
+    source_percentage: 15,
+    source_name: "Somapura Excavation Team",
+  });
+
+  // --- 3. Active, deadline coming up soon (demoes the countdown/urgency UI) ---
+  const auctionSilverDinars = await Auction.create({
+    item: itemByName["Silver Dinars"]._id,
+    created_by: dina._id,
+    starting_bid: 8000,
+    min_increment: 1000,
+    deadline: new Date(now + 30 * 60 * 1000),
+    reserve_price: 9500,
+    extend_trigger_minutes: 5,
+    extend_by_minutes: 5,
+    source_percentage: 8,
+    source_name: "Mainamati Excavation Team",
+    current_bid: 10000,
+    current_bidder: tariq._id,
+    bid_count: 3,
+  });
+  await Bid.create([
+    { auction: auctionSilverDinars._id, bidder: mizan._id, amount: 8000, placed_at: new Date(now - 3 * 60 * 60 * 1000) },
+    { auction: auctionSilverDinars._id, bidder: charlie._id, amount: 9000, placed_at: new Date(now - 90 * 60 * 1000) },
+    { auction: auctionSilverDinars._id, bidder: tariq._id, amount: 10000, placed_at: new Date(now - 20 * 60 * 1000) },
+  ]);
+
+  // --- 4. Active - the artifact allocated straight to "Auction" during Report Approval ---
+  const auctionInscribedTablet = await Auction.create({
+    item: approvedArtifactItems[1]._id, // "Fragmentary Inscribed Tablet"
+    created_by: dina._id,
+    starting_bid: 4000,
+    min_increment: 400,
+    deadline: new Date(now + 7 * day),
+    reserve_price: 4000,
+    source_percentage: 20,
+    source_name: "Javed Public (original reporter)",
+    current_bid: 4400,
+    current_bidder: nusrat._id,
+    bid_count: 2,
+  });
+  await Bid.create([
+    { auction: auctionInscribedTablet._id, bidder: fatima._id, amount: 4000, placed_at: new Date(now - 2 * day) },
+    { auction: auctionInscribedTablet._id, bidder: nusrat._id, amount: 4400, placed_at: new Date(now - 1 * day) },
+  ]);
+
+  // --- 5. Closed-Sold ---
+  const auctionIvoryComb = await Auction.create({
+    item: itemByName["Ivory Comb"]._id,
+    created_by: dina._id,
+    starting_bid: 2000,
+    min_increment: 200,
+    deadline: new Date(now - 2 * day),
+    reserve_price: 2500,
+    source_percentage: 12,
+    source_name: "Bob Karim (field researcher)",
+    current_bid: 3000,
+    current_bidder: jamal._id,
+    bid_count: 4,
+    status: "Closed-Sold",
+    winner: jamal._id,
+    final_price: 3000,
+    closed_at: new Date(now - 2 * day),
+  });
+  await Bid.create([
+    { auction: auctionIvoryComb._id, bidder: shirin._id, amount: 2000, placed_at: new Date(now - 6 * day) },
+    { auction: auctionIvoryComb._id, bidder: bob._id, amount: 2200, placed_at: new Date(now - 5 * day) },
+    { auction: auctionIvoryComb._id, bidder: publicUser._id, amount: 2600, placed_at: new Date(now - 3 * day) },
+    { auction: auctionIvoryComb._id, bidder: jamal._id, amount: 3000, placed_at: new Date(now - 2.1 * day) },
+  ]);
+
+  // --- 6. Closed-Unsold (bids came in, but never reached the hidden reserve) ---
+  const auctionTaraStatue = await Auction.create({
+    item: itemByName["Bronze Tara Statue"]._id,
+    created_by: dina._id,
+    starting_bid: 15000,
+    min_increment: 1000,
+    deadline: new Date(now - 1 * day),
+    reserve_price: 20000,
+    source_percentage: 10,
+    source_name: "Wari-Bateshwar Excavation Team",
+    current_bid: 16000,
+    current_bidder: charlie._id,
+    bid_count: 2,
+    status: "Closed-Unsold",
+    closed_at: new Date(now - 1 * day),
+  });
+  await Bid.create([
+    { auction: auctionTaraStatue._id, bidder: mizan._id, amount: 15000, placed_at: new Date(now - 4 * day) },
+    { auction: auctionTaraStatue._id, bidder: charlie._id, amount: 16000, placed_at: new Date(now - 2 * day) },
+  ]);
+
+  // --- 7. Cancelled by admin ---
+  const auctionStoneReliquary = await Auction.create({
+    item: itemByName["Stone Reliquary"]._id,
+    created_by: dina._id,
+    starting_bid: 6000,
+    min_increment: 500,
+    deadline: new Date(now + 4 * day),
+    source_percentage: 10,
+    source_name: "Somapura Excavation Team",
+    current_bid: 6000,
+    current_bidder: rahim._id,
+    bid_count: 1,
+    status: "Cancelled",
+    cancel_reason: "Artifact flagged for further conservation study before it can be sold.",
+    closed_at: new Date(now - 12 * 60 * 60 * 1000),
+  });
+  await Bid.create({ auction: auctionStoneReliquary._id, bidder: rahim._id, amount: 6000, placed_at: new Date(now - 1 * day) });
+
+  console.log("Creating sample wishlist entries...");
+  await Wishlist.create([
+    { user: shirin._id, item: itemByName["Gold Amulet"]._id }, // not currently up for auction
+    { user: publicUser._id, item: itemByName["Bronze Bell"]._id }, // is currently up for auction
+    { user: rahim._id, item: itemByName["Gold Earring"]._id },
+  ]);
+
+  console.log("\nDone! Database seeded with 20+ artifacts, 3 ongoing projects, 5+ users per role, and 7 sample auctions.");
   console.log("Log in with any nid or email, e.g. nid 'A001' (archaeologist), 'AD001' (admin), 'MM001' (museum).");
   process.exit(0);
 }

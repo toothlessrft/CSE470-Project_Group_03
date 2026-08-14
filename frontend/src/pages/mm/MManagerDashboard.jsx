@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PackageSearch, HandCoins, Inbox, CalendarDays } from "lucide-react";
+import { PackageSearch, HandCoins, Inbox, CalendarDays, Gavel } from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -31,6 +31,7 @@ export default function MManagerDashboard() {
     { to: "/mm/request-loan", icon: HandCoins, title: "Request Artifact Loan", description: "Ask another museum to loan an artifact" },
     { to: "/mm/my-loans", icon: PackageSearch, title: "My Loan Requests", description: "Track loans you've requested" },
     { to: "/mm/incoming-loans", icon: Inbox, title: "Incoming Loan Requests", description: "Approve, decline, and track loans to your museum" },
+    { to: "/auctions", icon: Gavel, title: "Auctions", description: "Bid on artifacts released for auction" },
   ];
 
   return (

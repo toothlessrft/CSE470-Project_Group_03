@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Landmark, MapPin, ScanSearch, LogOut, Search, BookOpen, LayoutDashboard, CalendarDays } from "lucide-react";
+import { Landmark, MapPin, ScanSearch, LogOut, Search, BookOpen, LayoutDashboard, CalendarDays, Gavel } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const ROLE_LABELS = {
@@ -38,11 +38,15 @@ export default function Navbar() {
         <Link to="/search"><Search size={15} /> Search Artifacts</Link>
         <Link to="/knowledge"><BookOpen size={15} /> Knowledge Hub</Link>
         <Link to="/exhibitions"><CalendarDays size={15} /> Exhibitions & Events</Link>
+        <Link to="/auctions"><Gavel size={15} /> Auctions</Link>
         {user ? (
           <>
             <Link to="/report-discovery"><MapPin size={15} /> Report Discovery</Link>
             {user.role === "admin" && (
               <Link to="/admin/reports"><ScanSearch size={15} /> Field Reports</Link>
+            )}
+            {user.role === "admin" && (
+              <Link to="/admin/auctions"><Gavel size={15} /> Manage Auctions</Link>
             )}
 
             {/* Profile Dashboard link — styled like other nav links */}

@@ -16,6 +16,7 @@ const searchRoutes = require("./routes/search");
 const itemsRoutes = require("./routes/items");
 const researcherReportRoutes = require("./routes/researcherReport"); //Researcher Report: Ahad
 const knowledgeRoutes = require("./routes/knowledge");
+const auctionsRoutes = require("./routes/auctions");
 
 const app = express();
 
@@ -44,6 +45,7 @@ app.use("/api/items", itemsRoutes);
 app.use("/api/researcher-report", researcherReportRoutes);
 app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/exhibitions", exhibitionsRoutes);
+app.use("/api/auctions", auctionsRoutes);
 
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
