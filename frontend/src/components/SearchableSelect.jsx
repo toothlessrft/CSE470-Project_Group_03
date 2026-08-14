@@ -28,12 +28,21 @@ export default function SearchableSelect({ options, value, onChange, placeholder
   function handleInputChange(e) {
     const v = e.target.value;
     setQuery(v);
-    onChange(v);
+    // Only update onChange if the value matches an option or is empty (for clearing)
+    if (v === "") {
+      onChange("");
+    } else {
+      // Find exact match (case-insensitive) and use the canonical option value
+      const matchedOption = options.find((o) => o.toLowerCase() === v.toLowerCase());
+      if (matchedOption) {
+        onChange(matchedOption);
+      }
+    }
     setOpen(true);
   }
 
   return (
-    <div ref={wrapRef}>
+    <div ref={wrapRef} style={{ position: "relative" }}>
       <input
         id={id}
         type="text"
@@ -43,20 +52,37 @@ export default function SearchableSelect({ options, value, onChange, placeholder
         onChange={handleInputChange}
         onFocus={() => setOpen(true)}
         autoComplete="off"
+        style={{
+          width: "100%",
+          padding: "0.8rem 0.9rem",
+          minHeight: "52px",
+          border: "1.5px solid #d8c7b1",
+          borderRadius: "10px",
+          fontSize: "1.02rem",
+          fontFamily: "inherit",
+          color: "#2b2118",
+          background: "#f5f2ee",
+          boxShadow: "inset 0 1px 1px rgba(43, 33, 24, 0.02)",
+        }}
       />
       {open && (
         <div
           style={{
-            border: "1.5px solid var(--border)",
-            borderRadius: "var(--radius-sm)",
-            marginTop: "6px",
-            maxHeight: "200px",
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: "calc(100% + 6px)",
+            border: "1.5px solid #d8c7b1",
+            borderRadius: "10px",
+            maxHeight: "220px",
             overflowY: "auto",
             background: "#fff",
+            zIndex: 20,
+            boxShadow: "0 8px 24px rgba(43, 33, 24, 0.09)",
           }}
         >
           {filtered.length === 0 && (
-            <div style={{ padding: "0.55rem 0.8rem", fontSize: "0.88rem", color: "#8a7a68" }}>No matches</div>
+            <div style={{ padding: "0.7rem 0.9rem", fontSize: "0.9rem", color: "#8a7a68" }}>No matches</div>
           )}
           {filtered.map((opt) => (
             <div
@@ -65,7 +91,13 @@ export default function SearchableSelect({ options, value, onChange, placeholder
                 e.preventDefault();
                 selectOption(opt);
               }}
-              style={{ padding: "0.55rem 0.8rem", cursor: "pointer", fontSize: "0.92rem" }}
+              style={{
+                padding: "0.7rem 0.9rem",
+                cursor: "pointer",
+                fontSize: "0.96rem",
+                background: "transparent",
+                borderBottom: "1px solid #f1e6d8",
+              }}
               onMouseEnter={(e) => (e.currentTarget.style.background = "#f5efe6")}
               onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
             >

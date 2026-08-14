@@ -2,13 +2,15 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { UserPlus } from "lucide-react";
 import { useAuth, ROLE_HOME } from "../context/AuthContext";
+import SearchableSelect from "../components/SearchableSelect";
+import { MUSEUMS } from "../data/museums";
 //import { api } from "../api";
 
 const ROLES = [
   { value: "public", label: "General Public" },
   { value: "archaeologist", label: "Archaeologist / Researcher" },
   { value: "site_caretaker", label: "Excavation Team" },
-  { value: "museum_manager", label: "Museum Authority" },
+  { value: "museum_manager", label: "Museum Manager" },
 ];
 
 export default function Register() {
@@ -29,8 +31,6 @@ const [specialization, setSpecialization] = useState("");
 
 // Museum Authority
 const [museumName, setMuseumName] = useState("");
-const [designation, setDesignation] = useState("");
-const [officeAddress, setOfficeAddress] = useState("");
 
 // Excavation Team
 const [organization, setOrganization] = useState("");
@@ -51,8 +51,6 @@ const [teamLeader, setTeamLeader] = useState("");
   if (role === "museum_manager") {
     return {
       museum_name: museumName,
-      designation,
-      address: officeAddress,
     };
   }
 
@@ -103,7 +101,7 @@ const [teamLeader, setTeamLeader] = useState("");
           <UserPlus size={22} strokeWidth={2} />
         </div>
         <h1>Create an account</h1>
-        <p className="page-subtitle">Register as General Public, Archaeologist/Researcher, Excavation Team, or Museum Authority.</p>
+        <p className="page-subtitle">Register as General Public, Archaeologist/Researcher, Excavation Team, or Museum Manager.</p>
 
         {error && <div className="alert alert-danger">{error}</div>}
         <form onSubmit={handleSubmit} className="form">
@@ -154,24 +152,16 @@ const [teamLeader, setTeamLeader] = useState("");
 
         {role === "museum_manager" && (
           <fieldset>
-            <legend>Museum Authority Details</legend>
+            <legend>Museum Details</legend>
             <label>
-              Museum name
-              <input value={museumName} onChange={(e) => setMuseumName(e.target.value)} />
-            </label>
-            <label>
-              Designation
-              <input
-  value={designation}
-  onChange={(e) => setDesignation(e.target.value)}
-/>
-            </label>
-            <label>
-              Office address
-              <input
-  value={officeAddress}
-  onChange={(e) => setOfficeAddress(e.target.value)}
-/>
+              Which museum do you work in?
+              <SearchableSelect
+                options={MUSEUMS}
+                value={museumName}
+                onChange={setMuseumName}
+                placeholder="Type to search your museum..."
+                required
+              />
             </label>
           </fieldset>
         )}

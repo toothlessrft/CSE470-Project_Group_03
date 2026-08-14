@@ -1,19 +1,34 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Heart, Gavel, Ticket } from "lucide-react";
+import { Search, Heart, Gavel, Ticket, Clock } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import StatusBadge from "../../components/StatusBadge";
 
-function timeLeft(deadline) {
-  const ms = new Date(deadline) - new Date();
-  if (ms <= 0) return "Ended";
-  const mins = Math.floor(ms / 60000);
-  if (mins < 60) return `${mins}m left`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ${mins % 60}m left`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ${hours % 24}h left`;
+// Dynamic time counter component that updates every second
+function TimeCounter({ deadline }) {
+  const [display, setDisplay] = useState("");
+
+  useEffect(() => {
+    function update() {
+      const ms = new Date(deadline) - new Date();
+      if (ms <= 0) {
+        setDisplay("Ended");
+        return;
+      }
+      const mins = Math.floor(ms / 60000);
+      if (mins < 60) return setDisplay(`${mins}m left`);
+      const hours = Math.floor(mins / 60);
+      if (hours < 24) return setDisplay(`${hours}h ${mins % 60}m left`);
+      const days = Math.floor(hours / 24);
+      setDisplay(`${days}d ${hours % 24}h left`);
+    }
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [deadline]);
+
+  return <span>{display}</span>;
 }
 
 const cardStyle = { margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" };
@@ -92,23 +107,51 @@ export default function Auctions() {
       {/* Live Auctions (left) and My Bids (right), same card styling throughout */}
       <div style={{ display: "grid", gridTemplateColumns: user && myBids.length > 0 ? "1fr 1fr" : "1fr", gap: "2rem", alignItems: "start" }}>
         <div>
-          <h3 style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <Gavel size={17} /> Live Auctions
+          <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+            <Gavel size={20} style={{ color: "#8b6f47" }} /> Live Auctions
           </h3>
           <div style={{ display: "grid", gap: "1rem" }}>
             {live.map((a) => (
-              <Link key={a._id} to={`/auctions/${a._id}`} className="card" style={{ ...cardStyle, textDecoration: "none", color: "inherit" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-                  <h4 style={{ margin: 0 }}>{a.item?.name}</h4>
-                  <StatusBadge status="Active" />
+              <Link
+                key={a._id}
+                to={`/auctions/${a._id}`}
+                className="card"
+                style={{
+                  ...cardStyle,
+                  textDecoration: "none",
+                  color: "inherit",
+                  borderLeft: "4px solid #8b6f47",
+                  cursor: "pointer",
+                  transition: "all 0.2s ease",
+                  backgroundColor: "#fafaf8",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = "translateY(-2px)";
+                  e.currentTarget.style.boxShadow = "0 6px 16px rgba(139, 111, 71, 0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = "translateY(0)";
+                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.08)";
+                }}
+              >
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem" }}>
+                  <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{a.item?.name}</h4>
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                    <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#fff", background: "#22c55e", padding: "0.3rem 0.6rem", borderRadius: "12px" }}>ACTIVE</span>
+                  </div>
                 </div>
-                <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: 0 }}>{a.item?.Type}</p>
-                <p style={{ fontSize: "0.95rem", margin: 0 }}>
-                  Current bid: <strong>৳{a.current_bid ?? a.starting_bid}</strong>
-                </p>
-                <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: 0 }}>
-                  {timeLeft(a.deadline)} · {a.bid_count} bid(s)
-                </p>
+                <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: "0.2rem 0" }}>{a.item?.Type}</p>
+                <div style={{ marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: "1px solid #e6d9cc" }}>
+                  <p style={{ fontSize: "0.95rem", margin: "0.3rem 0", fontWeight: 600 }}>
+                    ৳{a.current_bid ?? a.starting_bid}
+                  </p>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", color: "#8a7a68" }}>
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                      <Clock size={14} /> <TimeCounter deadline={a.deadline} />
+                    </span>
+                    <span>{a.bid_count} bid(s)</span>
+                  </div>
+                </div>
               </Link>
             ))}
             {live.length === 0 && <p className="hint">No live auctions match your search.</p>}
@@ -117,25 +160,59 @@ export default function Auctions() {
 
         {user && myBids.length > 0 && (
           <div>
-            <h3 style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
-              <Ticket size={17} /> My Bids
+            <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+              <Ticket size={20} style={{ color: "#8b6f47" }} /> My Bids
             </h3>
             <div style={{ display: "grid", gap: "1rem" }}>
               {myBids.map((b) => (
-                <div key={b._id} className="card" style={cardStyle}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-                    <h4 style={{ margin: 0 }}>{b.item?.name}</h4>
-                    <StatusBadge status={b.secured ? "Secured" : "Not Secured"} />
+                <div
+                  key={b._id}
+                  className="card"
+                  style={{
+                    ...cardStyle,
+                    borderLeft: b.secured ? "4px solid #22c55e" : "4px solid #ef4444",
+                    backgroundColor: b.secured ? "#f0fdf4" : "#fef2f2",
+                    transition: "all 0.2s ease",
+                  }}
+                >
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem" }}>
+                    <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{b.item?.name}</h4>
+                    <span
+                      style={{
+                        fontSize: "0.7rem",
+                        fontWeight: 700,
+                        color: "#fff",
+                        background: b.secured ? "#22c55e" : "#ef4444",
+                        padding: "0.35rem 0.7rem",
+                        borderRadius: "12px",
+                      }}
+                    >
+                      {b.secured ? "SECURED" : "NOT SECURED"}
+                    </span>
                   </div>
-                  <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: 0 }}>{b.item?.Type}</p>
-                  <p style={{ fontSize: "0.95rem", margin: 0 }}>
-                    Your bid: <strong>৳{b.my_bid}</strong> · Current: ৳{b.current_bid}
-                  </p>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.25rem" }}>
-                    <StatusBadge status={b.status === "Active" ? "Active" : "Closed"} />
-                    <Link className="btn-small" to={`/auctions/${b._id}`}>
-                      {b.status === "Active" ? "Bid Higher" : "View"}
-                    </Link>
+                  <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: "0.2rem 0" }}>{b.item?.Type}</p>
+                  <div style={{ marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: `1px solid ${b.secured ? "#d1fae5" : "#fee2e2"}` }}>
+                    <p style={{ fontSize: "0.95rem", margin: "0.3rem 0" }}>
+                      Your bid: <strong>৳{b.my_bid}</strong>
+                      {b.current_bid && b.current_bid !== b.my_bid && <span style={{ color: "#8a7a68" }}> · Current: ৳{b.current_bid}</span>}
+                    </p>
+                    {b.status === "Active" && (
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.6rem" }}>
+                        <span style={{ fontSize: "0.8rem", color: "#8a7a68", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                          <Clock size={14} /> <TimeCounter deadline={b.deadline} />
+                        </span>
+                        <Link className="btn-small" to={`/auctions/${b.auction_id || b._id}`} style={{ fontSize: "0.85rem" }}>
+                          Bid Higher
+                        </Link>
+                      </div>
+                    )}
+                    {b.status !== "Active" && (
+                      <div style={{ marginTop: "0.6rem" }}>
+                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#8a7a68", background: "#f3f1ef", padding: "0.25rem 0.5rem", borderRadius: "8px" }}>
+                          CLOSED
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
@@ -146,30 +223,33 @@ export default function Auctions() {
 
       {user && wishlist.length > 0 && (
         <>
-          <h3 style={{ display: "flex", alignItems: "center", gap: "0.4rem", marginTop: "2rem" }}>
-            <Heart size={17} /> My Wishlist
+          <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "2rem", marginBottom: "1rem" }}>
+            <Heart size={20} style={{ color: "#8b6f47" }} /> My Wishlist
           </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1rem" }}>
             {wishlist.map((w) => (
-              <div key={w._id} className="card" style={cardStyle}>
-                <h4 style={{ margin: 0 }}>{w.item.name}</h4>
-                <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: 0 }}>{w.item.Type}</p>
+              <div key={w._id} className="card" style={{ ...cardStyle, borderTop: "4px solid #8b6f47" }}>
+                <h4 style={{ margin: 0, marginBottom: "0.3rem" }}>{w.item.name}</h4>
+                <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: "0 0 0.6rem" }}>{w.item.Type}</p>
                 {w.active_auction ? (
                   <>
-                    <p style={{ fontSize: "0.9rem", margin: 0 }}>
-                      Up for auction - {timeLeft(w.active_auction.deadline)}
-                      <br />
-                      Current bid: ৳{w.active_auction.current_bid ?? w.active_auction.starting_bid}
-                    </p>
+                    <div style={{ background: "#fafaf8", padding: "0.6rem", borderRadius: "8px", marginBottom: "0.6rem" }}>
+                      <p style={{ fontSize: "0.9rem", margin: "0.3rem 0", fontWeight: 600 }}>
+                        ৳{w.active_auction.current_bid ?? w.active_auction.starting_bid}
+                      </p>
+                      <p style={{ fontSize: "0.8rem", color: "#8a7a68", margin: "0.3rem 0", display: "flex", alignItems: "center", gap: "0.3rem" }}>
+                        <Clock size={14} /> <TimeCounter deadline={w.active_auction.deadline} />
+                      </p>
+                    </div>
                     <Link className="btn-small" to={`/auctions/${w.active_auction._id}`} style={{ alignSelf: "flex-start" }}>
                       View Auction
                     </Link>
                   </>
                 ) : (
-                  <p className="hint" style={{ margin: 0 }}>Not currently up for auction.</p>
+                  <p className="hint" style={{ margin: "0 0 0.6rem" }}>Not currently up for auction.</p>
                 )}
-                <button className="btn-link" style={{ alignSelf: "flex-start" }} onClick={() => removeFromWishlist(w.item._id)}>
-                  Remove from wishlist
+                <button className="btn-link" style={{ alignSelf: "flex-start", fontSize: "0.85rem" }} onClick={() => removeFromWishlist(w.item._id)}>
+                  Remove
                 </button>
               </div>
             ))}

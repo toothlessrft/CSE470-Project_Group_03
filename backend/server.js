@@ -50,8 +50,28 @@ app.use("/api/auctions", auctionsRoutes);
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
 
-const PORT = process.env.PORT || 5555;
+function startServer(portCandidates) {
+  const port = Number(portCandidates[0]);
+  const server = app.listen(port, () => {
+    console.log(`[server] listening on port ${port}`);
+  });
+
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE" && portCandidates.length > 1) {
+      const nextPort = portCandidates[1];
+      console.warn(`[server] Port ${port} is busy; retrying on ${nextPort}`);
+      startServer(portCandidates.slice(1));
+      return;
+    }
+
+    console.error("[server] failed to start", error);
+    process.exit(1);
+  });
+}
+
+const PORT = Number(process.env.PORT || 5555);
+const portCandidates = [PORT, 5556, 5557, 5558, 5559];
 
 connectDB().then(() => {
-  app.listen(PORT, () => console.log(`[server] listening on port ${PORT}`));
+  startServer(portCandidates);
 });

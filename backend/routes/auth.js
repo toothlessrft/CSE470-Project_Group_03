@@ -3,6 +3,7 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Site = require("../models/Site");
+const { MUSEUMS, normalizeMuseumName } = require("../config/museums");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
@@ -25,6 +26,7 @@ function issueSession(res, user) {
     name: user.name,
     email: user.email,
     role: user.role,
+    museum_name: user.roleProfile?.museum_name || null,
   };
 }
 
@@ -60,8 +62,12 @@ router.post("/register", async (req, res) => {
         specialization: roleProfile?.specialization,
       };
     } else if (role === "museum_manager") {
+      const museumName = normalizeMuseumName(roleProfile?.museum_name);
+      if (!museumName || !MUSEUMS.includes(museumName)) {
+        return res.status(400).json({ error: "Please choose a valid museum from the list." });
+      }
       profile = {
-        museum_name: roleProfile?.museum_name,
+        museum_name: museumName,
         designation: roleProfile?.designation,
         address: roleProfile?.address,
       };
@@ -148,8 +154,19 @@ router.post("/logout", (req, res) => {
 });
 
 router.get("/me", requireAuth, (req, res) => {
-  const { _id, nid, name, email, role, phone, profile_pic } = req.user;
-  res.json({ user: { id: _id, nid, name, email, role, phone, profile_pic } });
+  const { _id, nid, name, email, role, phone, profile_pic, roleProfile } = req.user;
+  res.json({
+    user: {
+      id: _id,
+      nid,
+      name,
+      email,
+      role,
+      phone,
+      profile_pic,
+      museum_name: roleProfile?.museum_name || null,
+    },
+  });
 });
 
 module.exports = router;

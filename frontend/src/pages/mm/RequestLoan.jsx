@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
+import SearchableSelect from "../../components/SearchableSelect";
+import { MUSEUMS } from "../../data/museums";
 
 export default function RequestLoan() {
-  const [museums, setMuseums] = useState([]);
+  const [museumManagers, setMuseumManagers] = useState([]);
   const [items, setItems] = useState([]);
 
+  const [selectedMuseumName, setSelectedMuseumName] = useState("");
   const [lendingMuseumId, setLendingMuseumId] = useState("");
   const [itemId, setItemId] = useState("");
+  const [selectedItemLabel, setSelectedItemLabel] = useState("");
   const [exhibitionName, setExhibitionName] = useState("");
   const [purpose, setPurpose] = useState("");
   const [startDate, setStartDate] = useState("");
@@ -15,14 +19,47 @@ export default function RequestLoan() {
   const [success, setSuccess] = useState("");
 
   useEffect(() => {
-    api.get("/loans/museums").then((data) => setMuseums(data.museums));
-    api.get("/loans/items").then((data) => setItems(data.items));
+    api.get("/loans/museums").then((data) => setMuseumManagers(data.museums));
   }, []);
+
+  useEffect(() => {
+    if (!selectedMuseumName) {
+      setItems([]);
+      setItemId("");
+      setSelectedItemLabel("");
+      setLendingMuseumId("");
+      return;
+    }
+
+    const matchingManager = museumManagers.find(
+      (m) => (m.roleProfile?.museum_name || m.name) === selectedMuseumName
+    );
+    setLendingMuseumId(matchingManager?._id || "");
+
+    api
+      .get(`/loans/items?museumName=${encodeURIComponent(selectedMuseumName)}`)
+      .then((data) => {
+        setItems(data.items || []);
+        setItemId("");
+        setSelectedItemLabel("");
+      })
+      .catch(() => {
+        setItems([]);
+        setItemId("");
+        setSelectedItemLabel("");
+      });
+  }, [selectedMuseumName, museumManagers]);
 
   async function handleSubmit(e) {
     e.preventDefault();
     setError("");
     setSuccess("");
+
+    if (!lendingMuseumId) {
+      setError("Please choose a museum that has an approved museum authority in the system.");
+      return;
+    }
+
     try {
       await api.post("/loans/request", {
         lending_museum_id: lendingMuseumId,
@@ -33,8 +70,10 @@ export default function RequestLoan() {
         end_date: endDate,
       });
       setSuccess("Loan request sent successfully!");
+      setSelectedMuseumName("");
       setLendingMuseumId("");
       setItemId("");
+      setSelectedItemLabel("");
       setExhibitionName("");
       setPurpose("");
       setStartDate("");
@@ -53,26 +92,28 @@ export default function RequestLoan() {
       <form onSubmit={handleSubmit} className="form">
         <label>
           Lend from (museum)
-          <select value={lendingMuseumId} onChange={(e) => setLendingMuseumId(e.target.value)} required>
-            <option value="">-- choose a museum --</option>
-            {museums.map((m) => (
-              <option key={m._id} value={m._id}>
-                {m.roleProfile?.museum_name || m.name}
-              </option>
-            ))}
-          </select>
+          <SearchableSelect
+            options={MUSEUMS}
+            value={selectedMuseumName}
+            onChange={(value) => setSelectedMuseumName(value)}
+            placeholder="Search museum name"
+            required
+          />
         </label>
 
         <label>
           Artifact
-          <select value={itemId} onChange={(e) => setItemId(e.target.value)} required>
-            <option value="">-- choose an artifact --</option>
-            {items.map((i) => (
-              <option key={i._id} value={i._id}>
-                {i.name} ({i.Type}){i.site?.name ? ` - ${i.site.name}` : ""}
-              </option>
-            ))}
-          </select>
+          <SearchableSelect
+            options={items.map((i) => `${i.name} (${i.Type})${i.site?.name ? ` - ${i.site.name}` : ""}`)}
+            value={selectedItemLabel}
+            onChange={(value) => {
+              const match = items.find((i) => `${i.name} (${i.Type})${i.site?.name ? ` - ${i.site.name}` : ""}` === value);
+              setSelectedItemLabel(value);
+              setItemId(match?._id || "");
+            }}
+            placeholder={selectedMuseumName ? "Search artifact" : "Choose a museum first"}
+            required={!!selectedMuseumName}
+          />
         </label>
 
         <label>

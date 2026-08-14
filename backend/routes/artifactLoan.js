@@ -7,6 +7,10 @@ const { requireAuth, requireRole } = require("../middleware/auth");
 const router = express.Router();
 router.use(requireAuth, requireRole("museum_manager"));
 
+function escapeRegex(value = "") {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // GET /api/loans/museums -> other approved museum authorities, for the "lend from" picker
 router.get("/museums", async (req, res) => {
   const museums = await User.find({
@@ -17,9 +21,21 @@ router.get("/museums", async (req, res) => {
   res.json({ museums });
 });
 
-// GET /api/loans/items -> artifact catalogue, for the "which item" picker
+// GET /api/loans/items -> artifact catalogue filtered to a selected museum
 router.get("/items", async (req, res) => {
-  const items = await Item.find().select("_id name Type site").populate("site", "name");
+  const { museumName } = req.query;
+  const filter = {};
+
+  if (museumName) {
+    filter.allocation = "Museum";
+    const safeMuseum = escapeRegex(String(museumName));
+    filter.$or = [
+      { museumName: new RegExp(`^${safeMuseum}$`, "i") },
+      { location: new RegExp(`^${safeMuseum}$`, "i") },
+    ];
+  }
+
+  const items = await Item.find(filter).select("_id name Type site museumName location").populate("site", "name");
   res.json({ items });
 });
 

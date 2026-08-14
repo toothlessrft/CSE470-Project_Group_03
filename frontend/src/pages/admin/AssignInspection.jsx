@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
+import SearchableSelect from "../../components/SearchableSelect";
 import StatusBadge from "../../components/StatusBadge";
+import { MUSEUMS } from "../../data/museums";
 
 export default function AssignInspection() {
   const { id } = useParams();
@@ -300,10 +302,12 @@ export default function AssignInspection() {
                               {form.destination === "Museum" && (
                                 <label>
                                   Museum name
-                                  <input
+                                  <SearchableSelect
+                                    options={MUSEUMS}
                                     value={form.museumName}
-                                    onChange={(e) => updateAllocationForm(item._id, { museumName: e.target.value })}
-                                    placeholder="e.g. National Museum of Bangladesh"
+                                    onChange={(value) => updateAllocationForm(item._id, { museumName: value })}
+                                    placeholder="Search the museum to store this artifact..."
+                                    required
                                   />
                                 </label>
                               )}

@@ -3,6 +3,7 @@ const Site = require("../models/Site");
 const Item = require("../models/Item");
 const ItemRequest = require("../models/ItemRequest");
 const Exhibition = require("../models/Exhibition");
+const { MUSEUMS, normalizeMuseumName } = require("../config/museums");
 const { requireAuth, requireRole } = require("../middleware/auth");
 
 const router = express.Router();
@@ -34,6 +35,41 @@ router.get("/sites", async (req, res) => {
 router.get("/sites/:siteId/items", async (req, res) => {
   const items = await Item.find({ site: req.params.siteId }).select("_id name Type");
   res.json({ items });
+});
+
+// Museum-scoped artifact access: only artifacts assigned to this manager's museum.
+router.get("/my-museum-items", async (req, res) => {
+  const museumName = normalizeMuseumName(req.user.roleProfile?.museum_name);
+  if (!museumName || !MUSEUMS.includes(museumName)) {
+    return res.status(400).json({ error: "Your museum account is not assigned to a valid recognized museum." });
+  }
+
+  const items = await Item.find({
+    allocation: "Museum",
+    museumName: museumName,
+  }).sort({ updatedAt: -1 });
+
+  res.json({ items });
+});
+
+router.put("/my-museum-items/:itemId", async (req, res) => {
+  const museumName = normalizeMuseumName(req.user.roleProfile?.museum_name);
+  if (!museumName || !MUSEUMS.includes(museumName)) {
+    return res.status(400).json({ error: "Your museum account is not assigned to a valid recognized museum." });
+  }
+
+  const item = await Item.findOne({ _id: req.params.itemId, allocation: "Museum", museumName: museumName });
+  if (!item) {
+    return res.status(404).json({ error: "Artifact not found in your museum inventory." });
+  }
+
+  const allowed = ["name", "Type", "description", "civilization", "era", "region", "material", "usage", "location"];
+  for (const key of allowed) {
+    if (req.body[key] !== undefined) item[key] = req.body[key];
+  }
+
+  await item.save();
+  res.json({ item });
 });
 
 // POST /api/mm/request_items  (was /m_manager/request_items)
