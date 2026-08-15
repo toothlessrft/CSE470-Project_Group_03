@@ -64,6 +64,13 @@ const itemSchema = new Schema(
       default: "Unallocated",
     },
     museumName: { type: String, trim: true, default: "" },
+
+    // Ahad_23201016 - Tender Publication & Bidding.
+    // Artifacts recovered during an active excavation project stay hidden from
+    // Smart Artifact Search until the Government/Admin allocates them. Defaults
+    // to false so every artifact already in the catalogue is unaffected.
+    pending_allocation: { type: Boolean, default: false },
+    excavationProject: { type: Schema.Types.ObjectId, ref: "ExcavationProject", default: null },
   },
   { timestamps: true }
 );

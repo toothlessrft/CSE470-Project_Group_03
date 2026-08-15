@@ -27,10 +27,12 @@ function issueSession(res, user) {
     email: user.email,
     role: user.role,
     museum_name: user.roleProfile?.museum_name || null,
+    company_name: user.roleProfile?.company_name || null, // Ahad_23201016
   };
 }
 
-const PUBLIC_ROLES = ["public", "archaeologist", "museum_manager", "site_caretaker"];
+// Ahad_23201016 - "site_caretaker" is now "excavation_team"
+const PUBLIC_ROLES = ["public", "archaeologist", "museum_manager", "excavation_team"];
 
 router.get("/sites", async (req, res) => {
   const sites = await Site.find().select("_id name");
@@ -71,10 +73,19 @@ router.post("/register", async (req, res) => {
         designation: roleProfile?.designation,
         address: roleProfile?.address,
       };
-    } else if (role === "site_caretaker") {
+    } else if (role === "excavation_team") {
+      // Ahad_23201016 - an excavation team registers as a company; the account
+      // holder (`name`) is that company's representative.
+      const companyName = (roleProfile?.company_name || "").trim();
+      if (!companyName) {
+        return res.status(400).json({ error: "Please provide the excavation company's name." });
+      }
       profile = {
-        organization: roleProfile?.organization,
-        team_leader: roleProfile?.team_leader,
+        company_name: companyName,
+        representative_designation: roleProfile?.representative_designation || "",
+        team_size: roleProfile?.team_size ? Number(roleProfile.team_size) : undefined,
+        organization: companyName, // kept in sync for older records/queries
+        team_leader: name,
       };
     }
 
@@ -165,6 +176,7 @@ router.get("/me", requireAuth, (req, res) => {
       phone,
       profile_pic,
       museum_name: roleProfile?.museum_name || null,
+      company_name: roleProfile?.company_name || null, // Ahad_23201016
     },
   });
 });

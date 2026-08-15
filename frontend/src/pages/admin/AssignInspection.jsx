@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { FileSignature } from "lucide-react"; // Ahad_23201016
 import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
 import SearchableSelect from "../../components/SearchableSelect";
@@ -241,7 +242,9 @@ export default function AssignInspection() {
               <p style={{ marginTop: "0.75rem" }}>
                 {researcherReport.possibleArtifact ? "Researcher flagged a possible artifact at this site." : "Researcher did not flag a possible artifact."}
               </p>
-              {researcherReport.requestExcavationTeam && <p>🛠️ Requesting an excavation team (engineers) be assigned.</p>}
+              {researcherReport.requestExcavationTeam && (
+                <p>The researcher is requesting that an excavation team be assigned to this site.</p>
+              )}
               {researcherReport.budgetRequested != null && (
                 <p>Requested budget: ৳{researcherReport.budgetRequested}</p>
               )}
@@ -332,6 +335,29 @@ export default function AssignInspection() {
                 <button className="btn btn-approve" onClick={handleApproveReport} disabled={approving}>
                   {approving ? "Approving..." : "Approve Final Report"}
                 </button>
+              )}
+
+              {/* Ahad_23201016 - Tender Publication.
+                  Once the field report is approved and the archaeologist asked
+                  for an excavation team, the Government opens it up to bidding. */}
+              {researcherReport.status === "Approved" && researcherReport.requestExcavationTeam && (
+                <div
+                  className="card"
+                  style={{ margin: "1rem 0 0", background: "var(--surface)", borderLeft: "4px solid var(--accent)" }}
+                >
+                  <h4 style={{ marginTop: 0 }}>Excavation Team Requested</h4>
+                  <p className="hint" style={{ marginTop: 0 }}>
+                    Publish an excavation tender so registered excavation teams can bid on this dig.
+                    Project details and the map location are carried over from this report automatically.
+                  </p>
+                  <Link
+                    className="btn"
+                    to={`/admin/tenders/new?report=${researcherReport._id}`}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                  >
+                    <FileSignature size={15} /> Publish Excavation Tender
+                  </Link>
+                </div>
               )}
             </>
           )}

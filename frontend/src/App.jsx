@@ -26,12 +26,15 @@ import RequestItems from "./pages/mm/RequestItems";
 import ExhibitionManagement from "./pages/mm/ExhibitionManagement";
 import Exhibitions from "./pages/public/Exhibitions";
 
-import SCaretakerDashboard from "./pages/sc/SCaretakerDashboard";
-import RequestMaintenance from "./pages/sc/RequestMaintenance";
+// Ahad_23201016 - Excavation Team (replaces Site Caretaker)
+import ETeamDashboard from "./pages/et/ETeamDashboard";
+import BrowseTenders from "./pages/et/BrowseTenders";
+import MyBids from "./pages/et/MyBids";
+import ETeamProjects from "./pages/et/ETeamProjects";
+import ProjectDetail from "./pages/project/ProjectDetail";
 
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import ApproveItemRequest from "./pages/admin/ApproveItemRequest";
-import ApproveMaintenanceRequest from "./pages/admin/ApproveMaintenanceRequest";
 import ApproveToolRequest from "./pages/admin/ApproveToolRequest";
 import ViewApprovedRequests from "./pages/admin/ViewApprovedRequests";
 import ManageExcavationRequests from "./pages/admin/ManageExcavationRequests";
@@ -48,6 +51,11 @@ import Auctions from "./pages/public/Auctions";
 import AuctionDetail from "./pages/public/AuctionDetail";
 import ManageAuctions from "./pages/admin/ManageAuctions";
 import CreateAuction from "./pages/admin/CreateAuction";
+// Ahad_23201016 - Tender Publication & Management
+import ManageTenders from "./pages/admin/ManageTenders";
+import CreateTender from "./pages/admin/CreateTender";
+import TenderDetail from "./pages/admin/TenderDetail";
+import ExcavationProjects from "./pages/admin/ExcavationProjects";
 
 
 export default function App() {
@@ -100,6 +108,15 @@ export default function App() {
           element={
             <ProtectedRoute role="archaeologist">
               <ManageProjects />
+            </ProtectedRoute>
+          }
+        />
+        {/* Ahad_23201016 - detailed project view */}
+        <Route
+          path="/arc/projects/:projectId"
+          element={
+            <ProtectedRoute role="archaeologist">
+              <ProjectDetail />
             </ProtectedRoute>
           }
         />
@@ -201,20 +218,44 @@ export default function App() {
     </ProtectedRoute>
   }
 />
-        {/* Site caretaker */}
+        {/* Ahad_23201016 - Excavation Team */}
         <Route
-          path="/sc/dashboard"
+          path="/et/dashboard"
           element={
-            <ProtectedRoute role="site_caretaker">
-              <SCaretakerDashboard />
+            <ProtectedRoute role="excavation_team">
+              <ETeamDashboard />
             </ProtectedRoute>
           }
         />
         <Route
-          path="/sc/request-maintenance"
+          path="/et/tenders"
           element={
-            <ProtectedRoute role="site_caretaker">
-              <RequestMaintenance />
+            <ProtectedRoute role="excavation_team">
+              <BrowseTenders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/et/bids"
+          element={
+            <ProtectedRoute role="excavation_team">
+              <MyBids />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/et/projects"
+          element={
+            <ProtectedRoute role="excavation_team">
+              <ETeamProjects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/et/projects/:projectId"
+          element={
+            <ProtectedRoute role="excavation_team">
+              <ProjectDetail />
             </ProtectedRoute>
           }
         />
@@ -256,14 +297,6 @@ export default function App() {
           element={
             <ProtectedRoute role="admin">
               <ApproveItemRequest />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin/maintenance-requests"
-          element={
-            <ProtectedRoute role="admin">
-              <ApproveMaintenanceRequest />
             </ProtectedRoute>
           }
         />
@@ -319,6 +352,47 @@ export default function App() {
     path="/admin/pending-users"
     element={<PendingUsers />}
 />
+        {/* Ahad_23201016 - Tender Publication & Management (Government) */}
+        <Route
+          path="/admin/tenders"
+          element={
+            <ProtectedRoute role="admin">
+              <ManageTenders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tenders/new"
+          element={
+            <ProtectedRoute role="admin">
+              <CreateTender />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tenders/:id"
+          element={
+            <ProtectedRoute role="admin">
+              <TenderDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/excavation-projects"
+          element={
+            <ProtectedRoute role="admin">
+              <ExcavationProjects />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/excavation-projects/:projectId"
+          element={
+            <ProtectedRoute role="admin">
+              <ProjectDetail />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/auctions"
           element={

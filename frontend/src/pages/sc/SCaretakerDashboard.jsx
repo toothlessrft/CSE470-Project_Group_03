@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Wrench, Gavel } from "lucide-react";
+import { Wrench, Gavel, ListChecks } from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -15,7 +15,8 @@ export default function SCaretakerDashboard() {
 
   const actions = [
     { to: "/sc/request-maintenance", icon: Wrench, title: "Request Maintenance", description: "Flag upkeep needed at your assigned site" },
-    { to: "/auctions", icon: Gavel, title: "Auctions", description: "Bid on artifacts released for auction" },
+    { to: "/sc/tenders", icon: Gavel, title: "Browse Excavation Tenders", description: "Bid on excavation tenders published by the Government" },
+    { to: "/sc/my-bids", icon: ListChecks, title: "My Bids", description: "Track the status of tenders you've bid on" },
   ];
 
   return (

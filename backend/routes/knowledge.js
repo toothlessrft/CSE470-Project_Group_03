@@ -12,13 +12,13 @@ const GUEST_VISIBLE_TYPES = ["research_paper", "article"];
 // Which roles may upload NEW material into each category.
 // "Researcher" is the same account as "archaeologist" in this system
 // (see Register.jsx: role "archaeologist" is labeled "Archaeologist / Researcher").
-// "Excavation Team" is the "site_caretaker" role (see Register.jsx label).
+// "Excavation Team" is the "excavation_team" role. Ahad_23201016
 const CATEGORY_UPLOAD_ROLES = {
   research_paper: ["archaeologist"],
   book: ["archaeologist"],
   article: ["archaeologist", "museum_manager"],
   historical_reference: ["archaeologist"],
-  vlog_audio: ["archaeologist", "site_caretaker"],
+  vlog_audio: ["archaeologist", "excavation_team"],
 };
 
 // GET /api/knowledge

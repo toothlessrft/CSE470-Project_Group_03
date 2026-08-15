@@ -54,7 +54,10 @@ router.get("/map", async (req, res) => {
     "name era s_district s_thana latitude longitude"
   );
 
-  const counts = await Item.aggregate([{ $group: { _id: "$site", count: { $sum: 1 } } }]);
+  const counts = await Item.aggregate([
+    { $match: { pending_allocation: { $ne: true } } }, // Ahad_23201016
+    { $group: { _id: "$site", count: { $sum: 1 } } },
+  ]);
   const countBySite = Object.fromEntries(counts.map((c) => [String(c._id), c.count]));
 
   res.json({
@@ -76,7 +79,10 @@ router.get("/map", async (req, res) => {
 router.get("/artifacts", async (req, res) => {
   const { civilization, era, region, material, usage, q, site, lat, lng, radius_km, museumName, location } = req.query;
 
-  const filter = {};
+  // Ahad_23201016 - artifacts still being recovered on an active excavation
+  // project stay out of the public catalogue until the Government allocates
+  // them. Everything already catalogued has pending_allocation unset/false.
+  const filter = { pending_allocation: { $ne: true } };
   if (civilization) filter.civilization = toRegex(civilization);
   if (era) filter.era = toRegex(era);
   if (region) filter.region = toRegex(region);

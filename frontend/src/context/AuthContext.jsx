@@ -64,5 +64,5 @@ export const ROLE_HOME = {
   archaeologist: "/arc/dashboard",
   admin: "/admin/dashboard",
   museum_manager: "/mm/dashboard",
-  site_caretaker: "/sc/dashboard",
+  excavation_team: "/et/dashboard", // Ahad_23201016
 };
