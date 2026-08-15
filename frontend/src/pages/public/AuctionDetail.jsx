@@ -200,7 +200,12 @@ export default function AuctionDetail() {
         {!isActive && auction.status === "Closed-Sold" && (
           <p>
             Sold for <strong>৳{auction.final_price}</strong>
-            {user && String(auction.winner) === String(user._id) && " - you won this auction!"}
+            {auction.winner && (
+              <>
+                {" "}to <strong>{auction.winner.name} ({auction.winner.nid})</strong>
+                {user && String(auction.winner._id) === String(user._id) && " - you won this auction!"}
+              </>
+            )}
           </p>
         )}
         {!isActive && auction.status === "Closed-Unsold" && <p>This auction closed without a winning bid.</p>}

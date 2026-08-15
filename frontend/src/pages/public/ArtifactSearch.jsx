@@ -496,7 +496,7 @@ export default function ArtifactSearch() {
                       usage: item.usage || "",
                       latitude: item.latitude ?? "",
                       longitude: item.longitude ?? "",
-                      site_name: ""
+                      site_name: item.site_name || ""
                     });
                     setModalError("");
                     setShowModal(true);
