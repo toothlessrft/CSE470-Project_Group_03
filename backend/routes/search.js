@@ -177,6 +177,8 @@ router.get("/artifacts", async (req, res) => {
       museumName: i.museumName,
       district: i.site?.s_district,
       thana: i.site?.s_thana,
+      latitude: i.site?.latitude,
+      longitude: i.site?.longitude,
       specialization: i.specialization,
     };
   });

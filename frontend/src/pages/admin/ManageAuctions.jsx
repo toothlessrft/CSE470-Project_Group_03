@@ -159,7 +159,7 @@ export default function ManageAuctions() {
             <tr key={a._id}>
               <td>{a.item?.name}</td>
               <td>{a.final_price != null ? `৳${a.final_price}` : "-"}</td>
-              <td>{a.status === "Closed-Sold" ? "Winning bidder" : "-"}</td>
+              <td>{a.status === "Closed-Sold" && a.winner ? `${a.winner.name} (${a.winner.nid})` : "-"}</td>
               <td>
                 {a.final_price != null && a.source_percentage > 0
                   ? `৳${Math.round((a.final_price * a.source_percentage) / 100)} (${a.source_percentage}% to ${a.source_name || "source"})`

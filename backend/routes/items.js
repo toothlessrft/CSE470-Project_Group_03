@@ -72,14 +72,32 @@ router.put("/:id", async (req, res) => {
         }
 
         if (req.body.latitude && req.body.longitude) {
+            const siteName = req.body.site_name || `Discovered location for ${req.body.name || item.name}`;
+            
             if (item.site) {
-                await Site.findByIdAndUpdate(item.site, {
-                    latitude: parseFloat(req.body.latitude),
-                    longitude: parseFloat(req.body.longitude)
-                });
+                // Check if this site is shared with other artifacts
+                const sharedCount = await Item.countDocuments({ site: item.site, _id: { $ne: item._id } });
+                
+                if (sharedCount > 0) {
+                    // Site is shared - create a new independent site for this artifact
+                    const newSite = await Site.create({
+                        name: siteName,
+                        latitude: parseFloat(req.body.latitude),
+                        longitude: parseFloat(req.body.longitude)
+                    });
+                    updates.site = newSite._id;
+                } else {
+                    // Site is not shared - safe to update it
+                    await Site.findByIdAndUpdate(item.site, {
+                        name: siteName,
+                        latitude: parseFloat(req.body.latitude),
+                        longitude: parseFloat(req.body.longitude)
+                    });
+                }
             } else {
+                // No site yet - create one
                 const dummySite = await Site.create({
-                    name: `Discovered location for ${item.name}`,
+                    name: siteName,
                     latitude: parseFloat(req.body.latitude),
                     longitude: parseFloat(req.body.longitude)
                 });

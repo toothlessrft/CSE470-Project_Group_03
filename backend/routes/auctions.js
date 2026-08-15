@@ -119,7 +119,10 @@ router.get("/", async (req, res) => {
     filter.item = { $in: matchingItems.map((i) => i._id) };
   }
 
-  let auctions = await Auction.find(filter).populate("item", "name picture Type civilization era region material usage description").sort({ deadline: 1 });
+  let auctions = await Auction.find(filter)
+    .populate("item", "name picture Type civilization era region material usage description")
+    .populate("winner", "nid name")
+    .sort({ deadline: 1 });
   auctions = await Promise.all(auctions.map(closeIfExpired));
 
   res.json({ auctions: auctions.map((a) => serializeAuction(a, isAdmin)) });
@@ -128,7 +131,9 @@ router.get("/", async (req, res) => {
 // GET /api/auctions/:id
 router.get("/:id", async (req, res) => {
   const isAdmin = req.user?.role === "admin";
-  let auction = await Auction.findById(req.params.id).populate("item", "name picture Type civilization era region material usage description location");
+  let auction = await Auction.findById(req.params.id)
+    .populate("item", "name picture Type civilization era region material usage description location")
+    .populate("winner", "nid name");
   if (!auction) return res.status(404).json({ error: "Auction not found." });
   auction = await closeIfExpired(auction);
 
