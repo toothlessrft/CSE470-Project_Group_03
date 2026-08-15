@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MapPinned, FolderKanban, ClipboardList, Gavel } from "lucide-react";
+import { FolderKanban, ClipboardList, Gavel } from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -14,8 +14,7 @@ export default function ArcDashboard() {
   if (!archaeologist) return <div className="page">Loading...</div>;
 
   const actions = [
-    { to: "/arc/request-excavation", icon: MapPinned, title: "Request Excavation", description: "Propose a new or existing dig site" },
-    { to: "/arc/projects", icon: FolderKanban, title: "Manage Projects", description: "Teams, tools, items, and site details" },
+    { to: "/arc/projects", icon: FolderKanban, title: "Manage Projects", description: "Excavation team, artifacts, and tools for your active digs" },
     { to: "/arc/assignments", icon: ClipboardList, title: "Field Inspections & Reports", description: "Verify assigned discoveries and compile researcher reports" },
     { to: "/auctions", icon: Gavel, title: "Auctions", description: "Bid on artifacts released for auction" },
   ];

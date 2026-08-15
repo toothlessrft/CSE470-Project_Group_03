@@ -74,9 +74,18 @@ router.post("/request_excavation", async (req, res) => {
 // GET /api/arc/projects  (was /arc/manage_project)
 router.get("/projects", async (req, res) => {
   const base = { lead_archaeologist: req.user._id };
+  // Ahad_23201016 - also surface the excavation team awarded through the
+  // tender process, plus the artifacts recovered so far.
+  const populateAll = (q) =>
+    q
+      .populate("site")
+      .populate("excavation_team", "nid name email phone roleProfile")
+      .populate("artifacts", "name Type pending_allocation allocation")
+      .sort("-createdAt");
+
   const [ongoing, past] = await Promise.all([
-    ExcavationProject.find({ ...base, end_date: null }).populate("site"),
-    ExcavationProject.find({ ...base, end_date: { $ne: null } }).populate("site"),
+    populateAll(ExcavationProject.find({ ...base, end_date: null })),
+    populateAll(ExcavationProject.find({ ...base, end_date: { $ne: null } })),
   ]);
   res.json({ ongoing_projects: ongoing, past_projects: past });
 });
@@ -113,10 +122,35 @@ router.post("/projects/:id/tools", async (req, res) => {
 
 // GET /api/arc/projects/:id/team  (was /project/<id>/team)
 router.get("/projects/:id/team", async (req, res) => {
-  const project = await ExcavationProject.findById(req.params.id);
+  const project = await ExcavationProject.findById(req.params.id).populate(
+    "excavation_team",
+    "nid name email phone roleProfile"
+  );
   if (!project) return res.status(404).json({ error: "Project not found." });
   const teams = await ETeam.find({ project: project._id }).populate("manager", "nid name");
-  res.json({ p_name: project.p_name, teams });
+
+  // Ahad_23201016 - the awarded excavation team (company + representative)
+  const et = project.excavation_team;
+  const excavation_team = et
+    ? {
+        _id: et._id,
+        nid: et.nid,
+        company_name: et.roleProfile?.company_name || et.roleProfile?.organization || et.name,
+        representative: et.name,
+        representative_designation: et.roleProfile?.representative_designation || "",
+        team_size: et.roleProfile?.team_size ?? null,
+        email: et.email,
+        phone: et.phone,
+      }
+    : null;
+
+  res.json({
+    p_name: project.p_name,
+    teams,
+    excavation_team,
+    agreed_timeline_days: project.agreed_timeline_days,
+    budget: project.budget,
+  });
 });
 
 // POST /api/arc/projects/:id/team  -> add/promote a manager and create a new team

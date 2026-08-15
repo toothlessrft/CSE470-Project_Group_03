@@ -36,28 +36,6 @@ export default function ViewApprovedRequests() {
         </tbody>
       </table>
 
-      <h2>Maintenance Requests</h2>
-      <table className="table">
-        <thead>
-          <tr>
-            <th>Site</th>
-            <th>Caretaker</th>
-            <th>Approved Budget</th>
-            <th>Approved by</th>
-          </tr>
-        </thead>
-        <tbody>
-          {data.approved_maintenance_requests.map((r) => (
-            <tr key={r._id}>
-              <td>{r.site?.name}</td>
-              <td>{r.caretaker?.name}</td>
-              <td>{r.approved_budget}</td>
-              <td>{r.admin?.name}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
       <h2>Tool Requests</h2>
       <table className="table">
         <thead>

@@ -9,7 +9,7 @@ import { MUSEUMS } from "../data/museums";
 const ROLES = [
   { value: "public", label: "General Public" },
   { value: "archaeologist", label: "Archaeologist / Researcher" },
-  { value: "site_caretaker", label: "Excavation Team" },
+  { value: "excavation_team", label: "Excavation Team" }, // Ahad_23201016
   { value: "museum_manager", label: "Museum Manager" },
 ];
 
@@ -32,9 +32,11 @@ const [specialization, setSpecialization] = useState("");
 // Museum Authority
 const [museumName, setMuseumName] = useState("");
 
-// Excavation Team
-const [organization, setOrganization] = useState("");
-const [teamLeader, setTeamLeader] = useState("");
+// Excavation Team - Ahad_23201016
+// The account represents a company; `name` above is its representative.
+const [companyName, setCompanyName] = useState("");
+const [repDesignation, setRepDesignation] = useState("");
+const [teamSize, setTeamSize] = useState("");
 
   function buildRoleProfile() {
   if (role === "public") {
@@ -54,10 +56,12 @@ const [teamLeader, setTeamLeader] = useState("");
     };
   }
 
-  if (role === "site_caretaker") {
+  // Ahad_23201016
+  if (role === "excavation_team") {
     return {
-      organization,
-      team_leader: teamLeader,
+      company_name: companyName,
+      representative_designation: repDesignation,
+      team_size: teamSize,
     };
   }
 
@@ -110,7 +114,8 @@ const [teamLeader, setTeamLeader] = useState("");
           <input value={nid} onChange={(e) => setNid(e.target.value)} required />
         </label>
         <label>
-          Full name
+          {/* Ahad_23201016 - for an excavation team this is the company representative */}
+          {role === "excavation_team" ? "Company representative (full name)" : "Full name"}
           <input value={name} onChange={(e) => setName(e.target.value)} required />
         </label>
         <label>
@@ -166,25 +171,40 @@ const [teamLeader, setTeamLeader] = useState("");
           </fieldset>
         )}
 
-        {role === "site_caretaker" && (
+        {/* Ahad_23201016 - Excavation Team registers as a company */}
+        {role === "excavation_team" && (
           <fieldset>
-            <legend>Excavation Team Details</legend>
+            <legend>Excavation Company Details</legend>
             <label>
-              Organization
+              Company Name
               <input
-  value={organization}
-  onChange={(e) => setOrganization(e.target.value)}
-  placeholder="Organization Name"
-/>
+                value={companyName}
+                onChange={(e) => setCompanyName(e.target.value)}
+                placeholder="e.g. Bengal Excavation Works Ltd."
+                required
+              />
             </label>
             <label>
-  Team Leader
-  <input
-    value={teamLeader}
-    onChange={(e) => setTeamLeader(e.target.value)}
-    placeholder="Team Leader"
-  />
-</label>
+              Representative Designation
+              <input
+                value={repDesignation}
+                onChange={(e) => setRepDesignation(e.target.value)}
+                placeholder="e.g. Site Operations Manager"
+              />
+            </label>
+            <label>
+              Crew Size
+              <input
+                type="number"
+                min="1"
+                value={teamSize}
+                onChange={(e) => setTeamSize(e.target.value)}
+                placeholder="e.g. 18"
+              />
+            </label>
+            <p className="hint" style={{ margin: 0 }}>
+              The full name entered above is recorded as your company representative.
+            </p>
           </fieldset>
         )}
 

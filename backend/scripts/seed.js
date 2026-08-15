@@ -13,7 +13,8 @@ const Item = require("../models/Item");
 const ItemRequest = require("../models/ItemRequest");
 const Tool = require("../models/Tool");
 const ToolRentalRequest = require("../models/ToolRentalRequest");
-const RequestMaintenance = require("../models/RequestMaintenance");
+const Tender = require("../models/Tender"); // Ahad_23201016
+const TenderBid = require("../models/TenderBid"); // Ahad_23201016
 const KnowledgeResource = require("../models/KnowledgeResource");
 const DiscoveryReport = require("../models/DiscoveryReport");
 const ResearcherReport = require("../models/ResearcherReport");
@@ -38,7 +39,8 @@ async function run() {
     ItemRequest.deleteMany({}),
     Tool.deleteMany({}),
     ToolRentalRequest.deleteMany({}),
-    RequestMaintenance.deleteMany({}),
+    Tender.deleteMany({}), // Ahad_23201016
+    TenderBid.deleteMany({}), // Ahad_23201016
     KnowledgeResource.deleteMany({}),
     DiscoveryReport.deleteMany({}),
     ResearcherReport.deleteMany({}),
@@ -92,9 +94,11 @@ async function run() {
     { nid: "MM001", role: "museum_manager", status: "approved", name: "Fatima Begum", email: "fatima@museum.bd", phone: "+8801789012345", password: hash, roleProfile: { museum_name: "National Museum of Bangladesh", m_city: "Dhaka", m_street: "Shahbag Avenue" } },
     { nid: "MM002", role: "museum_manager", status: "approved", name: "Tariq Islam", email: "tariq@museum.bd", phone: "+8801790123456", password: hash, roleProfile: { museum_name: "Folk Art Museum", m_city: "Narayanganj", m_street: "Sonargaon" } },
     { nid: "MM003", role: "museum_manager", status: "approved", name: "Nusrat Jahan", email: "nusrat@museum.bd", phone: "+8801801234567", password: hash, roleProfile: { museum_name: "Varendra Research Museum", m_city: "Rajshahi", m_street: "University Road" } },
-    { nid: "SC001", role: "site_caretaker", status: "approved", name: "Rahim Khan", email: "rahim@caretaker.bd", phone: "+8801756789012", password: hash, roleProfile: { site: mahasthangarh._id, budget: 150000 } },
-    { nid: "SC002", role: "site_caretaker", status: "approved", name: "Sultana Ahmed", email: "sultana@caretaker.bd", phone: "+8801767890123", password: hash, roleProfile: { site: somapura._id, budget: 175000 } },
-    { nid: "SC003", role: "site_caretaker", status: "approved", name: "Jamal Uddin", email: "jamal@caretaker.bd", phone: "+8801778901234", password: hash, roleProfile: { site: mainamati._id, budget: 160000 } },
+    // Ahad_23201016 - Excavation Team accounts. Each one is a company, and
+    // `name` is that company's representative. Log in with nid E001/E002/E003.
+    { nid: "E001", role: "excavation_team", status: "approved", name: "Rahim Khan", email: "rahim@bengalexcavation.bd", phone: "+8801756789012", password: hash, roleProfile: { company_name: "Bengal Excavation Works Ltd.", representative_designation: "Site Operations Manager", team_size: 24, organization: "Bengal Excavation Works Ltd.", team_leader: "Rahim Khan" } },
+    { nid: "E002", role: "excavation_team", status: "approved", name: "Sultana Ahmed", email: "sultana@heritagedigs.bd", phone: "+8801767890123", password: hash, roleProfile: { company_name: "Heritage Digs & Conservation", representative_designation: "Managing Director", team_size: 16, organization: "Heritage Digs & Conservation", team_leader: "Sultana Ahmed" } },
+    { nid: "E003", role: "excavation_team", status: "approved", name: "Jamal Uddin", email: "jamal@padmagroundworks.bd", phone: "+8801778901234", password: hash, roleProfile: { company_name: "Padma Groundworks", representative_designation: "Field Supervisor", team_size: 31, organization: "Padma Groundworks", team_leader: "Jamal Uddin" } },
     { nid: "MNG001", role: "manager", status: "approved", name: "Kamal Hossain", email: "kamal@eng.bd", phone: "+8801511111111", password: hash },
     { nid: "MNG002", role: "manager", status: "approved", name: "Layla Khan", email: "layla@eng.bd", phone: "+8801522222222", password: hash },
     { nid: "PUB001", role: "public", status: "approved", name: "Javed Public", email: "javed@gmail.com", phone: "+8801999999999", password: hash },
@@ -300,14 +304,6 @@ async function run() {
     { museum_manager: fatima._id, item: itemByName["Copper Plate Grant"]._id, purpose: "Epigraphy display", approval_status: "Denied", start_date: "2024-01-10", end_date: "2024-02-10", insurance_info: "Insufficient transit coverage", admin: dina._id },
   ]);
 
-  console.log("Creating maintenance requests...");
-  await RequestMaintenance.create([
-    { site: mahasthangarh._id, caretaker: rahim._id, damage: "Monsoon rains washed away part of the northern citadel brickwork.", repair_cost: 35000, status: "Pending" },
-    { site: somapura._id, caretaker: sultana._id, damage: "Dampness causing moss growth on central shrine terracottas.", approved_budget: 45000, repair_cost: 45000, status: "Approved", admin: elias._id },
-    { site: mainamati._id, caretaker: jamal._id, damage: "Boundary wall collapsed near Salban Vihara entrance.", approved_budget: 85000, repair_cost: 85000, status: "Approved", admin: dina._id },
-    { site: wari_bateshwar._id, caretaker: jamal._id, damage: "Illegal digging detected near southern mounds, need fencing.", repair_cost: 150000, status: "Pending" },
-  ]);
-
   console.log("Creating discovery and researcher reports...");
   const dr1 = await DiscoveryReport.create({
     reporter: publicUser._id,
@@ -484,7 +480,7 @@ async function run() {
     { title: "Sixty Dome Mosque Virtual Tour", type: "vlog_audio", author: "Dr. Alice Rahman", content: "Audio tour covering the Bagerhat UNESCO site.", url: "https://example.com/audio/sixty-dome-tour.mp3", mediaType: "video", addedBy: alice._id },
   ]);
 
-  console.log("Adding additional discovery reports and maintenance requests...");
+  console.log("Adding additional discovery reports...");
   const dr_lalbagh = await DiscoveryReport.create({
     reporter: publicUser._id,
     location: { lat: 23.718, lng: 90.388, address: "Old Dhaka Lalbagh Area" },
@@ -512,11 +508,6 @@ async function run() {
     ],
     status: "Pending",
   });
-
-  await RequestMaintenance.create([
-    { site: bhitagarh._id, caretaker: rahim._id, damage: "South-eastern corner of the inner moat has collapsed due to heavy flooding.", repair_cost: 65000, status: "Approved", admin: dina._id },
-    { site: paundra._id, caretaker: sultana._id, damage: "Vegetation growth threatening the structural integrity of Govinda Bhita.", repair_cost: 25000, status: "Pending" }
-  ]);
 
   console.log("Creating sample auctions and bids...");
   
@@ -709,6 +700,421 @@ async function run() {
     { auction: auctionBeadNecklace._id, bidder: publicUser._id, amount: 2650, placed_at: new Date(now - 8 * 60 * 60 * 1000) }, // Won by user
   ]);
 
+
+  // =========================================================================
+  // Ahad_23201016 - Tender Publication & Bidding demo data
+  //
+  // Four scenarios are seeded so every screen has something to show:
+  //   1. An approved field report requesting a team, with NO tender yet
+  //      -> appears in the admin's "Create Tender" source dropdown.
+  //   2. An Open tender with three competing bids
+  //      -> the admin can evaluate and award; E001-E003 can edit/withdraw.
+  //   3. An Awarded tender with a live project + unallocated artifacts
+  //      -> shows in Manage Projects (archaeologist) and My Projects (team).
+  //   4. A completed project handed over to the Government
+  //      -> shows in admin "Excavation Projects" awaiting artifact allocation.
+  // =========================================================================
+  console.log("Creating excavation tenders, bids, and projects...");
+
+  const tDay = 24 * 60 * 60 * 1000;
+  const nowMs = Date.now();
+
+  // ---- Scenario 1: approved field report, awaiting a tender ---------------
+  const drNarsingdi = await DiscoveryReport.create({
+    reporter: shirin._id,
+    location: { lat: 24.0898, lng: 90.8143, address: "Bateshwar Village, Belabo, Narsingdi" },
+    material: "Buried brick wall exposed after canal digging",
+    contact_email: "shirin@gmail.com",
+    contact_phone: "+8801744556677",
+    status: "Verified",
+    assignment: { researcher: charlie._id, budget: 12000, assigned_by: dina._id, assigned_at: new Date(nowMs - 30 * tDay) },
+    verification: { result: "true", notes: "Genuine early historic brickwork continuing below the cut.", submitted_at: new Date(nowMs - 25 * tDay) },
+  });
+
+  await ResearcherReport.create({
+    discoveryReport: drNarsingdi._id,
+    researcher: charlie._id,
+    possibleArtifact: true,
+    notes: "The wall runs at least 12m and matches the Wari-Bateshwar fortification alignment. A full excavation crew is needed before the monsoon.",
+    budgetRequested: 320000,
+    requestExcavationTeam: true,
+    status: "Approved",
+    adminReview: { reviewedBy: dina._id, reviewedAt: new Date(nowMs - 20 * tDay), notes: "Approved. Proceed to tender." },
+  });
+
+  // ---- Scenario 2: an Open tender with three competing bids ---------------
+  const drBogra = await DiscoveryReport.create({
+    reporter: publicUser._id,
+    location: { lat: 24.9646, lng: 89.3379, address: "Mahasthan Garh Road, Shibganj, Bogra" },
+    material: "Stone slab with carved motifs found while digging a well",
+    contact_email: "javed@gmail.com",
+    contact_phone: "+8801999999999",
+    status: "Verified",
+    assignment: { researcher: alice._id, budget: 18000, assigned_by: dina._id, assigned_at: new Date(nowMs - 40 * tDay) },
+    verification: { result: "true", notes: "Confirmed Pala-period carved slab, in situ.", submitted_at: new Date(nowMs - 35 * tDay) },
+  });
+
+  const frBogra = await ResearcherReport.create({
+    discoveryReport: drBogra._id,
+    researcher: alice._id,
+    possibleArtifact: true,
+    notes: "Carved slab appears to cap a larger structure. Ground survey suggests a buried chamber roughly 3m below the present surface.",
+    budgetRequested: 450000,
+    requestExcavationTeam: true,
+    status: "Approved",
+    adminReview: { reviewedBy: dina._id, reviewedAt: new Date(nowMs - 30 * tDay), notes: "Approved for tender." },
+  });
+
+  const openTender = await Tender.create({
+    title: "Mahasthangarh Carved Slab Chamber Excavation",
+    discoveryReport: drBogra._id,
+    fieldReport: frBogra._id,
+    archaeologist: alice._id,
+    project_details:
+      "Controlled excavation of a suspected buried chamber beneath a verified Pala-period carved slab at Mahasthan Garh Road, Shibganj, Bogra. Expected depth 3-4m across a 10m x 10m grid, with full stratigraphic recording.",
+    requirements:
+      "Minimum 15 trained crew. Experience with masonry-bearing strata required. Must supply shoring, dewatering pumps, and on-site conservation storage. Daily photographic logs shared with the lead archaeologist.",
+    location: { lat: 24.9646, lng: 89.3379, address: "Mahasthan Garh Road, Shibganj, Bogra" },
+    deadline: new Date(nowMs + 6 * tDay),
+    estimated_budget: 450000,
+    created_by: dina._id,
+    status: "Open",
+  });
+
+  await TenderBid.create([
+    {
+      tender: openTender._id,
+      team: rahim._id,
+      company_name: "Bengal Excavation Works Ltd.",
+      cost: 428000,
+      timeline_days: 75,
+      proposal:
+        "24-person crew with two certified conservators on rotation. We will shore the trench in week one, then work in 20cm spits with daily context sheets. Dewatering pumps and a lockable finds container are included in the quoted price.",
+      status: "Pending",
+      submitted_at: new Date(nowMs - 4 * tDay),
+    },
+    {
+      tender: openTender._id,
+      team: sultana._id,
+      company_name: "Heritage Digs & Conservation",
+      cost: 465000,
+      timeline_days: 60,
+      proposal:
+        "Faster schedule using a 16-person crew on extended shifts. Quote includes 3D photogrammetric recording of every context and a post-excavation archive report delivered within 30 days of completion.",
+      status: "Pending",
+      submitted_at: new Date(nowMs - 3 * tDay),
+    },
+    {
+      tender: openTender._id,
+      team: jamal._id,
+      company_name: "Padma Groundworks",
+      cost: 399000,
+      timeline_days: 95,
+      proposal:
+        "Lowest quoted cost using our own plant and a 31-person crew. Longer timeline reflects a cautious hand-excavation approach around the masonry. We have completed four comparable Government contracts in Bogra district.",
+      status: "Pending",
+      submitted_at: new Date(nowMs - 2 * tDay),
+    },
+  ]);
+
+  // ---- Scenario 3: an Awarded tender with a live project ------------------
+  const drComilla = await DiscoveryReport.create({
+    reporter: publicUser._id,
+    location: { lat: 23.4472, lng: 91.135, address: "Cantonment Road, Comilla Sadar, Comilla" },
+    material: "Terracotta fragments turned up by ploughing",
+    contact_email: "javed@gmail.com",
+    contact_phone: "+8801999999999",
+    status: "Verified",
+    assignment: { researcher: bob._id, budget: 14000, assigned_by: dina._id, assigned_at: new Date(nowMs - 90 * tDay) },
+    verification: { result: "true", notes: "Dense scatter of Candra-period terracotta. Warrants excavation.", submitted_at: new Date(nowMs - 85 * tDay) },
+  });
+
+  const frComilla = await ResearcherReport.create({
+    discoveryReport: drComilla._id,
+    researcher: bob._id,
+    possibleArtifact: true,
+    notes: "Plough-damaged occupation layer with a very high find density. Needs a full crew to excavate before further agricultural damage.",
+    budgetRequested: 280000,
+    requestExcavationTeam: true,
+    status: "Approved",
+    adminReview: { reviewedBy: elias._id, reviewedAt: new Date(nowMs - 80 * tDay), notes: "Approved, urgent." },
+  });
+
+  const activeSite = await Site.create({
+    name: "Cantonment Road Excavation Site, Comilla",
+    era: "10th Century CE",
+    s_thana: "Comilla Sadar",
+    s_district: "Comilla",
+    description: "Candra-period occupation layer under excavation following a public discovery report.",
+    architecture: "Under excavation",
+    latitude: 23.4472,
+    longitude: 91.135,
+  });
+
+  const awardedTender = await Tender.create({
+    title: "Comilla Terracotta Scatter Rescue Excavation",
+    discoveryReport: drComilla._id,
+    fieldReport: frComilla._id,
+    archaeologist: bob._id,
+    project_details:
+      "Rescue excavation of a plough-damaged Candra-period occupation layer on Cantonment Road, Comilla Sadar. Priority is recovering the terracotta assemblage before the next ploughing season.",
+    requirements: "Minimum 12 crew. Rapid recovery methodology with on-site finds processing and secure overnight storage.",
+    location: { lat: 23.4472, lng: 91.135, address: "Cantonment Road, Comilla Sadar, Comilla" },
+    deadline: new Date(nowMs - 70 * tDay),
+    estimated_budget: 280000,
+    created_by: elias._id,
+    status: "Awarded",
+    awarded_at: new Date(nowMs - 68 * tDay),
+  });
+
+  const winningBidComilla = await TenderBid.create({
+    tender: awardedTender._id,
+    team: rahim._id,
+    company_name: "Bengal Excavation Works Ltd.",
+    cost: 265000,
+    timeline_days: 55,
+    proposal:
+      "Rapid-response crew of 24 mobilised within five days. On-site finds processing tent and a sealed storage container included. Two conservators assigned full time for the terracotta.",
+    status: "Accepted",
+    reviewed_by: elias._id,
+    reviewed_at: new Date(nowMs - 68 * tDay),
+    review_notes: "Strongest mobilisation timeline and prior rescue excavation experience.",
+    submitted_at: new Date(nowMs - 72 * tDay),
+  });
+
+  await TenderBid.create({
+    tender: awardedTender._id,
+    team: jamal._id,
+    company_name: "Padma Groundworks",
+    cost: 258000,
+    timeline_days: 80,
+    proposal: "Slightly lower cost but a longer schedule, using a 31-person crew working in two shifts.",
+    status: "Rejected",
+    reviewed_by: elias._id,
+    reviewed_at: new Date(nowMs - 68 * tDay),
+    review_notes: "Another team was awarded this tender.",
+    submitted_at: new Date(nowMs - 71 * tDay),
+  });
+
+  const activeProject = await ExcavationProject.create({
+    p_name: "Comilla Terracotta Scatter Rescue Excavation",
+    organization: "Bengal Excavation Works Ltd.",
+    start_date: new Date(nowMs - 68 * tDay),
+    end_date: null,
+    progress: "In Progress",
+    lead_archaeologist: bob._id,
+    site: activeSite._id,
+    budget: 265000,
+    excavation_team: rahim._id,
+    tender: awardedTender._id,
+    discoveryReport: drComilla._id,
+    location: { lat: 23.4472, lng: 91.135, address: "Cantonment Road, Comilla Sadar, Comilla" },
+    agreed_timeline_days: 55,
+  });
+
+  // Finds logged on the active dig - held back from Smart Artifact Search
+  // until the Government allocates them after the project is handed over.
+  const activeFinds = await Item.create([
+    {
+      site: activeSite._id,
+      name: "Terracotta Votive Plaque",
+      description: "Near-complete moulded plaque showing a seated figure, recovered from context 104.",
+      Type: "Pottery",
+      civilization: "Candra Dynasty",
+      era: "10th Century CE",
+      region: "Comilla",
+      material: "Terracotta",
+      usage: "Votive",
+      discovery_date: new Date(nowMs - 40 * tDay),
+      location: "Pending Allocation",
+      allocation: "Unallocated",
+      pending_allocation: true,
+      excavationProject: activeProject._id,
+    },
+    {
+      site: activeSite._id,
+      name: "Glazed Storage Jar Rim",
+      description: "Thick rim sherd from a large storage vessel with a partial green glaze.",
+      Type: "Pottery",
+      civilization: "Candra Dynasty",
+      era: "10th Century CE",
+      region: "Comilla",
+      material: "Ceramic",
+      usage: "Household Vessel",
+      discovery_date: new Date(nowMs - 22 * tDay),
+      location: "Pending Allocation",
+      allocation: "Unallocated",
+      pending_allocation: true,
+      excavationProject: activeProject._id,
+    },
+  ]);
+
+  activeProject.artifacts = activeFinds.map((i) => i._id);
+  await activeProject.save();
+
+  awardedTender.awarded_bid = winningBidComilla._id;
+  awardedTender.awarded_team = rahim._id;
+  awardedTender.project = activeProject._id;
+  await awardedTender.save();
+
+  // ---- Scenario 4: a completed dig awaiting artifact allocation -----------
+  const drNaogaon = await DiscoveryReport.create({
+    reporter: shirin._id,
+    location: { lat: 25.0311, lng: 88.9767, address: "Paharpur Road, Badalgachhi, Naogaon" },
+    material: "Bronze objects found while clearing a drainage channel",
+    contact_email: "shirin@gmail.com",
+    contact_phone: "+8801744556677",
+    status: "Verified",
+    assignment: { researcher: alice._id, budget: 16000, assigned_by: dina._id, assigned_at: new Date(nowMs - 200 * tDay) },
+    verification: { result: "true", notes: "Pala-period bronze assemblage, undisturbed context.", submitted_at: new Date(nowMs - 195 * tDay) },
+  });
+
+  const frNaogaon = await ResearcherReport.create({
+    discoveryReport: drNaogaon._id,
+    researcher: alice._id,
+    possibleArtifact: true,
+    notes: "A small but rich bronze deposit next to the Somapura precinct wall. Full excavation recommended.",
+    budgetRequested: 210000,
+    requestExcavationTeam: true,
+    status: "Approved",
+    adminReview: { reviewedBy: dina._id, reviewedAt: new Date(nowMs - 190 * tDay), notes: "Approved for tender." },
+  });
+
+  const completedSite = await Site.create({
+    name: "Paharpur Road Excavation Site, Naogaon",
+    era: "9th Century CE",
+    s_thana: "Badalgachhi",
+    s_district: "Naogaon",
+    description: "Completed excavation of a Pala-period bronze deposit beside the Somapura precinct wall.",
+    architecture: "Excavated and backfilled",
+    latitude: 25.0311,
+    longitude: 88.9767,
+  });
+
+  const completedTender = await Tender.create({
+    title: "Somapura Precinct Bronze Deposit Excavation",
+    discoveryReport: drNaogaon._id,
+    fieldReport: frNaogaon._id,
+    archaeologist: alice._id,
+    project_details:
+      "Excavation of a Pala-period bronze deposit beside the Somapura Mahavihara precinct wall at Paharpur Road, Badalgachhi, Naogaon.",
+    requirements: "Metal-detecting survey before excavation, plus conservation-grade lifting and packing of all metalwork.",
+    location: { lat: 25.0311, lng: 88.9767, address: "Paharpur Road, Badalgachhi, Naogaon" },
+    deadline: new Date(nowMs - 180 * tDay),
+    estimated_budget: 210000,
+    created_by: dina._id,
+    status: "Awarded",
+    awarded_at: new Date(nowMs - 178 * tDay),
+  });
+
+  const winningBidNaogaon = await TenderBid.create({
+    tender: completedTender._id,
+    team: sultana._id,
+    company_name: "Heritage Digs & Conservation",
+    cost: 198000,
+    timeline_days: 45,
+    proposal:
+      "In-house conservation lab handles all lifted metalwork. Quote covers a full metal-detecting survey, block-lifting where needed, and a conservation report per object.",
+    status: "Accepted",
+    reviewed_by: dina._id,
+    reviewed_at: new Date(nowMs - 178 * tDay),
+    review_notes: "Best conservation capability for a metal assemblage.",
+    submitted_at: new Date(nowMs - 182 * tDay),
+  });
+
+  const completedProject = await ExcavationProject.create({
+    p_name: "Somapura Precinct Bronze Deposit Excavation",
+    organization: "Heritage Digs & Conservation",
+    start_date: new Date(nowMs - 178 * tDay),
+    end_date: new Date(nowMs - 6 * tDay),
+    progress: "Almost Done",
+    lead_archaeologist: alice._id,
+    site: completedSite._id,
+    budget: 198000,
+    excavation_team: sultana._id,
+    tender: completedTender._id,
+    discoveryReport: drNaogaon._id,
+    location: { lat: 25.0311, lng: 88.9767, address: "Paharpur Road, Badalgachhi, Naogaon" },
+    agreed_timeline_days: 45,
+    submitted_to_admin: true,
+    completed_at: new Date(nowMs - 6 * tDay),
+    completion_notes:
+      "Excavation complete and the trench backfilled. Three objects recovered, conserved, and ready for Government allocation.",
+    allocation_done: false,
+  });
+
+  const completedFinds = await Item.create([
+    {
+      site: completedSite._id,
+      name: "Pala Bronze Avalokitesvara",
+      description: "Standing bronze figure of Avalokitesvara with traces of gilding, recovered intact.",
+      Type: "Metal_Object",
+      civilization: "Pala",
+      era: "9th Century CE",
+      region: "Naogaon",
+      material: "Bronze",
+      usage: "Religious Icon",
+      discovery_date: new Date(nowMs - 120 * tDay),
+      location: "Pending Allocation",
+      allocation: "Unallocated",
+      pending_allocation: true,
+      excavationProject: completedProject._id,
+    },
+    {
+      site: completedSite._id,
+      name: "Bronze Ritual Ladle",
+      description: "Long-handled ritual ladle with an incised lotus motif on the bowl.",
+      Type: "Metal_Object",
+      civilization: "Pala",
+      era: "9th Century CE",
+      region: "Naogaon",
+      material: "Bronze",
+      usage: "Ritual",
+      discovery_date: new Date(nowMs - 100 * tDay),
+      location: "Pending Allocation",
+      allocation: "Unallocated",
+      pending_allocation: true,
+      excavationProject: completedProject._id,
+    },
+    {
+      site: completedSite._id,
+      name: "Copper Alloy Votive Stupa",
+      description: "Miniature votive stupa, slightly crushed on one side but structurally sound.",
+      Type: "Metal_Object",
+      civilization: "Pala",
+      era: "9th Century CE",
+      region: "Naogaon",
+      material: "Copper Alloy",
+      usage: "Votive",
+      discovery_date: new Date(nowMs - 90 * tDay),
+      location: "Pending Allocation",
+      allocation: "Unallocated",
+      pending_allocation: true,
+      excavationProject: completedProject._id,
+    },
+  ]);
+
+  completedProject.artifacts = completedFinds.map((i) => i._id);
+  await completedProject.save();
+
+  completedTender.awarded_bid = winningBidNaogaon._id;
+  completedTender.awarded_team = sultana._id;
+  completedTender.project = completedProject._id;
+  await completedTender.save();
+
+  // A tender the Government pulled before awarding it
+  await Tender.create({
+    title: "Wari-Bateshwar Southern Mound Survey Trench",
+    project_details: "Evaluation trenching across the southern mound at Wari-Bateshwar, Belabo, Narsingdi.",
+    requirements: "Small crew, evaluation trenching only, no deep excavation.",
+    location: { lat: 24.0898, lng: 90.8143, address: "Bateshwar Village, Belabo, Narsingdi" },
+    deadline: new Date(nowMs + 12 * tDay),
+    estimated_budget: 90000,
+    created_by: dina._id,
+    status: "Cancelled",
+    cancel_reason: "Land access dispute with the current occupier is unresolved.",
+  });
+
   console.log("Creating sample wishlist entries...");
   await Wishlist.create([
     { user: shirin._id, item: itemByNameUpdated["Gold Amulet"]._id }, // not currently up for auction
@@ -717,9 +1123,22 @@ async function run() {
     { user: rahim._id, item: itemByNameUpdated["Gold Earring"]._id },
   ]);
 
-  console.log("\nDone! Database seeded with 20+ artifacts, 3 ongoing projects, 5+ users per role, and 9 sample auctions (including active bids and user-won items).");
-  console.log("Log in with any nid or email, e.g. nid 'A001' (archaeologist), 'AD001' (admin), 'MM001' (museum).");
-  console.log("Try logging in as 'PUB001' or 'PUB002' (public) to see auction bids and won items!");
+  console.log("\nDone! Database seeded.");
+  console.log("");
+  console.log("Every account uses the password: " + DEFAULT_PASSWORD);
+  console.log("  Admin / Government   -> AD001 (Dina Admin), AD002 (Elias Director)");
+  console.log("  Archaeologist        -> A001 (Alice), A002 (Bob), A003 (Charlie)");
+  console.log("  Museum Manager       -> MM001, MM002, MM003");
+  console.log("  General Public       -> PUB001, PUB002");
+  console.log("");
+  console.log("Ahad_23201016 - Excavation Team logins (company accounts):");
+  console.log("  E001 -> Bengal Excavation Works Ltd.  (rep: Rahim Khan)");
+  console.log("  E002 -> Heritage Digs & Conservation  (rep: Sultana Ahmed)");
+  console.log("  E003 -> Padma Groundworks             (rep: Jamal Uddin)");
+  console.log("");
+  console.log("Tender demo data: 1 open tender with 3 bids, 1 active project (E001),");
+  console.log("1 completed project awaiting allocation (E002), 1 cancelled tender,");
+  console.log("and 1 approved field report still waiting for a tender to be published.");
   process.exit(0);
 }
 

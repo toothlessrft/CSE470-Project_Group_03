@@ -32,13 +32,13 @@ const CATEGORIES = [
 // Mirrors the server-side rule in backend/routes/knowledge.js.
 // "Researcher" is the same account as "archaeologist" (Register.jsx labels
 // the archaeologist role "Archaeologist / Researcher"). "Excavation Team" is
-// the "site_caretaker" role.
+// the "excavation_team" role. Ahad_23201016
 const CATEGORY_UPLOAD_ROLES = {
   research_paper: ["archaeologist"],
   book: ["archaeologist"],
   article: ["archaeologist", "museum_manager"],
   historical_reference: ["archaeologist"],
-  vlog_audio: ["archaeologist", "site_caretaker"]
+  vlog_audio: ["archaeologist", "excavation_team"]
 };
 
 const MAX_PHOTO_BYTES = 3 * 1024 * 1024; // 3 MB

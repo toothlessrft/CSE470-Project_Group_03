@@ -1,14 +1,6 @@
 //Researcher Report: Ahad
 import { useEffect, useState } from "react";
-import { Plus, Edit, Trash2, X } from "lucide-react";
 import { api } from "../../api";
-
-const ARTIFACT_TYPES = ["Pottery", "Metal_Object", "Paintings", "Human_Remains", "Rock", "Jewelry", "Bone/Ivory", "other"];
-
-const EMPTY_ARTIFACT = {
-    name: "", description: "", Type: "other",
-    civilization: "", era: "", region: "", material: "", usage: "", picture: "",
-};
 
 export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
     const [report, setReport] = useState(null);
@@ -23,12 +15,9 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
         requestExcavationTeam: false,
     });
 
-    // Report Approval & Artifact Allocation: artifacts found on site, added
-    // the same way as the "Add Artifact" flow on Smart Artifact Search.
-    const [artifacts, setArtifacts] = useState([]);
-    const [showArtifactModal, setShowArtifactModal] = useState(false);
-    const [editingArtifactIndex, setEditingArtifactIndex] = useState(null);
-    const [artifactForm, setArtifactForm] = useState(EMPTY_ARTIFACT);
+    // Ahad_23201016 - "Add Artifact" no longer lives on the field report. Finds
+    // are now logged against the active excavation project in Manage Projects,
+    // once a team has actually been awarded the dig through the tender process.
 
     const [busy, setBusy] = useState(false);
 
@@ -48,7 +37,6 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
                     budgetRequested: data.report.budgetRequested || "",
                     requestExcavationTeam: data.report.requestExcavationTeam || false,
                 });
-                setArtifacts(data.report.artifacts || []);
             })
             .catch((err) => setError(err.message))
             .finally(() => setLoading(false));
@@ -60,10 +48,9 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
         setSuccess("");
         setBusy(true);
         try {
-            const data = await api.post(`/researcher-report/${discoveryId}/save`, { ...form, artifacts });
+            const data = await api.post(`/researcher-report/${discoveryId}/save`, { ...form });
             setSuccess("Draft saved successfully.");
             setReport(data.report);
-            setArtifacts(data.report.artifacts || []);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -89,36 +76,6 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
         }
     }
 
-    // ---- Artifacts found on site (local list, persisted with Save Draft) ----
-    function openAddArtifact() {
-        setEditingArtifactIndex(null);
-        setArtifactForm(EMPTY_ARTIFACT);
-        setShowArtifactModal(true);
-    }
-
-    function openEditArtifact(index) {
-        setEditingArtifactIndex(index);
-        setArtifactForm({ ...EMPTY_ARTIFACT, ...artifacts[index] });
-        setShowArtifactModal(true);
-    }
-
-    function handleRemoveArtifact(index) {
-        if (!window.confirm("Remove this artifact from the report?")) return;
-        setArtifacts((prev) => prev.filter((_, i) => i !== index));
-    }
-
-    function handleArtifactFormSubmit(e) {
-        e.preventDefault();
-        if (!artifactForm.name.trim()) return;
-        setArtifacts((prev) => {
-            if (editingArtifactIndex === null) return [...prev, artifactForm];
-            const next = [...prev];
-            next[editingArtifactIndex] = artifactForm;
-            return next;
-        });
-        setShowArtifactModal(false);
-    }
-
     if (loading) return <p className="hint">Loading researcher report...</p>;
     if (!report) return <div className="alert alert-danger">{error || "Failed to load report"}</div>;
 
@@ -132,10 +89,10 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
             <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Researcher Report</h3>
             <p className="hint">
                 {isApproved
-                    ? "This report has been approved by the admin. Its artifacts are now in the catalogue."
+                    ? "This report has been approved by the Government. If you requested an excavation team, a tender will be published for it."
                     : isPending
                         ? "Final report submitted. Waiting for admin approval before this moves to Previous Assignments."
-                        : "Work on your findings below piece by piece. Save as draft until you are completely finished."
+                        : "Work on your findings below piece by piece. Save as draft until you are completely finished. Artifacts get logged later, against the excavation project itself."
                 }
             </p>
 
@@ -162,7 +119,7 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
                         disabled={isLocked || busy}
                         style={{ width: "20px", height: "20px" }}
                     />
-                    <span style={{ fontWeight: 600 }}>Request Excavation Team (Engineers)</span>
+                    <span style={{ fontWeight: 600 }}>Request an Excavation Team for this site</span>
                 </label>
 
                 <label>
@@ -189,49 +146,6 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
                     />
                 </label>
 
-                {/* Report Approval & Artifact Allocation: artifacts found on site */}
-                <div style={{ marginTop: "0.5rem" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-                        <strong>Artifacts Found</strong>
-                        {isDraft && (
-                            <button type="button" className="btn-small" onClick={openAddArtifact}>
-                                <Plus size={14} /> Add Artifact
-                            </button>
-                        )}
-                    </div>
-
-                    {artifacts.length === 0 ? (
-                        <p className="hint" style={{ margin: 0 }}>No artifacts added yet.</p>
-                    ) : (
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.75rem" }}>
-                            {artifacts.map((a, i) => (
-                                <div key={i} className="card" style={{ margin: 0, padding: "0.85rem 1rem" }}>
-                                    <strong>{a.name}</strong>
-                                    <p className="hint" style={{ margin: "0.2rem 0" }}>{a.Type}</p>
-                                    {a.description && <p style={{ fontSize: "0.85rem", margin: "0 0 0.4rem" }}>{a.description}</p>}
-                                    <p style={{ fontSize: "0.8rem", color: "#777", margin: 0 }}>
-                                        {a.civilization && <>Civilization: {a.civilization}<br /></>}
-                                        {a.era && <>Era: {a.era}<br /></>}
-                                        {a.region && <>Region: {a.region}<br /></>}
-                                        {a.material && <>Material: {a.material}<br /></>}
-                                        {a.usage && <>Usage: {a.usage}</>}
-                                    </p>
-                                    {isDraft && (
-                                        <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
-                                            <button type="button" className="btn-small btn-outline" style={{ color: "var(--primary)", borderColor: "var(--primary)" }} onClick={() => openEditArtifact(i)}>
-                                                <Edit size={14} /> Edit
-                                            </button>
-                                            <button type="button" className="btn-small" style={{ color: "#fff", background: "var(--danger, #c0392b)", border: "none" }} onClick={() => handleRemoveArtifact(i)}>
-                                                <Trash2 size={14} /> Remove
-                                            </button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
                 {isDraft && (
                     <div className="actions">
                         <button className="btn" onClick={handleSaveDraft} disabled={busy}>Save Draft</button>
@@ -240,39 +154,6 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
                 )}
             </div>
 
-            {showArtifactModal && (
-                <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
-                    <div className="card" style={{ width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto", margin: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-                            <h2>{editingArtifactIndex === null ? "Add Artifact" : "Edit Artifact"}</h2>
-                            <button type="button" className="btn-link" onClick={() => setShowArtifactModal(false)}><X size={20} /></button>
-                        </div>
-
-                        <form onSubmit={handleArtifactFormSubmit} className="form">
-                            <label>Artifact Name required <input value={artifactForm.name} onChange={e => setArtifactForm(f => ({ ...f, name: e.target.value }))} required /></label>
-                            <label>Description <textarea rows={3} value={artifactForm.description} onChange={e => setArtifactForm(f => ({ ...f, description: e.target.value }))} /></label>
-
-                            <label>Type
-                                <select value={artifactForm.Type} onChange={e => setArtifactForm(f => ({ ...f, Type: e.target.value }))}>
-                                    {ARTIFACT_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                                </select>
-                            </label>
-
-                            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                                <label>Civilization <input value={artifactForm.civilization} onChange={e => setArtifactForm(f => ({ ...f, civilization: e.target.value }))} /></label>
-                                <label>Era <input value={artifactForm.era} onChange={e => setArtifactForm(f => ({ ...f, era: e.target.value }))} /></label>
-                                <label>Region <input value={artifactForm.region} onChange={e => setArtifactForm(f => ({ ...f, region: e.target.value }))} /></label>
-                                <label>Material <input value={artifactForm.material} onChange={e => setArtifactForm(f => ({ ...f, material: e.target.value }))} /></label>
-                                <label>Usage <input value={artifactForm.usage} onChange={e => setArtifactForm(f => ({ ...f, usage: e.target.value }))} /></label>
-                            </div>
-
-                            <button type="submit" className="btn">
-                                {editingArtifactIndex === null ? "Add to Report" : "Save Changes"}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }

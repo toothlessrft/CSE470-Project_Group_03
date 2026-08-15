@@ -7,7 +7,7 @@ import { api } from "../api";
 
 const ROLES = [
   { icon: ScanSearch, label: "Archaeologist / Researcher", description: "Run digs, log finds, verify field reports" },
-  { icon: Users, label: "Excavation Team", description: "Keep sites maintained and budgets on track" },
+  { icon: Users, label: "Excavation Team", description: "Bid on government tenders and run excavations" },
   { icon: Landmark, label: "Government / Admin", description: "Approve requests, assign inspections" },
   { icon: Globe2, label: "Museum Authority", description: "Request artifacts for public exhibition" },
   { icon: MapPin, label: "General Public", description: "Report a newly discovered artifact" },
@@ -17,7 +17,7 @@ const ROLE_LABELS = {
   admin: "Admin",
   archaeologist: "Archaeologist",
   museum_manager: "Museum Manager",
-  site_caretaker: "Site Caretaker",
+  excavation_team: "Excavation Team", // Ahad_23201016
   public: "Public Member",
 };
 

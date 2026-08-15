@@ -1,12 +1,12 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Landmark, MapPin, ScanSearch, LogOut, Search, BookOpen, LayoutDashboard, CalendarDays, Gavel } from "lucide-react";
+import { Landmark, MapPin, ScanSearch, LogOut, Search, BookOpen, LayoutDashboard, CalendarDays, Gavel, FileText } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 
 const ROLE_LABELS = {
   admin: "Admin",
   archaeologist: "Archaeologist",
   museum_manager: "Museum Manager",
-  site_caretaker: "Site Caretaker",
+  excavation_team: "Excavation Team", // Ahad_23201016
   public: "Public Member",
 };
 
@@ -14,7 +14,7 @@ const ROLE_HOME = {
   public: "/public/dashboard",
   archaeologist: "/arc/dashboard",
   museum_manager: "/mm/dashboard",
-  site_caretaker: "/sc/dashboard",
+  excavation_team: "/et/dashboard", // Ahad_23201016
   admin: "/admin/dashboard",
 };
 
@@ -47,6 +47,13 @@ export default function Navbar() {
             )}
             {user.role === "admin" && (
               <Link to="/admin/auctions"><Gavel size={15} /> Manage Auctions</Link>
+            )}
+            {/* Ahad_23201016 */}
+            {user.role === "admin" && (
+              <Link to="/admin/tenders"><FileText size={15} /> Tenders</Link>
+            )}
+            {user.role === "excavation_team" && (
+              <Link to="/et/tenders"><FileText size={15} /> Tenders</Link>
             )}
 
             {/* Profile Dashboard link — styled like other nav links */}

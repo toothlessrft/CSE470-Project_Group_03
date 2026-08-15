@@ -9,7 +9,8 @@ const approvalRoutes = require("./routes/userApproval");
 const archaeologistRoutes = require("./routes/archaeologist");
 const adminRoutes = require("./routes/admin");
 const museumManagerRoutes = require("./routes/museumManager");
-const siteCaretakerRoutes = require("./routes/siteCaretaker");
+const excavationTeamRoutes = require("./routes/excavationTeam"); // Ahad_23201016
+const tenderRoutes = require("./routes/tenders"); // Ahad_23201016 - Tender Publication & Bidding
 const reportsRoutes = require("./routes/reports");
 const artifactLoanRoutes = require("./routes/artifactLoan");
 const searchRoutes = require("./routes/search");
@@ -38,7 +39,8 @@ app.use("/api/arc", archaeologistRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/mm", museumManagerRoutes);
 app.use("/api/loans", artifactLoanRoutes);
-app.use("/api/sc", siteCaretakerRoutes);
+app.use("/api/et", excavationTeamRoutes); // Ahad_23201016
+app.use("/api/tenders", tenderRoutes); // Ahad_23201016
 app.use("/api/reports", reportsRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/items", itemsRoutes);

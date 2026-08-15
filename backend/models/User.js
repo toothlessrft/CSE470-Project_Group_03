@@ -10,7 +10,7 @@ const userSchema = new Schema(
         "public",
         "archaeologist",
         "museum_manager",
-        "site_caretaker",
+        "excavation_team", // Ahad_23201016 - was "site_caretaker"
         "admin",
         "manager"
       ],
@@ -47,6 +47,11 @@ const userSchema = new Schema(
       address: String,
 
       // Excavation Team
+      // Ahad_23201016 - an excavation team account represents a company, and
+      // `name` on the user itself is that company's representative.
+      company_name: String,
+      representative_designation: String,
+      team_size: Number,
       organization: String,
       team_leader: String,
     },
