@@ -119,15 +119,3 @@ cd frontend && npm install && npm run dev
 
 `backend/.env` is included in this archive. The seed script **clears the database**
 before repopulating it.
-
-### Seeded demo data
-
-- An **open tender** (Mahasthangarh) with **three competing bids** — log in as
-  `AD001` to evaluate and award it, or as `E001`/`E002`/`E003` to edit or
-  withdraw a bid.
-- An **active project** awarded to `E001` with two unallocated artifacts — visible
-  to `A002` under Manage Projects and to `E001` under My Projects.
-- A **completed project** from `E002` with three artifacts **awaiting allocation** —
-  allocate them under Admin → Excavation Projects.
-- A **cancelled tender**, and an **approved field report with no tender yet**, which
-  shows up in the admin's Create Tender source list.
