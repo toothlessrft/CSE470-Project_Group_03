@@ -101,15 +101,6 @@ Every seeded account uses the password `password123`.
 | Museum Manager | `MM001`, `MM002`, `MM003` |
 | General Public | `PUB001`, `PUB002` |
 
-Excavation team accounts are companies; the account holder is the company
-representative.
-
-| NID | Company | Representative |
-|---|---|---|
-| `E001` | Bengal Excavation Works Ltd. | Rahim Khan |
-| `E002` | Heritage Digs & Conservation | Sultana Ahmed |
-| `E003` | Padma Groundworks | Jamal Uddin |
-
 ### Running it
 
 ```bash
