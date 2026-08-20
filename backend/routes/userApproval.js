@@ -1,6 +1,7 @@
 const express = require("express");
 const User = require("../models/User");
 const { requireAuth } = require("../middleware/auth");
+const { notify } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 
@@ -41,8 +42,21 @@ router.patch(
   requireAdmin,
   async (req, res) => {
     try {
-      await User.findByIdAndUpdate(req.params.id, {
-        status: "approved",
+      const approved = await User.findByIdAndUpdate(
+        req.params.id,
+        { status: "approved" },
+        { new: true }
+      );
+
+      // Notification: tell the account holder they are live.
+      await notify({
+        user: approved?._id,
+        role: approved?.role,
+        category: "account",
+        type: "account.approved",
+        title: "Your ArchiveEarth account is approved",
+        message: "The Government/Admin has approved your registration. You now have full access to your dashboard.",
+        link: "/login",
       });
 
       res.json({
@@ -63,8 +77,21 @@ router.patch(
   requireAdmin,
   async (req, res) => {
     try {
-      await User.findByIdAndUpdate(req.params.id, {
-        status: "rejected",
+      const rejected = await User.findByIdAndUpdate(
+        req.params.id,
+        { status: "rejected" },
+        { new: true }
+      );
+
+      // Notification: tell the applicant the outcome.
+      await notify({
+        user: rejected?._id,
+        role: rejected?.role,
+        category: "account",
+        type: "account.rejected",
+        title: "Registration request declined",
+        message: "Your ArchiveEarth registration was not approved. Contact the Government/Admin office if you believe this is a mistake.",
+        link: "/login",
       });
 
       res.json({

@@ -1,7 +1,7 @@
 // Ahad_23201016 - Excavation Team dashboard (replaces the Site Caretaker one).
 // The account is a company; the profile shown is the company representative.
 import { useEffect, useState } from "react";
-import { FileSearch, ClipboardList, FolderKanban, Gavel } from "lucide-react";
+import { FileSearch, ClipboardList, FolderKanban, Gavel, Wrench } from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -37,6 +37,12 @@ export default function ETeamDashboard() {
       icon: FolderKanban,
       title: "Manage Projects",
       description: "Run your awarded excavations and log recovered artifacts",
+    },
+    {
+      to: "/equipment",
+      icon: Wrench,
+      title: "Tools & Equipment",
+      description: "Request excavation tools and field equipment for your assigned digs",
     },
     {
       to: "/auctions",

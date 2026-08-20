@@ -3,6 +3,7 @@ const Item = require("../models/Item");
 const User = require("../models/User");
 const ArtifactLoan = require("../models/ArtifactLoan");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { notify } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 router.use(requireAuth, requireRole("museum_manager"));
@@ -68,6 +69,19 @@ router.post("/request", async (req, res) => {
       status: "Pending",
     });
 
+    // Notification: action-required loan request for the lending museum.
+    const artifact = await Item.findById(item_id).select("name");
+    await notify({
+      user: lending_museum_id,
+      category: "request",
+      type: "loan.request.received",
+      title: "New artifact loan request",
+      message: `${req.user.roleProfile?.museum_name || req.user.name} asked to borrow "${artifact?.name || "an artifact"}" for ${exhibition_name}.`,
+      link: "/mm/incoming-loans",
+      actionRequired: true,
+      deadlineAt: start_date,
+    });
+
     res.status(201).json({ loan });
   } catch (err) {
     console.error(err);
@@ -115,6 +129,18 @@ router.post("/:id/decision", async (req, res) => {
   loan.decided_at = new Date();
   await loan.save();
 
+  // Notification: decision back to the requesting museum.
+  const artifact = await Item.findById(loan.item).select("name");
+  await notify({
+    user: loan.requesting_museum,
+    category: "request",
+    type: action === "approve" ? "loan.request.approved" : "loan.request.declined",
+    title: action === "approve" ? "Loan request approved" : "Loan request declined",
+    message: `${req.user.roleProfile?.museum_name || req.user.name} ${action === "approve" ? "approved" : "declined"} your request for "${artifact?.name || "an artifact"}".${loan.response_note ? ` Note: ${loan.response_note}` : ""}`,
+    link: "/mm/my-loans",
+    deadlineAt: action === "approve" ? loan.end_date : null,
+  });
+
   res.json({ message: `Loan request ${loan.status.toLowerCase()}.`, loan });
 });
 
@@ -129,6 +155,17 @@ router.post("/:id/return", async (req, res) => {
   loan.status = "Returned";
   loan.returned_at = new Date();
   await loan.save();
+
+  // Notification: return confirmed for the borrowing museum's records.
+  const returnedItem = await Item.findById(loan.item).select("name");
+  await notify({
+    user: loan.requesting_museum,
+    category: "request",
+    type: "loan.returned",
+    title: "Artifact loan closed",
+    message: `"${returnedItem?.name || "The borrowed artifact"}" has been marked as returned by the lending museum.`,
+    link: "/mm/my-loans",
+  });
 
   res.json({ message: "Artifact marked as returned.", loan });
 });
