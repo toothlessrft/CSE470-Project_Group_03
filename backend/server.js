@@ -18,6 +18,9 @@ const itemsRoutes = require("./routes/items");
 const researcherReportRoutes = require("./routes/researcherReport"); //Researcher Report: Ahad
 const knowledgeRoutes = require("./routes/knowledge");
 const auctionsRoutes = require("./routes/auctions");
+const notificationRoutes = require("./routes/notifications"); // Role-Based Notification & Reminder System
+const inventoryRoutes = require("./routes/inventory"); // Tool & Field Equipment Requests + Inventory Tracking
+const { startReminderScheduler } = require("./services/reminders");
 
 const app = express();
 
@@ -48,6 +51,8 @@ app.use("/api/researcher-report", researcherReportRoutes);
 app.use("/api/knowledge", knowledgeRoutes);
 app.use("/api/exhibitions", exhibitionsRoutes);
 app.use("/api/auctions", auctionsRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/inventory", inventoryRoutes);
 
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
@@ -76,4 +81,7 @@ const portCandidates = [PORT, 5556, 5557, 5558, 5559];
 
 connectDB().then(() => {
   startServer(portCandidates);
+  // Automatic deadline reminders (tenders, reports, auctions, equipment
+  // returns, artifact loans, exhibitions).
+  startReminderScheduler();
 });

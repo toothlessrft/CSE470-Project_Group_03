@@ -56,6 +56,9 @@ import ManageTenders from "./pages/admin/ManageTenders";
 import CreateTender from "./pages/admin/CreateTender";
 import TenderDetail from "./pages/admin/TenderDetail";
 import ExcavationProjects from "./pages/admin/ExcavationProjects";
+// Tool & Field Equipment Requests + Inventory Tracking
+import RequestEquipment from "./pages/tools/RequestEquipment";
+import ToolInventory from "./pages/admin/ToolInventory";
 
 
 export default function App() {
@@ -157,6 +160,18 @@ export default function App() {
           element={
             <ProtectedRoute role="archaeologist">
               <MyAssignments />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Tools & Field Equipment - archaeologists and excavation teams.
+            The API rejects anyone who isn't leading or assigned to an active
+            project, so a single shared route is enough here. */}
+        <Route
+          path="/equipment"
+          element={
+            <ProtectedRoute>
+              <RequestEquipment />
             </ProtectedRoute>
           }
         />
@@ -305,6 +320,14 @@ export default function App() {
           element={
             <ProtectedRoute role="admin">
               <ApproveToolRequest />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/tool-inventory"
+          element={
+            <ProtectedRoute role="admin">
+              <ToolInventory />
             </ProtectedRoute>
           }
         />

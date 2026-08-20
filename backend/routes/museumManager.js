@@ -4,10 +4,88 @@ const Item = require("../models/Item");
 const ItemRequest = require("../models/ItemRequest");
 const Exhibition = require("../models/Exhibition");
 const { MUSEUMS, normalizeMuseumName } = require("../config/museums");
+const User = require("../models/User");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { notifyMany, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 router.use(requireAuth, requireRole("museum_manager"));
+
+// Nearby exhibition / event alerts -----------------------------------------
+// Members carry an optional home location on their profile; anyone inside this
+// radius of a newly published listing gets told about it.
+const NEARBY_RADIUS_KM = 50;
+
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Announce a newly published exhibition. Members with a home location inside
+ * NEARBY_RADIUS_KM get a "near you" alert; everyone else who is a general
+ * member still gets the plain new-event notice, so the Events tab is never
+ * empty just because someone never set a location.
+ */
+async function announceExhibition(exhibition, actorId) {
+  try {
+    if (exhibition.status !== "published") return;
+
+    const audience = await User.find({
+      status: "approved",
+      role: { $in: ["public", "archaeologist", "museum_manager", "excavation_team"] },
+    }).select("_id roleProfile.location");
+
+    const venue = exhibition.museum_name || exhibition.location?.address || "a nearby venue";
+    const when = new Date(exhibition.start_date).toLocaleDateString();
+    const hasCoords = exhibition.location?.lat != null && exhibition.location?.lng != null;
+
+    const near = [];
+    const rest = [];
+    for (const user of audience) {
+      const loc = user.roleProfile?.location;
+      const isNear =
+        hasCoords &&
+        loc?.lat != null &&
+        loc?.lng != null &&
+        haversineKm(exhibition.location.lat, exhibition.location.lng, loc.lat, loc.lng) <= NEARBY_RADIUS_KM;
+      (isNear ? near : rest).push(user._id);
+    }
+
+    await notifyMany(
+      near,
+      {
+        category: "event",
+        type: "exhibition.nearby",
+        title: "New event near you",
+        message: `"${exhibition.title}" opens ${when} at ${venue}.`,
+        link: "/exhibitions",
+        deadlineAt: exhibition.start_date,
+      },
+      [actorId]
+    );
+
+    await notifyMany(
+      rest,
+      {
+        category: "event",
+        type: "exhibition.published",
+        title: "New exhibition announced",
+        message: `"${exhibition.title}" at ${venue} runs from ${when}.`,
+        link: "/exhibitions",
+        deadlineAt: exhibition.start_date,
+      },
+      [actorId]
+    );
+  } catch (err) {
+    console.error("[exhibitions] could not send event notifications:", err.message);
+  }
+}
 
 // GET /api/mm/dashboard  (was /m_mangaer/dashboard)
 router.get("/dashboard", async (req, res) => {
@@ -85,6 +163,19 @@ router.post("/request_items", async (req, res) => {
       insurance_info,
       approval_status: "Pending",
     });
+
+    // Notification: museum loan request waiting on the Government/Admin.
+    const artifact = await Item.findById(item_id).select("name");
+    await notifyAdmins({
+      category: "request",
+      type: "item.request.submitted",
+      title: "New museum item request",
+      message: `${req.user.roleProfile?.museum_name || req.user.name} requested "${artifact?.name || "an artifact"}" for ${purpose}.`,
+      link: "/admin/item-requests",
+      dashboardKey: "item_requests",
+      actionRequired: true,
+    }, [req.user._id]);
+
     res.status(201).json({ request });
   } catch (err) {
     console.error(err);
@@ -161,6 +252,8 @@ router.post("/exhibitions", async (req, res) => {
       status: publish ? "published" : "draft",
     });
 
+    if (publish) await announceExhibition(exhibition, req.user._id);
+
     res.status(201).json({ exhibition });
   } catch (err) {
     console.error(err);
@@ -230,6 +323,9 @@ router.patch("/exhibitions/:id/publish", async (req, res) => {
     { new: true }
   );
   if (!exhibition) return res.status(404).json({ error: "Exhibition not found." });
+
+  await announceExhibition(exhibition, req.user._id);
+
   res.json({ exhibition });
 });
 

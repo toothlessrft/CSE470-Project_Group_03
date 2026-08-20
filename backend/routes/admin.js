@@ -10,6 +10,10 @@ const ResearcherReport = require("../models/ResearcherReport"); // Report Approv
 const Item = require("../models/Item"); // Report Approval & Artifact Allocation
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { MUSEUMS, normalizeMuseumName } = require("../config/museums");
+const Tender = require("../models/Tender");
+const TenderBid = require("../models/TenderBid");
+const Auction = require("../models/Auction");
+const { notify, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 // Haversine distance in km, used to suggest researchers near a report's location
 function distanceKm(a, b) {
@@ -40,6 +44,75 @@ router.get("/dashboard", async (req, res) => {
   });
 });
 
+// GET /api/admin/work-summary
+// Live outstanding-work counts, one per Admin Dashboard card. These drive the
+// red circles on the dashboard.
+//
+// Deliberately counted from the source records rather than from unread
+// notifications: a badge has to mean "this many things still need you", so it
+// must not clear just because someone glanced at the page, and it has to grow
+// the moment a new record lands. Reading a notification and doing the work are
+// two different things.
+router.get("/work-summary", async (req, res) => {
+  try {
+    const now = new Date();
+
+    const [
+      unassignedReports,
+      reportsToReview,
+      tendersWithBids,
+      projectsAwaitingAllocation,
+      pendingItemRequests,
+      pendingToolRequests,
+      overdueEquipment,
+      excavationRequests,
+      pendingUsers,
+      activeAuctions,
+    ] = await Promise.all([
+      // Discoveries with nobody assigned yet
+      DiscoveryReport.countDocuments({ status: "Pending" }),
+      // Field reports submitted and waiting on an approve/reject
+      ResearcherReport.countDocuments({ status: "Pending" }),
+      // Open tenders that have at least one bid still to be judged
+      TenderBid.distinct("tender", { status: "Pending" }).then(async (ids) =>
+        ids.length ? Tender.countDocuments({ _id: { $in: ids }, status: "Open" }) : 0
+      ),
+      // Completed digs whose finds still need a destination
+      ExcavationProject.countDocuments({ submitted_to_admin: true, allocation_done: false }),
+      ItemRequest.countDocuments({ approval_status: "Pending" }),
+      ToolRentalRequest.countDocuments({ approval_status: "Pending" }),
+      ToolRentalRequest.countDocuments({
+        approval_status: "Approved",
+        returned_at: null,
+        end_date: { $lt: now },
+      }),
+      ExcavationRequest.countDocuments({}),
+      User.countDocuments({ status: "pending" }),
+      Auction.countDocuments({ status: "Active" }),
+    ]);
+
+    res.json({
+      counts: {
+        field_reports: unassignedReports + reportsToReview,
+        tenders: tendersWithBids,
+        excavation_projects: projectsAwaitingAllocation,
+        item_requests: pendingItemRequests,
+        tool_requests: pendingToolRequests,
+        tool_inventory: overdueEquipment,
+        excavation_requests: excavationRequests,
+        pending_users: pendingUsers,
+        auctions: activeAuctions,
+        // "Approved Requests" is a read-only archive - nothing is ever
+        // outstanding there, so it carries no badge by design.
+        approved_requests: 0,
+      },
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not load the dashboard work summary." });
+  }
+});
+
 // ---- Item requests (museum loans) ----------------------------------------
 
 // GET /api/admin/item-requests  (was /admin/approve_item_request GET)
@@ -54,14 +127,48 @@ router.get("/item-requests", async (req, res) => {
 router.post("/item-requests/:id", async (req, res) => {
   const { action } = req.body;
   if (action === "approve") {
-    await ItemRequest.findByIdAndUpdate(req.params.id, {
-      approval_status: "Approved",
-      admin: req.user._id,
+    const request = await ItemRequest.findByIdAndUpdate(
+      req.params.id,
+      { approval_status: "Approved", admin: req.user._id },
+      { new: true }
+    ).populate("item", "name");
+
+    // Notification: museum authority hears back on their loan request.
+    await notify({
+      user: request?.museum_manager,
+      category: "request",
+      type: "item.request.approved",
+      title: "Item request approved",
+      message: `Your request for "${request?.item?.name || "an artifact"}" has been approved by the Government/Admin.`,
+      link: "/mm/request-items",
     });
+
+    // Notification: logged under Approved Requests for the whole admin desk.
+    await notifyAdmins({
+      category: "request",
+      type: "item.request.recorded",
+      title: "Item request approved",
+      message: `"${request?.item?.name || "An artifact"}" was approved for museum loan by ${req.user.name}.`,
+      link: "/admin/approved-requests",
+      dashboardKey: "approved_requests",
+    });
+
     return res.json({ message: "Item request approved successfully!" });
   }
   if (action === "deny") {
+    // Read it before deleting so we still know who to tell.
+    const request = await ItemRequest.findById(req.params.id).populate("item", "name");
     await ItemRequest.findByIdAndDelete(req.params.id);
+
+    await notify({
+      user: request?.museum_manager,
+      category: "request",
+      type: "item.request.denied",
+      title: "Item request denied",
+      message: `Your request for "${request?.item?.name || "an artifact"}" was not approved.`,
+      link: "/mm/request-items",
+    });
+
     return res.json({ message: "Item request denied and deleted!" });
   }
   res.status(400).json({ error: "Unknown action." });
@@ -81,14 +188,45 @@ router.get("/tool-requests", async (req, res) => {
 router.post("/tool-requests/:id", async (req, res) => {
   const { action } = req.body;
   if (action === "approve") {
-    await ToolRentalRequest.findByIdAndUpdate(req.params.id, {
-      approval_status: "Approved",
-      admin: req.user._id,
+    const request = await ToolRentalRequest.findByIdAndUpdate(
+      req.params.id,
+      { approval_status: "Approved", admin: req.user._id, decided_at: new Date() },
+      { new: true }
+    ).populate("tool", "model_no type");
+
+    await notify({
+      user: request?.user,
+      category: "request",
+      type: "tool.request.approved",
+      title: "Equipment request approved",
+      message: `${request?.tool ? `${request.tool.type} (${request.tool.model_no})` : "Your requested equipment"} has been assigned to you.`,
+      link: "/equipment",
     });
+
+    await notifyAdmins({
+      category: "request",
+      type: "tool.request.recorded",
+      title: "Equipment request approved",
+      message: `${request?.tool ? `${request.tool.type} (${request.tool.model_no})` : "Equipment"} was approved by ${req.user.name}.`,
+      link: "/admin/approved-requests",
+      dashboardKey: "approved_requests",
+    });
+
     return res.json({ message: "Tool request approved successfully!" });
   }
   if (action === "deny") {
+    const request = await ToolRentalRequest.findById(req.params.id).populate("tool", "model_no type");
     await ToolRentalRequest.findByIdAndDelete(req.params.id);
+
+    await notify({
+      user: request?.user,
+      category: "request",
+      type: "tool.request.denied",
+      title: "Equipment request denied",
+      message: `Your request for ${request?.tool ? `${request.tool.type} (${request.tool.model_no})` : "equipment"} was not approved.`,
+      link: "/equipment",
+    });
+
     return res.json({ message: "Tool request denied and deleted!" });
   }
   res.status(400).json({ error: "Unknown action." });
@@ -153,6 +291,20 @@ router.post("/excavation-requests/:id", async (req, res) => {
   }
 
   await ExcavationRequest.findByIdAndDelete(req.params.id);
+
+  // Notification: excavation request status back to the archaeologist.
+  await notify({
+    user: request.archaeologist,
+    category: "request",
+    type: action === "approve" ? "excavation.request.approved" : "excavation.request.denied",
+    title: action === "approve" ? "Excavation request approved" : "Excavation request denied",
+    message:
+      action === "approve"
+        ? `Your excavation proposal for ${request.site?.name || "the site"} was approved and a project has been created.`
+        : `Your excavation proposal for ${request.site?.name || "the site"} was not approved.`,
+    link: "/arc/projects",
+  });
+
   res.json({ message: action === "approve" ? "Request approved, project created." : "Request denied." });
 });
 
@@ -233,6 +385,30 @@ router.post("/reports/:id/assign", async (req, res) => {
       .populate("reporter", "name nid email phone");
 
     if (!report) return res.status(404).json({ error: "Report not found." });
+
+    // Notification: action-required alert for the researcher, plus a status
+    // update for whoever originally logged the discovery.
+    await notify({
+      user: researcher_id,
+      category: "assignment",
+      type: "inspection.assigned",
+      title: "New field inspection assigned",
+      message: `You have been assigned to inspect the ${report.material} discovery at ${report.location?.address || "the reported location"}. Report due ${new Date(due_date).toLocaleDateString()}.`,
+      link: "/arc/assignments",
+      actionRequired: true,
+      deadlineAt: due_date,
+      meta: { reportId: report._id },
+    });
+
+    await notify({
+      user: report.reporter?._id || report.reporter,
+      category: "report",
+      type: "report.assigned",
+      title: "Your discovery report is being inspected",
+      message: "A researcher has been assigned to verify the artifact you reported.",
+      link: "/my-reports",
+    });
+
     res.json({ report });
   } catch (err) {
     console.error(err);
@@ -292,6 +468,16 @@ router.post("/researcher-reports/:discoveryId/approve", async (req, res) => {
     // otherwise every artifact card ends up sharing the same "undefined" key.
     await report.populate("allocatedItems");
 
+    // Notification: acceptance of the researcher's field report.
+    await notify({
+      user: report.researcher,
+      category: "report",
+      type: "researcher.report.approved",
+      title: "Your field report was approved",
+      message: `${createdItems.length} artifact(s) from your report have been added to the national catalogue.${req.body.notes ? ` Note: ${req.body.notes}` : ""}`,
+      link: "/arc/assignments",
+    });
+
     res.json({ message: "Report approved and artifacts added to the catalogue.", report, items: createdItems });
   } catch (err) {
     console.error(err);
@@ -338,6 +524,28 @@ router.post("/artifacts/:itemId/allocate", async (req, res) => {
     await ExcavationProject.findByIdAndUpdate(item.excavationProject, {
       allocation_done: stillPending === 0,
     });
+  }
+
+  // Notification: artifact transfer alert for the receiving museum authority.
+  if (destination === "Museum") {
+    const cleanMuseumName = normalizeMuseumName(museumName);
+    const curators = await User.find({
+      role: "museum_manager",
+      status: "approved",
+      "roleProfile.museum_name": cleanMuseumName,
+    }).select("_id");
+
+    for (const curator of curators) {
+      await notify({
+        user: curator._id,
+        category: "assignment",
+        type: "artifact.allocated",
+        title: "Artifact allocated to your museum",
+        message: `"${item.name}" has been transferred to ${cleanMuseumName} by the Government/Admin.`,
+        link: "/mm/my-museum-items",
+        actionRequired: true,
+      });
+    }
   }
 
   res.json({ message: "Allocation updated.", item });

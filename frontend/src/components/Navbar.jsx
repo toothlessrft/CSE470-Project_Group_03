@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Landmark, MapPin, ScanSearch, LogOut, Search, BookOpen, LayoutDashboard, CalendarDays, Gavel, FileText } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
+import NotificationBell from "./NotificationBell"; // Role-Based Notification & Reminder System
 
 const ROLE_LABELS = {
   admin: "Admin",
@@ -55,6 +56,10 @@ export default function Navbar() {
             {user.role === "excavation_team" && (
               <Link to="/et/tenders"><FileText size={15} /> Tenders</Link>
             )}
+
+            {/* Every logged-in role except Government/Admin gets the bell;
+                the admin sees unread counts on its dashboard cards instead. */}
+            {user.role !== "admin" && <NotificationBell />}
 
             {/* Profile Dashboard link — styled like other nav links */}
             <Link

@@ -1,6 +1,7 @@
 const express = require("express");
 const DiscoveryReport = require("../models/DiscoveryReport");
 const { requireAuth } = require("../middleware/auth");
+const { notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 router.use(requireAuth);
@@ -28,6 +29,18 @@ router.post("/", async (req, res) => {
       contact_email,
       contact_phone,
     });
+
+    // Notification: action-required alert on the Government/Admin desk.
+    await notifyAdmins({
+      category: "report",
+      type: "discovery.report.submitted",
+      title: "New discovery report logged",
+      message: `${req.user.name} reported a ${material} artifact at ${address || `${lat}, ${lng}`}. Assign a researcher for field inspection.`,
+      link: `/admin/reports/${report._id}`,
+      dashboardKey: "field_reports",
+      actionRequired: true,
+      meta: { reportId: report._id },
+    }, [req.user._id]);
 
     res.status(201).json({ report });
   } catch (err) {
