@@ -3,6 +3,7 @@ const express = require("express");
 const ResearcherReport = require("../models/ResearcherReport");
 const DiscoveryReport = require("../models/DiscoveryReport");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 
@@ -106,6 +107,17 @@ router.post("/:discoveryId/submit", async (req, res) => {
 
         report.status = "Pending";
         await report.save();
+
+        // Notification: report + any budget/excavation-team ask now needs a decision.
+        await notifyAdmins({
+            category: "report",
+            type: "researcher.report.submitted",
+            title: "Field report submitted for review",
+            message: `${req.user.name} submitted a field report with ${report.artifacts?.length || 0} artifact(s)${report.budgetRequested ? ` and a budget request of ${report.budgetRequested}` : ""}.`,
+            link: `/admin/reports/${discoveryId}`,
+            dashboardKey: "field_reports",
+            actionRequired: true,
+        }, [req.user._id]);
 
         res.json({ message: "Final report submitted and is now pending admin approval.", report });
     } catch (err) {

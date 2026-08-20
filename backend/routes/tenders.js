@@ -10,6 +10,7 @@ const Site = require("../models/Site");
 const Item = require("../models/Item");
 const User = require("../models/User");
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { notify, notifyMany, notifyRole, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 router.use(requireAuth);
@@ -56,6 +57,22 @@ const TEAM_FIELDS = "nid name email phone roleProfile";
 // A tender stops accepting new/edited bids the moment its deadline passes.
 function biddingOpen(tender) {
   return tender.status === "Open" && new Date(tender.deadline).getTime() > Date.now();
+}
+
+// Notification: a bid landed and the Government/Admin needs to look at it.
+async function announceBid(tender, user, bid, actor) {
+  await notifyAdmins(
+    {
+      category: "tender",
+      type: "tender.bid.submitted",
+      title: "New bid on a tender",
+      message: `${companyOf(user)} bid ${bid.cost} over ${bid.timeline_days} days on "${tender.title}".`,
+      link: `/admin/tenders/${tender._id}`,
+      dashboardKey: "tenders",
+      actionRequired: true,
+    },
+    [actor]
+  );
 }
 
 // ===========================================================================
@@ -209,6 +226,17 @@ router.post("/admin", requireRole("admin"), async (req, res) => {
       created_by: req.user._id,
     });
 
+    // Notification: new tender available to bid on.
+    await notifyRole("excavation_team", {
+      category: "tender",
+      type: "tender.published",
+      title: "New excavation tender published",
+      message: `"${tender.title}" is open for bids until ${new Date(tender.deadline).toLocaleDateString()}. Estimated budget ${tender.estimated_budget}.`,
+      link: "/et/tenders",
+      actionRequired: true,
+      deadlineAt: tender.deadline,
+    });
+
     res.status(201).json({ tender });
   } catch (err) {
     console.error(err);
@@ -278,6 +306,16 @@ router.post("/admin/:id/cancel", requireRole("admin"), async (req, res) => {
     { tender: tender._id, status: "Pending" },
     { status: "Rejected", reviewed_by: req.user._id, reviewed_at: new Date(), review_notes: "Tender cancelled." }
   );
+
+  // Notification: every team that had a live bid.
+  const affected = await TenderBid.find({ tender: tender._id }).distinct("team");
+  await notifyMany(affected, {
+    category: "tender",
+    type: "tender.cancelled",
+    title: "Tender cancelled",
+    message: `"${tender.title}" has been withdrawn by the Government/Admin.${tender.cancel_reason ? ` Reason: ${tender.cancel_reason}` : ""}`,
+    link: "/et/bids",
+  });
 
   res.json({ message: "Tender cancelled.", tender });
 });
@@ -368,6 +406,41 @@ router.post("/admin/:id/award", requireRole("admin"), async (req, res) => {
     tender.project = project._id;
     await tender.save();
 
+    // Notification: winner, the teams that missed out, and the lead researcher.
+    await notify({
+      user: winningBid.team._id,
+      category: "tender",
+      type: "tender.bid.accepted",
+      title: "Your bid won the tender",
+      message: `You have been awarded "${tender.title}". The project "${project.p_name}" is now active with an agreed timeline of ${winningBid.timeline_days} days.`,
+      link: `/et/projects/${project._id}`,
+      actionRequired: true,
+    });
+
+    const losingTeams = await TenderBid.find({
+      tender: tender._id,
+      _id: { $ne: winningBid._id },
+      status: "Rejected",
+    }).distinct("team");
+
+    await notifyMany(losingTeams, {
+      category: "tender",
+      type: "tender.bid.rejected",
+      title: "Tender awarded to another team",
+      message: `"${tender.title}" has been awarded. Your bid was not selected this time.`,
+      link: "/et/bids",
+    }, [winningBid.team._id]);
+
+    await notify({
+      user: tender.archaeologist,
+      category: "assignment",
+      type: "project.team.assigned",
+      title: "An excavation team was assigned to your site",
+      message: `${winningBid.company_name || "A team"} will run "${project.p_name}". You are the lead archaeologist.`,
+      link: `/arc/projects/${project._id}`,
+      actionRequired: true,
+    });
+
     res.json({ message: "Excavation team assigned and project created.", tender, project });
   } catch (err) {
     console.error(err);
@@ -387,6 +460,16 @@ router.post("/admin/bids/:bidId/reject", requireRole("admin"), async (req, res) 
   bid.reviewed_at = new Date();
   bid.review_notes = req.body.notes || "";
   await bid.save();
+
+  await notify({
+    user: bid.team,
+    category: "tender",
+    type: "tender.bid.rejected",
+    title: "Your bid was rejected",
+    message: `The Government/Admin rejected your bid.${bid.review_notes ? ` Note: ${bid.review_notes}` : ""}`,
+    link: "/et/bids",
+  });
+
   res.json({ message: "Bid rejected.", bid });
 });
 
@@ -479,6 +562,7 @@ router.post("/:id/bids", requireRole("excavation_team"), async (req, res) => {
       existing.status = "Pending";
       existing.company_name = companyOf(req.user);
       await existing.save();
+      await announceBid(tender, req.user, existing, req.user._id);
       return res.status(201).json({ bid: existing });
     }
 
@@ -490,6 +574,8 @@ router.post("/:id/bids", requireRole("excavation_team"), async (req, res) => {
       timeline_days: Number(timeline_days),
       proposal,
     });
+
+    await announceBid(tender, req.user, bid, req.user._id);
 
     res.status(201).json({ bid });
   } catch (err) {
@@ -716,6 +802,30 @@ router.post("/projects/:id/complete", async (req, res) => {
     }
   );
   const updated = await ExcavationProject.findById(project._id);
+
+  // Notification: closure report is with the Government, artifacts need allocating.
+  await notifyAdmins({
+    category: "request",
+    type: "project.closure.submitted",
+    title: "Excavation closed - artifacts awaiting allocation",
+    message: `"${project.p_name}" has been completed by ${req.user.name}. ${project.artifacts?.length || 0} artifact(s) need a destination.`,
+    link: `/admin/excavation-projects/${project._id}`,
+    dashboardKey: "excavation_projects",
+    actionRequired: true,
+  }, [req.user._id]);
+
+  // Keep the other half of the project team in the loop.
+  await notifyMany(
+    [project.lead_archaeologist?._id || project.lead_archaeologist, project.excavation_team?._id || project.excavation_team],
+    {
+      category: "assignment",
+      type: "project.completed",
+      title: "Excavation project closed",
+      message: `"${project.p_name}" has been marked complete and handed over to the Government/Admin.`,
+      link: `/arc/projects/${project._id}`,
+    },
+    [req.user._id]
+  );
 
   res.json({
     message: "Project completed and submitted to the Government for artifact allocation.",

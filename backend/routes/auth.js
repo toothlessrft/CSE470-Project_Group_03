@@ -5,6 +5,7 @@ const User = require("../models/User");
 const Site = require("../models/Site");
 const { MUSEUMS, normalizeMuseumName } = require("../config/museums");
 const { requireAuth } = require("../middleware/auth");
+const { notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 
@@ -101,6 +102,19 @@ router.post("/register", async (req, res) => {
       status: accountStatus,
       roleProfile: profile,
     });
+
+    // Notification: a registration is waiting on the Government/Admin.
+    if (accountStatus === "pending") {
+      await notifyAdmins({
+        category: "account",
+        type: "user.registration.pending",
+        title: "New registration awaiting approval",
+        message: `${name} registered as ${role.replace("_", " ")} and is waiting for approval.`,
+        link: "/admin/pending-users",
+        dashboardKey: "pending_users",
+        actionRequired: true,
+      });
+    }
 
     // Only auto-login when the account is already approved (General Public).
     // Roles that require Government/Admin approval must NOT receive a session

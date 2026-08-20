@@ -823,3 +823,468 @@ fieldset legend {
   justify-content: center;
   margin-bottom: 1rem;
 }
+
+/* ==========================================================================
+   Role-Based Notification & Reminder System
+   ========================================================================== */
+
+.notif-wrap {
+  position: relative;
+  display: inline-flex;
+}
+
+.notif-bell {
+  position: relative;
+  background: transparent;
+  border: none;
+  color: rgba(255, 255, 255, 0.9);
+  cursor: pointer;
+  padding: 0.4rem 0.55rem;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  transition: background 0.15s ease;
+}
+
+.notif-bell:hover {
+  background: rgba(255, 255, 255, 0.14);
+  color: white;
+}
+
+/* The red circle on the bell itself. */
+.notif-count {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e03131;
+  color: white;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+  border: 2px solid var(--primary-dark);
+  box-sizing: content-box;
+}
+
+.notif-panel {
+  position: absolute;
+  top: calc(100% + 0.6rem);
+  right: 0;
+  width: 370px;
+  max-width: calc(100vw - 2rem);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-hover);
+  z-index: 1200;
+  overflow: hidden;
+  color: var(--text);
+}
+
+.notif-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid var(--border);
+  background: #fbf7f0;
+}
+
+.notif-panel-head strong {
+  font-family: "Poppins", sans-serif;
+  font-size: 0.95rem;
+  color: var(--primary-dark);
+}
+
+.notif-back,
+.notif-mark-all {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primary);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.3rem;
+  border-radius: 5px;
+  font-family: inherit;
+}
+
+.notif-back:hover,
+.notif-mark-all:hover {
+  background: #f3e6d4;
+}
+
+.notif-panel-body {
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.notif-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.notif-section-title {
+  margin: 0;
+  padding: 0.6rem 0.9rem 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+/* ---- Level 1: category rows ---- */
+.notif-cat-row {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.75rem 0.9rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.notif-cat-row:hover {
+  background: #fbf7f0;
+}
+
+.notif-cat-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.notif-cat-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.notif-cat-text strong {
+  font-size: 0.85rem;
+  color: var(--primary-dark);
+}
+
+.notif-cat-text small {
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.notif-pill {
+  flex-shrink: 0;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #e03131;
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}
+
+.notif-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+/* ---- Level 2: notification rows ---- */
+.notif-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.7rem 0.9rem;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.notif-row:hover {
+  background: #fbf7f0;
+}
+
+.notif-row-unread {
+  background: #fdf6ec;
+  border-left: 3px solid var(--accent);
+}
+
+.notif-row-body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.notif-row-body strong {
+  font-size: 0.83rem;
+  color: var(--primary-dark);
+}
+
+.notif-row-body small {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.notif-row-body em {
+  font-size: 0.68rem;
+  color: var(--muted);
+  font-style: normal;
+}
+
+.notif-action-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e03131;
+  margin-top: 0.3rem;
+}
+
+/* ---- Level 3: the full notification ---- */
+.notif-detail {
+  padding: 1rem 1.1rem 1.2rem;
+}
+
+.notif-detail-cat {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--primary);
+  background: #f3e6d4;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.notif-detail h4 {
+  margin: 0.6rem 0 0.25rem;
+  font-size: 1rem;
+}
+
+.notif-detail-time {
+  margin: 0 0 0.7rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.notif-detail-msg {
+  margin: 0 0 0.9rem;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.notif-detail-deadline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.9rem;
+  font-size: 0.78rem;
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.notif-goto {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Red circle counts on the Admin Dashboard cards. */
+.action-card {
+  position: relative;
+}
+
+.action-badge {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: 50%;
+  background: #e03131;
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 24px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(224, 49, 49, 0.4);
+  box-sizing: content-box;
+}
+
+/* ==========================================================================
+   Tool & Field Equipment Requests + Inventory Tracking
+   ========================================================================== */
+
+.inv-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 1.2rem 0 1rem;
+}
+
+.inv-toolbar input,
+.inv-toolbar select {
+  padding: 0.5rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.88rem;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.inv-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.inv-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.inv-card h4 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.inv-card-meta {
+  margin: 0;
+  font-size: 0.76rem;
+  color: var(--muted);
+}
+
+.inv-stock {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  border-top: 1px dashed var(--border);
+  padding-top: 0.5rem;
+}
+
+.inv-stock strong {
+  display: block;
+  font-size: 1.05rem;
+  color: var(--primary-dark);
+  font-family: "Poppins", sans-serif;
+}
+
+.inv-stock .inv-out strong {
+  color: var(--accent);
+}
+
+.inv-tag {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+  background: #f3e6d4;
+  color: var(--primary);
+}
+
+.inv-zone {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1rem 1.2rem;
+  margin-bottom: 1rem;
+}
+
+.inv-zone h4 {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+}
+
+.inv-overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* Inline notification inbox (Admin Dashboard). */
+.notif-inline {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  margin-top: 0.9rem;
+}
+
+.notif-inline-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.8rem 1.1rem;
+  border-bottom: 1px solid var(--border);
+  background: #fbf7f0;
+}
+
+.notif-inline-head strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: "Poppins", sans-serif;
+  font-size: 0.95rem;
+  color: var(--primary-dark);
+}
+
+.notif-inline-body {
+  max-height: 460px;
+  overflow-y: auto;
+}
