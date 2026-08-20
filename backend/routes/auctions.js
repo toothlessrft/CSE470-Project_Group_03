@@ -4,6 +4,7 @@ const Bid = require("../models/Bid");
 const Wishlist = require("../models/Wishlist");
 const Item = require("../models/Item");
 const { optionalAuth, requireAuth, requireRole } = require("../middleware/auth");
+const { notify, notifyMany, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 
@@ -31,7 +32,53 @@ async function closeIfExpired(auction) {
   }
   auction.closed_at = new Date();
   await auction.save();
+  await announceAuctionResult(auction);
   return auction;
+}
+
+// Notification: won / lost alerts once an auction closes. Guarded by the status
+// flip above, so it only ever runs on the transition, not on every read.
+async function announceAuctionResult(auction) {
+  try {
+    const itemName = await itemNameFor(auction);
+    const bidderIds = await Bid.find({ auction: auction._id }).distinct("bidder");
+
+    if (auction.winner) {
+      await notify({
+        user: auction.winner,
+        category: "auction",
+        type: "auction.won",
+        title: "You won the auction",
+        message: `Your bid of ${auction.final_price} secured "${itemName}". The Government/Admin will contact you about the handover.`,
+        link: `/auctions/${auction._id}`,
+        actionRequired: true,
+      });
+    }
+
+    await notifyMany(
+      bidderIds,
+      {
+        category: "auction",
+        type: "auction.lost",
+        title: auction.status === "Closed-Sold" ? "Auction closed - you did not win" : "Auction closed unsold",
+        message:
+          auction.status === "Closed-Sold"
+            ? `"${itemName}" sold for ${auction.final_price}.`
+            : `"${itemName}" closed without meeting its reserve.`,
+        link: `/auctions/${auction._id}`,
+      },
+      auction.winner ? [auction.winner] : []
+    );
+  } catch (err) {
+    console.error("[auctions] could not send close notifications:", err.message);
+  }
+}
+
+// The auction may or may not arrive with `item` populated.
+async function itemNameFor(auction) {
+  if (auction.item?.name) return auction.item.name;
+  const item = await Item.findById(auction.item).select("name");
+  return item?.name || "an artifact";
 }
 
 // Periodic sweep so auctions close even if nobody happens to view them right
@@ -175,6 +222,9 @@ router.post("/:id/bid", requireAuth, async (req, res) => {
       return res.status(400).json({ error: `Bid must be at least ${minNext}.` });
     }
 
+    // Captured before we overwrite it - this is who just got outbid.
+    const previousLeader = auction.current_bidder;
+
     await Bid.create({ auction: auction._id, bidder: req.user._id, amount });
 
     auction.current_bid = amount;
@@ -193,6 +243,47 @@ router.post("/:id/bid", requireAuth, async (req, res) => {
     }
 
     await auction.save();
+
+    // Notification: outbid alert for the old leader, secured alert for the new one.
+    const itemName = await itemNameFor(auction);
+
+    if (previousLeader && String(previousLeader) !== String(req.user._id)) {
+      await notify({
+        user: previousLeader,
+        category: "auction",
+        type: "auction.outbid",
+        title: "You have been outbid",
+        message: `Someone bid ${amount} on "${itemName}". The next valid bid is ${MIN_NEXT_BID(auction)}.`,
+        link: `/auctions/${auction._id}`,
+        actionRequired: true,
+        deadlineAt: auction.deadline,
+      });
+    }
+
+    await notify({
+      user: req.user._id,
+      role: req.user.role,
+      category: "auction",
+      type: "auction.secured",
+      title: "You are the highest bidder",
+      message: `Your bid of ${amount} leads on "${itemName}". Bidding closes ${new Date(auction.deadline).toLocaleString()}.`,
+      link: `/auctions/${auction._id}`,
+      deadlineAt: auction.deadline,
+    });
+
+    // Notification: bidding activity for the Manage Auctions card.
+    await notifyAdmins(
+      {
+        category: "auction",
+        type: "auction.bid.placed",
+        title: "New bid placed",
+        message: `${req.user.name} bid ${amount} on "${itemName}"${extended ? " (deadline extended)" : ""}.`,
+        link: `/auctions/${auction._id}`,
+        dashboardKey: "auctions",
+      },
+      [req.user._id]
+    );
+
     res.status(201).json({ message: "Bid placed.", extended, auction: serializeAuction(auction, req.user.role === "admin") });
   } catch (err) {
     console.error(err);
@@ -321,6 +412,22 @@ router.post("/", requireRole("admin"), async (req, res) => {
       extend_by_minutes: extend_by_minutes != null && extend_by_minutes !== "" ? Number(extend_by_minutes) : 2,
     });
 
+    // Notification: anyone who wishlisted this artifact gets told it is live.
+    const watchers = await Wishlist.find({ item: itemDoc._id }).distinct("user");
+    await notifyMany(
+      watchers,
+      {
+        category: "auction",
+        type: "auction.wishlist.listed",
+        title: "A wishlisted artifact is up for auction",
+        message: `"${itemDoc.name}" is now live, starting at ${auction.starting_bid}. Bidding closes ${new Date(auction.deadline).toLocaleString()}.`,
+        link: `/auctions/${auction._id}`,
+        actionRequired: true,
+        deadlineAt: auction.deadline,
+      },
+      [req.user._id]
+    );
+
     res.status(201).json({ auction });
   } catch (err) {
     console.error(err);
@@ -378,6 +485,21 @@ router.post("/:id/cancel", requireRole("admin"), async (req, res) => {
   auction.cancel_reason = req.body.reason.trim();
   auction.closed_at = new Date();
   await auction.save();
+
+  // Notification: cancellation alert to everyone who bid or wishlisted it.
+  const bidderIds = await Bid.find({ auction: auction._id }).distinct("bidder");
+  const watchers = await Wishlist.find({ item: auction.item }).distinct("user");
+  await notifyMany(
+    [...bidderIds, ...watchers],
+    {
+      category: "auction",
+      type: "auction.cancelled",
+      title: "Auction cancelled",
+      message: `The auction for "${await itemNameFor(auction)}" has been cancelled. Reason: ${auction.cancel_reason}`,
+      link: "/auctions",
+    },
+    [req.user._id]
+  );
 
   res.json({ message: "Auction cancelled.", auction });
 });

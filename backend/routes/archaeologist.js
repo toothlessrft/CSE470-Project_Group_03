@@ -10,6 +10,7 @@ const ToolRentalRequest = require("../models/ToolRentalRequest");
 const DiscoveryReport = require("../models/DiscoveryReport");
 const ResearcherReport = require("../models/ResearcherReport"); // Researcher Report: Ahad
 const { requireAuth, requireRole } = require("../middleware/auth");
+const { notify, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
 
 const router = express.Router();
 router.use(requireAuth, requireRole("archaeologist"));
@@ -64,6 +65,17 @@ router.post("/request_excavation", async (req, res) => {
       budget,
     });
 
+    // Notification: excavation proposal waiting on the Government/Admin.
+    await notifyAdmins({
+      category: "request",
+      type: "excavation.request.submitted",
+      title: "New excavation request",
+      message: `${req.user.name} submitted an excavation proposal with a requested budget of ${budget ?? "-"}.`,
+      link: "/admin/excavation-requests",
+      dashboardKey: "excavation_requests",
+      actionRequired: true,
+    }, [req.user._id]);
+
     res.status(201).json({ request });
   } catch (err) {
     console.error(err);
@@ -117,6 +129,18 @@ router.post("/projects/:id/tools", async (req, res) => {
     purpose,
     approval_status: "Pending",
   });
+
+  // Notification: equipment request waiting for approval.
+  await notifyAdmins({
+    category: "request",
+    type: "tool.request.submitted",
+    title: "New equipment request",
+    message: `${req.user.name} requested equipment for an active excavation project.`,
+    link: "/admin/tool-inventory",
+    dashboardKey: "tool_requests",
+    actionRequired: true,
+  }, [req.user._id]);
+
   res.status(201).json({ request });
 });
 
@@ -306,6 +330,31 @@ router.post("/assignments/:id/verify", async (req, res) => {
   );
 
   if (!report) return res.status(404).json({ error: "Assignment not found." });
+
+  // Notification: outcome to the original reporter, and a heads-up to the
+  // Government/Admin that the field verification has landed.
+  await notify({
+    user: report.reporter,
+    category: "report",
+    type: result === "true" ? "report.verified" : "report.rejected",
+    title: result === "true" ? "Your discovery was verified" : "Your discovery was not verified",
+    message:
+      result === "true"
+        ? "A researcher confirmed the artifact you reported. Thank you for helping preserve heritage."
+        : `The field inspection did not confirm an artifact at this location.${notes ? ` Note: ${notes}` : ""}`,
+    link: "/my-reports",
+  });
+
+  await notifyAdmins({
+    category: "report",
+    type: "inspection.completed",
+    title: result === "true" ? "Field inspection verified a discovery" : "Field inspection found nothing",
+    message: `${req.user.name} submitted their verification for a reported discovery.`,
+    link: `/admin/reports/${report._id}`,
+    dashboardKey: "field_reports",
+    actionRequired: result === "true",
+  }, [req.user._id]);
+
   res.json({ report });
 });
 
