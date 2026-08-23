@@ -25,6 +25,10 @@ import MManagerDashboard from "./pages/mm/MManagerDashboard";
 import RequestItems from "./pages/mm/RequestItems";
 import ExhibitionManagement from "./pages/mm/ExhibitionManagement";
 import Exhibitions from "./pages/public/Exhibitions";
+import MuseumProfile from "./pages/mm/MuseumProfile";
+import MuseumDirectory from "./pages/public/MuseumDirectory";
+import MuseumDetail from "./pages/public/MuseumDetail";
+import NearMe from "./pages/public/NearMe";
 
 // Ahad_23201016 - Excavation Team (replaces Site Caretaker)
 import ETeamDashboard from "./pages/et/ETeamDashboard";
@@ -233,6 +237,14 @@ export default function App() {
     </ProtectedRoute>
   }
 />
+        <Route
+          path="/mm/museum-profile"
+          element={
+            <ProtectedRoute role="museum_manager">
+              <MuseumProfile />
+            </ProtectedRoute>
+          }
+        />
         {/* Ahad_23201016 - Excavation Team */}
         <Route
           path="/et/dashboard"
@@ -293,6 +305,9 @@ export default function App() {
           element={<KnowledgeHub />} 
         />
         <Route path="/exhibitions" element={<Exhibitions />} />
+        <Route path="/museums" element={<MuseumDirectory />} />
+        <Route path="/museums/:museumName" element={<MuseumDetail />} />
+        <Route path="/near-me" element={<NearMe />} />
 
         {/* Auctions - browsing is open to everyone, bidding/wishlist require login (enforced in the page/API) */}
         <Route path="/auctions" element={<Auctions />} />

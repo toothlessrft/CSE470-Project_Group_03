@@ -116,16 +116,32 @@ router.get("/sites/:siteId/items", async (req, res) => {
 });
 
 // Museum-scoped artifact access: only artifacts assigned to this manager's museum.
+// Supports search & filter (Feature 12): ?q=&type=&civilization=&era=&material=&availability=&location=
 router.get("/my-museum-items", async (req, res) => {
   const museumName = normalizeMuseumName(req.user.roleProfile?.museum_name);
   if (!museumName || !MUSEUMS.includes(museumName)) {
     return res.status(400).json({ error: "Your museum account is not assigned to a valid recognized museum." });
   }
 
-  const items = await Item.find({
-    allocation: "Museum",
-    museumName: museumName,
-  }).sort({ updatedAt: -1 });
+  const { q, type, civilization, era, material, availability, location } = req.query;
+  const filter = { allocation: "Museum", museumName: museumName };
+
+  if (type) filter.Type = type;
+  if (availability) filter.availability = availability;
+  if (civilization) filter.civilization = new RegExp(civilization.trim(), "i");
+  if (era) filter.era = new RegExp(era.trim(), "i");
+  if (material) filter.material = new RegExp(material.trim(), "i");
+  if (location) filter.location = new RegExp(location.trim(), "i");
+  if (q) {
+    const safeQ = q.trim();
+    filter.$or = [
+      { name: new RegExp(safeQ, "i") },
+      { artifactId: new RegExp(safeQ, "i") },
+      { description: new RegExp(safeQ, "i") },
+    ];
+  }
+
+  const items = await Item.find(filter).sort({ updatedAt: -1 });
 
   res.json({ items });
 });
@@ -141,13 +157,216 @@ router.put("/my-museum-items/:itemId", async (req, res) => {
     return res.status(404).json({ error: "Artifact not found in your museum inventory." });
   }
 
-  const allowed = ["name", "Type", "description", "civilization", "era", "region", "material", "usage", "location"];
+  const previousLocation = item.location;
+  const previousAvailability = item.availability;
+
+  const allowed = [
+    "name",
+    "Type",
+    "description",
+    "civilization",
+    "era",
+    "region",
+    "material",
+    "usage",
+    "location",
+    "availability",
+    "condition",
+    "ownership",
+  ];
   for (const key of allowed) {
     if (req.body[key] !== undefined) item[key] = req.body[key];
   }
 
+  // Automatically log a movement-history entry whenever location or status changes.
+  if (item.location !== previousLocation) {
+    item.movementHistory.push({
+      action: "Moved",
+      location: item.location,
+      note: `Moved from "${previousLocation}" to "${item.location}"`,
+      by: req.user._id,
+    });
+  }
+  if (item.availability !== previousAvailability) {
+    item.movementHistory.push({
+      action: "Status changed",
+      status: item.availability,
+      note: `Status changed from "${previousAvailability}" to "${item.availability}"`,
+      by: req.user._id,
+    });
+  }
+
   await item.save();
   res.json({ item });
+});
+
+// PATCH /api/mm/my-museum-items/:itemId/availability -> status toggle
+// (On Display / In Storage / Under Conservation / On Loan / Transferred)
+router.patch("/my-museum-items/:itemId/availability", async (req, res) => {
+  const museumName = normalizeMuseumName(req.user.roleProfile?.museum_name);
+  if (!museumName || !MUSEUMS.includes(museumName)) {
+    return res.status(400).json({ error: "Your museum account is not assigned to a valid recognized museum." });
+  }
+
+  const { availability, note } = req.body;
+  const VALID = ["On Display", "In Storage", "Under Conservation", "On Loan", "Transferred"];
+  if (!VALID.includes(availability)) {
+    return res.status(400).json({ error: `availability must be one of: ${VALID.join(", ")}.` });
+  }
+
+  const item = await Item.findOne({ _id: req.params.itemId, allocation: "Museum", museumName });
+  if (!item) return res.status(404).json({ error: "Artifact not found in your museum inventory." });
+
+  const previous = item.availability;
+  item.availability = availability;
+  item.movementHistory.push({
+    action: "Status changed",
+    status: availability,
+    note: note || `Status changed from "${previous}" to "${availability}"`,
+    by: req.user._id,
+  });
+  await item.save();
+
+  res.json({ item });
+});
+
+// POST /api/mm/my-museum-items -> real-time inventory: add a new artifact directly to this museum
+router.post("/my-museum-items", async (req, res) => {
+  const museumName = normalizeMuseumName(req.user.roleProfile?.museum_name);
+  if (!museumName || !MUSEUMS.includes(museumName)) {
+    return res.status(400).json({ error: "Your museum account is not assigned to a valid recognized museum." });
+  }
+
+  try {
+    const {
+      name,
+      Type,
+      description,
+      civilization,
+      era,
+      region,
+      material,
+      usage,
+      availability,
+      condition,
+      ownership,
+      location,
+    } = req.body;
+    if (!name) return res.status(400).json({ error: "name is required." });
+
+    const item = await Item.create({
+      name,
+      Type: Type || "other",
+      description,
+      civilization,
+      era,
+      region,
+      material,
+      usage,
+      allocation: "Museum",
+      museumName,
+      availability: availability || "In Storage",
+      condition: condition || "Good",
+      ownership: ownership || "Government of Bangladesh",
+      location: location || museumName,
+      addedByManager: true,
+      movementHistory: [
+        {
+          action: "Added to inventory",
+          status: availability || "In Storage",
+          location: location || museumName,
+          note: `Added directly to ${museumName}'s inventory`,
+          by: req.user._id,
+        },
+      ],
+    });
+
+    res.status(201).json({ item });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Could not add artifact." });
+  }
+});
+
+// DELETE /api/mm/my-museum-items/:itemId -> remove from inventory.
+// Artifacts this manager added directly get deleted outright; artifacts that
+// arrived through the Government allocation pipeline are only unassigned,
+// since archaeologists/admin still need that discovery record.
+router.delete("/my-museum-items/:itemId", async (req, res) => {
+  const museumName = normalizeMuseumName(req.user.roleProfile?.museum_name);
+  if (!museumName || !MUSEUMS.includes(museumName)) {
+    return res.status(400).json({ error: "Your museum account is not assigned to a valid recognized museum." });
+  }
+
+  const item = await Item.findOne({ _id: req.params.itemId, allocation: "Museum", museumName });
+  if (!item) return res.status(404).json({ error: "Artifact not found in your museum inventory." });
+
+  if (item.addedByManager) {
+    await item.deleteOne();
+    return res.json({ message: "Artifact deleted." });
+  }
+
+  item.allocation = "Unallocated";
+  item.museumName = "";
+  item.availability = "In Storage";
+  item.movementHistory.push({
+    action: "Removed from inventory",
+    status: "In Storage",
+    note: `Unassigned from ${museumName}; returned to Government/Admin allocation pool`,
+    by: req.user._id,
+  });
+  await item.save();
+  res.json({ message: "Artifact removed from your museum inventory." });
+});
+
+// GET /api/mm/museum-profile -> this manager's institutional profile (location, hours, tickets)
+router.get("/museum-profile", async (req, res) => {
+  res.json({
+    profile: {
+      museum_name: req.user.roleProfile?.museum_name || "",
+      address: req.user.roleProfile?.address || "",
+      location: req.user.roleProfile?.location?.lat != null ? req.user.roleProfile.location : null,
+      operating_hours: req.user.roleProfile?.operating_hours || "",
+      ticket_info: req.user.roleProfile?.ticket_info || "",
+    },
+  });
+});
+
+// PUT /api/mm/museum-profile -> update institutional info shown on the public directory / Near Me
+router.put("/museum-profile", async (req, res) => {
+  try {
+    const { address, location, operating_hours, ticket_info } = req.body;
+    const current = req.user.roleProfile?.toObject ? req.user.roleProfile.toObject() : { ...req.user.roleProfile };
+
+    const updated = {
+      ...current,
+      address: address !== undefined ? address : current.address,
+      operating_hours: operating_hours !== undefined ? operating_hours : current.operating_hours,
+      ticket_info: ticket_info !== undefined ? ticket_info : current.ticket_info,
+      location:
+        location !== undefined
+          ? { lat: location?.lat ?? null, lng: location?.lng ?? null }
+          : current.location,
+    };
+
+    req.user.roleProfile = updated;
+    req.user.markModified("roleProfile");
+    await req.user.save();
+
+    res.json({
+      message: "Museum profile updated.",
+      profile: {
+        museum_name: req.user.roleProfile?.museum_name || "",
+        address: req.user.roleProfile?.address || "",
+        location: req.user.roleProfile?.location?.lat != null ? req.user.roleProfile.location : null,
+        operating_hours: req.user.roleProfile?.operating_hours || "",
+        ticket_info: req.user.roleProfile?.ticket_info || "",
+      },
+    });
+  } catch (err) {
+    console.error("[museum-profile] update failed:", err);
+    res.status(500).json({ error: "Could not update museum profile." });
+  }
 });
 
 // POST /api/mm/request_items  (was /m_manager/request_items)

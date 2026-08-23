@@ -1,4 +1,4 @@
-import { Landmark, MapPin, FileText, Images, Search, CalendarDays, Gavel } from "lucide-react";
+import { Landmark, MapPin, FileText, Images, Search, CalendarDays, Gavel, LocateFixed } from "lucide-react";
 import ActionGrid from "../../components/ActionGrid";
 
 export default function PublicDashboard() {
@@ -14,6 +14,18 @@ export default function PublicDashboard() {
       icon: Search,
       title: "Smart Artifact Search",
       description: "Search artifacts by civilization, era, region, material, usage, or location.",
+    },
+    {
+      to: "/museums",
+      icon: Landmark,
+      title: "Museum Directory",
+      description: "Browse museums and see what's on display, in storage, or on loan.",
+    },
+    {
+      to: "/near-me",
+      icon: LocateFixed,
+      title: "Near Me",
+      description: "Find archaeological sites, exhibitions, and museums close to you.",
     },
     {
       to: "/auctions",

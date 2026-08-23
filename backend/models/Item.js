@@ -1,12 +1,6 @@
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-/*
-  Original schema had Items + four specialization tables
-  (Pottery/Pottery_2, Metal_Object/Metal_Object_2, Paintings, Human_Remains)
-  joined 1-to-1 on item_id. Mongo doesn't need that split, so we embed a single
-  `specialization` sub-document whose shape depends on `type`.
-*/
 
 const specializationSchema = new Schema(
   {
@@ -27,6 +21,18 @@ const specializationSchema = new Schema(
     age: Number,
     decay_percentage: Number,
     ornaments: String,
+  },
+  { _id: false }
+);
+
+const movementEntrySchema = new Schema(
+  {
+    action: { type: String, required: true }, // e.g. "Added", "Status changed", "Moved", "Loaned out", "Returned", "Allocated"
+    status: String, // availability at the time of this entry, if it changed
+    location: String, // location at the time of this entry, if it changed
+    note: { type: String, default: "" },
+    by: { type: Schema.Types.ObjectId, ref: "User" },
+    date: { type: Date, default: Date.now },
   },
   { _id: false }
 );
@@ -65,6 +71,35 @@ const itemSchema = new Schema(
     },
     museumName: { type: String, trim: true, default: "" },
 
+    // Museum Collection & Artifact Inventory Management (Feature 12) ---------
+    // Human-readable unique ID shown to visitors/curators, separate from the
+    // internal Mongo _id. Auto-generated on first save if not provided.
+    artifactId: { type: String, unique: true, sparse: true },
+
+    availability: {
+      type: String,
+      enum: ["On Display", "In Storage", "Under Conservation", "On Loan", "Transferred"],
+      default: "In Storage",
+    },
+    condition: {
+      type: String,
+      enum: ["Excellent", "Good", "Fair", "Poor"],
+      default: "Good",
+    },
+    // Free-text ownership record (e.g. "Government of Bangladesh",
+    // "On loan from National Museum").
+    ownership: { type: String, trim: true, default: "Government of Bangladesh" },
+
+    // Full movement/status history — appended to automatically whenever the
+    // artifact is moved, its status changes, it's loaned, returned, or
+    // allocated/transferred.
+    movementHistory: { type: [movementEntrySchema], default: [] },
+
+    // true only for artifacts a museum manager added directly through their
+    // own inventory tools (not ones that came via the Admin allocation
+    // pipeline) — controls whether DELETE actually removes the record.
+    addedByManager: { type: Boolean, default: false },
+
     // Ahad_23201016 - Tender Publication & Bidding.
     // Artifacts recovered during an active excavation project stay hidden from
     // Smart Artifact Search until the Government/Admin allocates them. Defaults
@@ -74,5 +109,15 @@ const itemSchema = new Schema(
   },
   { timestamps: true }
 );
+
+// Auto-generate a short, human-readable unique ID the first time an artifact is saved.
+itemSchema.pre("save", function (next) {
+  if (!this.artifactId) {
+    const stamp = Date.now().toString(36).toUpperCase();
+    const rand = Math.floor(100 + Math.random() * 900);
+    this.artifactId = `AE-${stamp}-${rand}`;
+  }
+  next();
+});
 
 module.exports = mongoose.model("Item", itemSchema);

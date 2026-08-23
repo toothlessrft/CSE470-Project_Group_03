@@ -498,21 +498,36 @@ router.post("/artifacts/:itemId/allocate", async (req, res) => {
     }
   }
 
-  const item = await Item.findByIdAndUpdate(
-    req.params.itemId,
-    {
-      allocation: destination,
-      museumName: destination === "Museum" ? normalizeMuseumName(museumName) : "",
-      location: destination === "Museum" ? normalizeMuseumName(museumName) : "Scheduled for Auction",
-      // Ahad_23201016 - artifacts recovered on an excavation project are held
-      // back from Smart Artifact Search until this moment. Allocating one
-      // releases it into the public catalogue; sending it to Auction also makes
-      // it show up as a candidate in Manage Auctions.
-      pending_allocation: false,
-    },
-    { new: true }
-  );
+  const destinationLabel = destination === "Museum" ? normalizeMuseumName(museumName) : "Scheduled for Auction";
+
+  // Museum Collection & Artifact Inventory Management (Feature 12): fetch +
+  // .save() instead of findByIdAndUpdate, so the model's pre("save") hook
+  // runs and back-fills a unique artifactId on any older item that doesn't
+  // have one yet (findByIdAndUpdate silently skips document middleware).
+  const item = await Item.findById(req.params.itemId);
   if (!item) return res.status(404).json({ error: "Artifact not found." });
+
+  item.allocation = destination;
+  item.museumName = destination === "Museum" ? normalizeMuseumName(museumName) : "";
+  item.location = destinationLabel;
+  item.availability = destination === "Museum" ? "In Storage" : "Transferred";
+  // Ahad_23201016 - artifacts recovered on an excavation project are held
+  // back from Smart Artifact Search until this moment. Allocating one
+  // releases it into the public catalogue; sending it to Auction also makes
+  // it show up as a candidate in Manage Auctions.
+  item.pending_allocation = false;
+  // Being allocated is itself a status/location change worth logging.
+  item.movementHistory.push({
+    action: "Allocated",
+    status: item.availability,
+    location: destinationLabel,
+    note:
+      destination === "Museum"
+        ? `Allocated to ${destinationLabel} by the Government/Admin`
+        : "Sent to auction by the Government/Admin",
+    by: req.user._id,
+  });
+  await item.save();
 
   // Ahad_23201016 - once every find from a completed dig has a destination,
   // flag the project itself as fully allocated.
