@@ -127,6 +127,26 @@ router.post("/:id/decision", async (req, res) => {
   loan.status = action === "approve" ? "Approved" : "Declined";
   loan.response_note = response_note || "";
   loan.decided_at = new Date();
+
+  // Museum Collection & Artifact Inventory Management (Feature 12):
+  // approving a loan automatically moves the artifact's status to "On Loan"
+  // and logs it in the artifact's movement history. We remember the status
+  // it had beforehand so returning it can restore the right one later.
+  if (action === "approve") {
+    const artifact = await Item.findById(loan.item);
+    if (artifact) {
+      loan.previous_availability = artifact.availability;
+      artifact.availability = "On Loan";
+      artifact.movementHistory.push({
+        action: "Loaned out",
+        status: "On Loan",
+        note: `Approved loan to ${req.user.roleProfile?.museum_name || "another museum"} for "${loan.exhibition_name}"`,
+        by: req.user._id,
+      });
+      await artifact.save();
+    }
+  }
+
   await loan.save();
 
   // Notification: decision back to the requesting museum.
@@ -154,6 +174,21 @@ router.post("/:id/return", async (req, res) => {
 
   loan.status = "Returned";
   loan.returned_at = new Date();
+
+  // Automatically restore the artifact's prior status and log the return.
+  const returningItem = await Item.findById(loan.item);
+  if (returningItem) {
+    const restoredStatus = loan.previous_availability || "In Storage";
+    returningItem.availability = restoredStatus;
+    returningItem.movementHistory.push({
+      action: "Returned",
+      status: restoredStatus,
+      note: `Returned from loan ("${loan.exhibition_name}"); status restored to "${restoredStatus}"`,
+      by: req.user._id,
+    });
+    await returningItem.save();
+  }
+
   await loan.save();
 
   // Notification: return confirmed for the borrowing museum's records.

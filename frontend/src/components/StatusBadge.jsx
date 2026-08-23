@@ -10,6 +10,11 @@ const COLORS = {
   Cancelled: "#c62828",
   Secured: "#2e7d32",
   "Not Secured": "#c62828",
+  "On Display": "#2e7d32",
+  "In Storage": "#6b6258",
+  "On Loan": "#b5834d",
+  "Under Conservation": "#d17d00",
+  Transferred: "#5b6b8c",
 };
 
 export default function StatusBadge({ status }) {

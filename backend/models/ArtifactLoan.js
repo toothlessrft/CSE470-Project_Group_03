@@ -22,6 +22,12 @@ const artifactLoanSchema = new Schema(
     response_note: { type: String, default: "" },
     decided_at: { type: Date, default: null },
     returned_at: { type: Date, default: null },
+
+    // Museum Collection & Artifact Inventory Management (Feature 12):
+    // the artifact's availability right before this loan was approved, so
+    // returning it can automatically restore the correct prior status
+    // instead of always resetting to "In Storage".
+    previous_availability: { type: String, default: null },
   },
   { timestamps: { createdAt: "request_date", updatedAt: true } }
 );
