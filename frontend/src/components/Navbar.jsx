@@ -1,13 +1,28 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Landmark, MapPin, ScanSearch, LogOut, Search, BookOpen, LayoutDashboard, CalendarDays, Gavel, FileText } from "lucide-react";
+import {
+  Landmark,
+  MapPin,
+  LogOut,
+  Search,
+  BookOpen,
+  LayoutDashboard,
+  CalendarDays,
+  Gavel,
+  FileText,
+  LocateFixed,
+  Compass,
+  ScanSearch,
+  ShieldCheck,
+} from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import NotificationBell from "./NotificationBell"; // Role-Based Notification & Reminder System
+import NotificationBell from "./NotificationBell";
+import NavDropdown from "./NavDropdown";
 
 const ROLE_LABELS = {
   admin: "Admin",
   archaeologist: "Archaeologist",
   museum_manager: "Museum Manager",
-  excavation_team: "Excavation Team", // Ahad_23201016
+  excavation_team: "Excavation Team",
   public: "Public Member",
 };
 
@@ -15,9 +30,18 @@ const ROLE_HOME = {
   public: "/public/dashboard",
   archaeologist: "/arc/dashboard",
   museum_manager: "/mm/dashboard",
-  excavation_team: "/et/dashboard", // Ahad_23201016
+  excavation_team: "/et/dashboard",
   admin: "/admin/dashboard",
 };
+
+const EXPLORE_ITEMS = [
+  { to: "/search", icon: Search, label: "Search Artifacts" },
+  { to: "/knowledge", icon: BookOpen, label: "Knowledge Hub" },
+  { to: "/exhibitions", icon: CalendarDays, label: "Exhibitions & Events" },
+  { to: "/museums", icon: Landmark, label: "Museum Directory" },
+  { to: "/near-me", icon: LocateFixed, label: "Near Me" },
+  { to: "/auctions", icon: Gavel, label: "Auctions" },
+];
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -28,40 +52,32 @@ export default function Navbar() {
     navigate("/login");
   }
 
+  const adminItems = [
+    { to: "/admin/reports", icon: ScanSearch, label: "Field Reports" },
+    { to: "/admin/auctions", icon: Gavel, label: "Manage Auctions" },
+    { to: "/admin/tenders", icon: FileText, label: "Tenders" },
+  ];
+
   return (
     <nav className="navbar">
-      {/* ArchiveEarth logo goes to the general informational homepage */}
       <Link to="/" className="brand">
         <Landmark size={20} strokeWidth={2.2} />
         ArchiveEarth
       </Link>
       <div className="nav-right">
-        <Link to="/search"><Search size={15} /> Search Artifacts</Link>
-        <Link to="/knowledge"><BookOpen size={15} /> Knowledge Hub</Link>
-        <Link to="/exhibitions"><CalendarDays size={15} /> Exhibitions & Events</Link>
-        <Link to="/auctions"><Gavel size={15} /> Auctions</Link>
+        <NavDropdown label="Explore" icon={Compass} items={EXPLORE_ITEMS} />
+
         {user ? (
           <>
             <Link to="/report-discovery"><MapPin size={15} /> Report Discovery</Link>
-            {user.role === "admin" && (
-              <Link to="/admin/reports"><ScanSearch size={15} /> Field Reports</Link>
-            )}
-            {user.role === "admin" && (
-              <Link to="/admin/auctions"><Gavel size={15} /> Manage Auctions</Link>
-            )}
-            {/* Ahad_23201016 */}
-            {user.role === "admin" && (
-              <Link to="/admin/tenders"><FileText size={15} /> Tenders</Link>
-            )}
+
+            {user.role === "admin" && <NavDropdown label="Admin Tools" icon={ShieldCheck} items={adminItems} />}
             {user.role === "excavation_team" && (
               <Link to="/et/tenders"><FileText size={15} /> Tenders</Link>
             )}
 
-            {/* Every logged-in role except Government/Admin gets the bell;
-                the admin sees unread counts on its dashboard cards instead. */}
-            {user.role !== "admin" && <NotificationBell />}
+            <NotificationBell />
 
-            {/* Profile Dashboard link — styled like other nav links */}
             <Link
               to={ROLE_HOME[user.role] || "/"}
               className="nav-user"

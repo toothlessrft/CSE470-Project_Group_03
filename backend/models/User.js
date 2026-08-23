@@ -45,6 +45,8 @@ const userSchema = new Schema(
       museum_name: String,
       designation: String,
       address: String,
+      operating_hours: String,
+      ticket_info: String,
 
       // Excavation Team
       // Ahad_23201016 - an excavation team account represents a company, and
