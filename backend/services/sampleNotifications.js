@@ -692,17 +692,25 @@ async function ensureDemoNotifications(user) {
     });
 
     // Mongoose stamps createdAt itself, so backdate afterwards for a realistic
-    // spread of "3h ago" / "2d ago" in the panel.
-    await Notification.bulkWrite(
-      samples.map((s) => ({
+    // spread of "3h ago" / "2d ago" in the panel. Purely cosmetic - if this
+    // fails for any reason the samples above are already saved and usable,
+    // just with "just now" timestamps, so this gets its own try/catch.
+    const backdateOps = samples
+      .filter((s) => s.ageHours)
+      .map((s) => ({
         updateOne: {
           filter: { dedupe_key: `sample:${userId}:${s.slug}` },
-          update: { $set: { createdAt: new Date(now - (s.ageHours || 1) * HOUR) } },
-          timestamps: false,
+          update: { $set: { createdAt: new Date(now - s.ageHours * HOUR) } },
         },
-      })),
-      { ordered: false }
-    );
+      }));
+
+    if (backdateOps.length > 0) {
+      try {
+        await Notification.collection.bulkWrite(backdateOps, { ordered: false });
+      } catch (backdateErr) {
+        console.error("[sample-notifications] backdating timestamps failed (non-fatal):", backdateErr.message);
+      }
+    }
 
     verified.add(userId);
   } catch (err) {

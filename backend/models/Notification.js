@@ -21,6 +21,7 @@ const CATEGORIES = [
   "request", // tool, item, loan, budget, excavation and closure requests
   "assignment", // field inspections, project assignments, artifact transfers
   "tender", // tender published, bid submitted / accepted / rejected
+  "review", // cross feedback & performance reviews between archaeologists and excavation teams
   "reminder", // automatic deadline reminders
   "account", // registration approval, role changes, system messages
 ];

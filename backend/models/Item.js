@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const crypto = require("crypto");
 const { Schema } = mongoose;
 
 
@@ -114,7 +115,7 @@ const itemSchema = new Schema(
 itemSchema.pre("save", function (next) {
   if (!this.artifactId) {
     const stamp = Date.now().toString(36).toUpperCase();
-    const rand = Math.floor(100 + Math.random() * 900);
+    const rand = crypto.randomBytes(4).toString("hex").toUpperCase();
     this.artifactId = `AE-${stamp}-${rand}`;
   }
   next();
