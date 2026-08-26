@@ -2,13 +2,18 @@
 // The account is a company; the profile shown is the company representative.
 import { useEffect, useState } from "react";
 import { FileSearch, ClipboardList, FolderKanban, Gavel, Wrench } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "../../api";
+import { useAuth } from "../../context/AuthContext";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
+import StarRating from "../../components/StarRating";
 
 export default function ETeamDashboard() {
+  const { user } = useAuth();
   const [team, setTeam] = useState(null);
   const [stats, setStats] = useState(null);
+  const [rating, setRating] = useState(null);
 
   useEffect(() => {
     api.get("/et/dashboard").then((data) => {
@@ -16,6 +21,11 @@ export default function ETeamDashboard() {
       setStats(data.stats);
     });
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    api.get(`/reviews/history/${user.id}`).then((data) => setRating({ average: data.average, count: data.count }));
+  }, [user?.id]);
 
   if (!team) return <div className="page">Loading...</div>;
 
@@ -71,6 +81,13 @@ export default function ETeamDashboard() {
           team.team_size != null && `Team size: ${team.team_size} members`,
           team.phone && `Phone: ${team.phone}`,
         ]}
+        extra={
+          rating && (
+            <Link to={user?.id ? `/reviews/history/${user.id}` : "#"} style={{ textDecoration: "none", color: "inherit" }}>
+              <StarRating value={rating.average} readOnly count={rating.count} size={16} />
+            </Link>
+          )
+        }
       />
 
       {stats && (

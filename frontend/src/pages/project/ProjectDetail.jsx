@@ -22,6 +22,7 @@ import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
 import ArtifactFormModal from "../../components/ArtifactFormModal";
 import StatusBadge from "../../components/StatusBadge";
+import ReviewModal from "../../components/ReviewModal";
 
 const PROGRESS_COLORS = {
   "Just Started": "#c98a4b",
@@ -45,6 +46,7 @@ export default function ProjectDetail() {
   const [modalBusy, setModalBusy] = useState(false);
   const [modalError, setModalError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
 
   function load() {
     setLoading(true);
@@ -113,6 +115,7 @@ export default function ProjectDetail() {
     try {
       await api.post(`/tenders/projects/${projectId}/complete`, {});
       setSuccess("Project completed and submitted to the Government for artifact allocation.");
+      setShowReviewModal(true);
       load();
     } catch (err) {
       setError(err.message);
@@ -121,7 +124,7 @@ export default function ProjectDetail() {
     }
   }
 
-  if (loading) return <div className="page"><p className="hint">Loading project...</p></div>;
+  if (loading && !project) return <div className="page"><p className="hint">Loading project...</p></div>;
   if (!project)
     return (
       <div className="page">
@@ -466,6 +469,10 @@ export default function ProjectDetail() {
         busy={modalBusy}
         error={modalError}
       />
+
+      {showReviewModal && (
+        <ReviewModal projectId={projectId} onClose={() => setShowReviewModal(false)} onSubmitted={() => {}} />
+      )}
     </div>
   );
 }

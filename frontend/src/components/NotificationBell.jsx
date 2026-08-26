@@ -23,6 +23,7 @@ import {
   CheckCheck,
   ArrowUpRight,
   Inbox,
+  Star,
 } from "lucide-react";
 import { api } from "../api";
 
@@ -34,6 +35,7 @@ const CATEGORY_LABELS = [
   { key: "request", label: "Requests & Approvals", icon: ClipboardCheck },
   { key: "assignment", label: "Assignments & Transfers", icon: MapPinned },
   { key: "tender", label: "Tenders & Bids", icon: FileSignature },
+  { key: "review", label: "Reviews & Ratings", icon: Star },
   { key: "reminder", label: "Deadline Reminders", icon: Clock },
   { key: "account", label: "Account", icon: UserCheck },
 ];

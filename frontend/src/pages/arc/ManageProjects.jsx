@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api";
+import ReviewModal from "../../components/ReviewModal";
 import ArtifactFormModal from "../../components/ArtifactFormModal"; // Ahad_23201016
 import {
   Users,
@@ -172,6 +173,7 @@ export default function ManageProjects() {
   const [artifactProject, setArtifactProject] = useState(null);
   const [modalBusy, setModalBusy] = useState(false);
   const [modalError, setModalError] = useState("");
+  const [reviewProjectId, setReviewProjectId] = useState(null);
 
   function load() {
     setLoading(true);
@@ -201,10 +203,12 @@ export default function ManageProjects() {
       if (isTenderProject) {
         const data = await api.post(`/tenders/projects/${p._id}/complete`, {});
         setSuccess(data.message);
+        setReviewProjectId(p._id);
       } else {
         await api.post(`/arc/projects/${p._id}/end`);
         setSuccess("Project ended.");
       }
+
       load();
     } catch (err) {
       setError(err.message || "Could not close the project.");
@@ -286,6 +290,14 @@ export default function ManageProjects() {
         <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
           {past.map((p) => <PastProjectCard key={p._id} p={p} />)}
         </div>
+      )}
+
+      {reviewProjectId && (
+        <ReviewModal
+          projectId={reviewProjectId}
+          onClose={() => setReviewProjectId(null)}
+          onSubmitted={() => setReviewProjectId(null)}
+        />
       )}
 
       {/* Ahad_23201016 - Add Artifact, location fixed to the reported site */}

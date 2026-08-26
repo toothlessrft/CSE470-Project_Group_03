@@ -1,15 +1,25 @@
 import { useEffect, useState } from "react";
 import { FolderKanban, ClipboardList, Gavel, Wrench } from "lucide-react";
+import { Link } from "react-router-dom";
 import { api } from "../../api";
+import { useAuth } from "../../context/AuthContext";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
+import StarRating from "../../components/StarRating";
 
 export default function ArcDashboard() {
+  const { user } = useAuth();
   const [archaeologist, setArchaeologist] = useState(null);
+  const [rating, setRating] = useState(null);
 
   useEffect(() => {
     api.get("/arc/dashboard").then((data) => setArchaeologist(data.archaeologist));
   }, []);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    api.get(`/reviews/history/${user.id}`).then((data) => setRating({ average: data.average, count: data.count }));
+  }, [user?.id]);
 
   if (!archaeologist) return <div className="page">Loading...</div>;
 
@@ -34,6 +44,13 @@ export default function ArcDashboard() {
           archaeologist.affiliation && `Affiliation: ${archaeologist.affiliation}`,
           archaeologist.biography,
         ]}
+        extra={
+          rating && (
+            <Link to={user?.id ? `/reviews/history/${user.id}` : "#"} style={{ textDecoration: "none", color: "inherit" }}>
+              <StarRating value={rating.average} readOnly count={rating.count} size={16} />
+            </Link>
+          )
+        }
       />
 
       <ActionGrid items={actions} />
