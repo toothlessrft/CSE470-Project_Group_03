@@ -662,7 +662,9 @@ router.get("/projects/:id", async (req, res) => {
 
   res.json({
     project: { ...project.toObject(), excavation_team: serializeTeam(project.excavation_team) },
-    permissions: { isAdmin, isLead, isTeam, canEdit: (isLead || isTeam) && !project.end_date },
+    // Ahad_23201016 - the excavation team has read-only access to the project;
+    // only the lead archaeologist records progress, artifacts and handover.
+    permissions: { isAdmin, isLead, isTeam, canEdit: isLead && !project.end_date },
   });
 });
 
@@ -674,10 +676,10 @@ router.post("/projects/:id/artifacts", async (req, res) => {
   try {
     const loaded = await loadProjectFor(req, res);
     if (!loaded) return;
-    const { project, isLead, isTeam } = loaded;
+    const { project, isLead } = loaded;
 
-    if (!isLead && !isTeam) {
-      return res.status(403).json({ error: "Only the project team can add artifacts." });
+    if (!isLead) {
+      return res.status(403).json({ error: "Only the lead archaeologist can add artifacts." });
     }
     if (project.end_date) {
       return res.status(400).json({ error: "This project has been completed and handed over." });
@@ -722,9 +724,9 @@ router.post("/projects/:id/artifacts", async (req, res) => {
 router.patch("/projects/:id/artifacts/:itemId", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead, isTeam } = loaded;
+  const { project, isLead } = loaded;
 
-  if (!isLead && !isTeam) return res.status(403).json({ error: "Only the project team can edit artifacts." });
+  if (!isLead) return res.status(403).json({ error: "Only the lead archaeologist can edit artifacts." });
   if (project.end_date) return res.status(400).json({ error: "This project has been completed." });
 
   const item = await Item.findOne({ _id: req.params.itemId, excavationProject: project._id });
@@ -745,9 +747,9 @@ router.patch("/projects/:id/artifacts/:itemId", async (req, res) => {
 router.delete("/projects/:id/artifacts/:itemId", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead, isTeam } = loaded;
+  const { project, isLead } = loaded;
 
-  if (!isLead && !isTeam) return res.status(403).json({ error: "Only the project team can remove artifacts." });
+  if (!isLead) return res.status(403).json({ error: "Only the lead archaeologist can remove artifacts." });
   if (project.end_date) return res.status(400).json({ error: "This project has been completed." });
 
   const item = await Item.findOne({ _id: req.params.itemId, excavationProject: project._id });
@@ -766,9 +768,9 @@ router.delete("/projects/:id/artifacts/:itemId", async (req, res) => {
 router.patch("/projects/:id/progress", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead, isTeam } = loaded;
+  const { project, isLead } = loaded;
 
-  if (!isLead && !isTeam) return res.status(403).json({ error: "Only the project team can update progress." });
+  if (!isLead) return res.status(403).json({ error: "Only the lead archaeologist can update progress." });
   if (project.end_date) return res.status(400).json({ error: "This project has been completed." });
 
   const allowedProgress = ["Just Started", "In Progress", "Almost Done", "Stalled"];
@@ -786,9 +788,9 @@ router.patch("/projects/:id/progress", async (req, res) => {
 router.post("/projects/:id/complete", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead, isTeam } = loaded;
+  const { project, isLead } = loaded;
 
-  if (!isLead && !isTeam) return res.status(403).json({ error: "Only the project team can close this project." });
+  if (!isLead) return res.status(403).json({ error: "Only the lead archaeologist can close this project." });
   if (project.end_date) return res.status(400).json({ error: "This project is already complete." });
 
   const finishedAt = new Date();

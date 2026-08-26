@@ -1,13 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../api";
-import ReviewModal from "../../components/ReviewModal";
 import ArtifactFormModal from "../../components/ArtifactFormModal"; // Ahad_23201016
 import {
   Users,
   PackagePlus,
   Wrench,
-  StopCircle,
   CalendarDays,
   Banknote,
   TrendingUp,
@@ -25,7 +23,7 @@ const PROGRESS_COLORS = {
   Stalled: "#e03131",
 };
 
-function ProjectCard({ p, onEnd, onAddArtifact }) {
+function ProjectCard({ p, onAddArtifact }) {
   const progressColor = PROGRESS_COLORS[p.progress] || "var(--muted)";
 
   // Ahad_23201016 - projects awarded through the tender process carry an
@@ -33,7 +31,6 @@ function ProjectCard({ p, onEnd, onAddArtifact }) {
   const team = p.excavation_team;
   const teamName =
     team?.roleProfile?.company_name || team?.roleProfile?.organization || team?.name || null;
-  const isTenderProject = Boolean(p.tender);
 
   return (
     <div className="card" style={{ margin: 0, padding: "1.5rem", borderLeft: `4px solid ${progressColor}` }}>
@@ -107,14 +104,6 @@ function ProjectCard({ p, onEnd, onAddArtifact }) {
         <Link to={`/arc/projects/${p._id}/tools`} className="btn-small" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
           <Wrench size={13} /> Request Tool
         </Link>
-
-        <button
-          className="btn-small"
-          style={{ background: "var(--danger)", color: "white", border: "none", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
-          onClick={() => onEnd(p, isTenderProject)}
-        >
-          <StopCircle size={13} /> {isTenderProject ? "Complete & Hand Over" : "End Project"}
-        </button>
       </div>
     </div>
   );
@@ -173,7 +162,6 @@ export default function ManageProjects() {
   const [artifactProject, setArtifactProject] = useState(null);
   const [modalBusy, setModalBusy] = useState(false);
   const [modalError, setModalError] = useState("");
-  const [reviewProjectId, setReviewProjectId] = useState(null);
 
   function load() {
     setLoading(true);
@@ -188,32 +176,6 @@ export default function ManageProjects() {
   }
 
   useEffect(load, []);
-
-  // Ahad_23201016 - a tender-backed dig gets handed to the Government for
-  // artifact allocation; a legacy project just closes as it always did.
-  async function endProject(p, isTenderProject) {
-    const message = isTenderProject
-      ? `Complete "${p.p_name}"? The ${p.artifacts?.length || 0} artifact(s) recovered will be sent to the Government for allocation. This cannot be undone.`
-      : `End project "${p.p_name}"? This cannot be undone.`;
-    if (!window.confirm(message)) return;
-
-    setError("");
-    setSuccess("");
-    try {
-      if (isTenderProject) {
-        const data = await api.post(`/tenders/projects/${p._id}/complete`, {});
-        setSuccess(data.message);
-        setReviewProjectId(p._id);
-      } else {
-        await api.post(`/arc/projects/${p._id}/end`);
-        setSuccess("Project ended.");
-      }
-
-      load();
-    } catch (err) {
-      setError(err.message || "Could not close the project.");
-    }
-  }
 
   function openAddArtifact(p) {
     if (!p.tender) {
@@ -270,7 +232,7 @@ export default function ManageProjects() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2.5rem" }}>
           {ongoing.map((p) => (
-            <ProjectCard key={p._id} p={p} onEnd={endProject} onAddArtifact={openAddArtifact} />
+            <ProjectCard key={p._id} p={p} onAddArtifact={openAddArtifact} />
           ))}
         </div>
       )}
@@ -290,14 +252,6 @@ export default function ManageProjects() {
         <div style={{ display: "flex", flexDirection: "column", gap: "0.65rem" }}>
           {past.map((p) => <PastProjectCard key={p._id} p={p} />)}
         </div>
-      )}
-
-      {reviewProjectId && (
-        <ReviewModal
-          projectId={reviewProjectId}
-          onClose={() => setReviewProjectId(null)}
-          onSubmitted={() => setReviewProjectId(null)}
-        />
       )}
 
       {/* Ahad_23201016 - Add Artifact, location fixed to the reported site */}
