@@ -21,6 +21,7 @@ const ResearcherReport = require("../models/ResearcherReport");
 const Auction = require("../models/Auction");
 const Bid = require("../models/Bid");
 const Wishlist = require("../models/Wishlist");
+const Review = require("../models/Review");
 const { MUSEUMS } = require("../config/museums");
 
 const DEFAULT_PASSWORD = "password123"; // every seeded user gets this password
@@ -46,6 +47,7 @@ async function run() {
     ResearcherReport.deleteMany({}),
     Auction.deleteMany({}),
     Wishlist.deleteMany({}),
+    Review.deleteMany({}),
   ]);
 
   // Some older seed runs left stale unique indexes on the bids collection.
@@ -1115,6 +1117,144 @@ async function run() {
     cancel_reason: "Land access dispute with the current occupier is unresolved.",
   });
 
+  console.log("Creating sample cross feedback & performance reviews...");
+
+  // A couple of extra completed projects purely so more than one person has
+  // rating history (site/tender are optional on ExcavationProject, so these
+  // stay lightweight - they only need to exist to anchor the reviews).
+  const reviewProjectSylhet = await ExcavationProject.create({
+    p_name: "Sylhet Tea Estate Boundary Survey",
+    organization: "Bengal Excavation Works Ltd.",
+    start_date: new Date(nowMs - 40 * tDay),
+    end_date: new Date(nowMs - 15 * tDay),
+    progress: "Almost Done",
+    lead_archaeologist: alice._id,
+    budget: 92000,
+    excavation_team: rahim._id,
+    location: { lat: 24.8949, lng: 91.8687, address: "Malnicherra Tea Estate, Sylhet" },
+    submitted_to_admin: true,
+    completed_at: new Date(nowMs - 15 * tDay),
+    completion_notes: "Boundary trenches closed, no further finds expected.",
+  });
+
+  const reviewProjectBogura = await ExcavationProject.create({
+    p_name: "Bogura Terracotta Kiln Survey",
+    organization: "Padma Groundworks",
+    start_date: new Date(nowMs - 60 * tDay),
+    end_date: new Date(nowMs - 35 * tDay),
+    progress: "Almost Done",
+    lead_archaeologist: charlie._id,
+    budget: 74000,
+    excavation_team: jamal._id,
+    location: { lat: 24.8465, lng: 89.3773, address: "Mahasthangarh Road, Bogura" },
+    submitted_to_admin: true,
+    completed_at: new Date(nowMs - 35 * tDay),
+    completion_notes: "Kiln footprint mapped and backfilled.",
+  });
+
+  const reviewProjectRajshahi = await ExcavationProject.create({
+    p_name: "Rajshahi Riverbank Salvage Dig",
+    organization: "Heritage Digs & Conservation",
+    start_date: new Date(nowMs - 75 * tDay),
+    end_date: new Date(nowMs - 50 * tDay),
+    progress: "Almost Done",
+    lead_archaeologist: mizan._id,
+    budget: 138000,
+    excavation_team: sultana._id,
+    location: { lat: 24.3745, lng: 88.6042, address: "Padma Riverbank, Rajshahi" },
+    submitted_to_admin: true,
+    completed_at: new Date(nowMs - 50 * tDay),
+    completion_notes: "Salvage excavation completed ahead of riverbank erosion.",
+  });
+
+  await Review.create([
+    // Somapura Precinct Bronze Deposit Excavation (alice <-> sultana)
+    {
+      project: completedProject._id,
+      reviewer: alice._id,
+      reviewee: sultana._id,
+      reviewer_role: "archaeologist",
+      rating: 5,
+      feedback: "Heritage Digs handled the metalwork beautifully - conservation-grade lifting throughout.",
+    },
+    {
+      project: completedProject._id,
+      reviewer: sultana._id,
+      reviewee: alice._id,
+      reviewer_role: "excavation_team",
+      rating: 5,
+      feedback: "Alice was clear and responsive on-site. Great collaboration.",
+    },
+    // Sylhet Tea Estate Boundary Survey (alice <-> rahim)
+    {
+      project: reviewProjectSylhet._id,
+      reviewer: alice._id,
+      reviewee: rahim._id,
+      reviewer_role: "archaeologist",
+      rating: 4,
+      feedback: "Solid crew, kept well to the agreed timeline.",
+    },
+    {
+      project: reviewProjectSylhet._id,
+      reviewer: rahim._id,
+      reviewee: alice._id,
+      reviewer_role: "excavation_team",
+      rating: 5,
+      feedback: "Very organised brief, made planning the dig straightforward.",
+    },
+    // Comilla Terracotta Scatter Rescue Excavation (bob <-> rahim) - still active, no reviews yet on purpose
+    // Bogura Terracotta Kiln Survey (charlie <-> jamal)
+    {
+      project: reviewProjectBogura._id,
+      reviewer: charlie._id,
+      reviewee: jamal._id,
+      reviewer_role: "archaeologist",
+      rating: 3,
+      feedback: "Work was fine but communication about delays could have been earlier.",
+    },
+    {
+      project: reviewProjectBogura._id,
+      reviewer: jamal._id,
+      reviewee: charlie._id,
+      reviewer_role: "excavation_team",
+      rating: 4,
+      feedback: "Clear instructions, reasonable expectations.",
+    },
+    // Rajshahi Riverbank Salvage Dig (mizan <-> sultana)
+    {
+      project: reviewProjectRajshahi._id,
+      reviewer: mizan._id,
+      reviewee: sultana._id,
+      reviewer_role: "archaeologist",
+      rating: 5,
+      feedback: "Excellent turnaround given the erosion deadline pressure.",
+    },
+    {
+      project: reviewProjectRajshahi._id,
+      reviewer: sultana._id,
+      reviewee: mizan._id,
+      reviewer_role: "excavation_team",
+      rating: 4,
+      feedback: "Good technical guidance throughout the salvage work.",
+    },
+  ]);
+
+  // ---- A second still-active, fully-assigned project ready to be marked
+  // complete, so the review popup + partner notification can be tested end
+  // to end with clean data (in addition to the existing activeProject above,
+  // which is lead_archaeologist: bob / excavation_team: rahim). ----
+  await ExcavationProject.create({
+    p_name: "Khulna Coastal Shell Midden Excavation",
+    organization: "Padma Groundworks",
+    start_date: new Date(nowMs - 10 * tDay),
+    end_date: null,
+    progress: "Almost Done",
+    lead_archaeologist: alice._id,
+    budget: 81000,
+    excavation_team: jamal._id,
+    location: { lat: 22.8456, lng: 89.5403, address: "Rupsa Riverbank, Khulna" },
+  });
+
   console.log("Creating sample wishlist entries...");
   await Wishlist.create([
     { user: shirin._id, item: itemByNameUpdated["Gold Amulet"]._id }, // not currently up for auction
@@ -1136,9 +1276,14 @@ async function run() {
   console.log("  E002 -> Heritage Digs & Conservation  (rep: Sultana Ahmed)");
   console.log("  E003 -> Padma Groundworks             (rep: Jamal Uddin)");
   console.log("");
-  console.log("Tender demo data: 1 open tender with 3 bids, 1 active project (E001),");
-  console.log("1 completed project awaiting allocation (E002), 1 cancelled tender,");
+  console.log("Tender demo data: 1 open tender with 3 bids, 2 active projects (E001, E003),");
+  console.log("2 completed projects awaiting allocation (E002, and Somapura), 1 cancelled tender,");
   console.log("and 1 approved field report still waiting for a tender to be published.");
+  console.log("");
+  console.log("Cross Feedback & Performance Reviews: 4 completed projects with reviews already");
+  console.log("left both ways (Alice, Charlie, Mizan / Rahim, Jamal, Sultana all have ratings),");
+  console.log("plus 2 active fully-assigned projects (Comilla: Bob+Rahim, Khulna: Alice+Jamal)");
+  console.log("ready to be marked complete to test the review popup + partner notification.");
   process.exit(0);
 }
 

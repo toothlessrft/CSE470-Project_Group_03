@@ -22,6 +22,7 @@ const notificationRoutes = require("./routes/notifications"); // Role-Based Noti
 const inventoryRoutes = require("./routes/inventory"); // Tool & Field Equipment Requests + Inventory Tracking
 const museumsRoutes = require("./routes/museums"); // Museum Directory
 const nearMeRoutes = require("./routes/nearMe"); // Near Me
+const reviewsRoutes = require("./routes/reviews"); // Cross Feedback & Performance Review System
 const { startReminderScheduler } = require("./services/reminders");
 
 const app = express();
@@ -57,6 +58,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/museums", museumsRoutes);
 app.use("/api/near-me", nearMeRoutes);
+app.use("/api/reviews", reviewsRoutes);
 
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
