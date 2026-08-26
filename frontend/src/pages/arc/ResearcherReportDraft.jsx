@@ -9,7 +9,6 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
     const [success, setSuccess] = useState("");
 
     const [form, setForm] = useState({
-        possibleArtifact: false,
         notes: "",
         budgetRequested: "",
         requestExcavationTeam: false,
@@ -32,7 +31,6 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
             .then((data) => {
                 setReport(data.report);
                 setForm({
-                    possibleArtifact: data.report.possibleArtifact || false,
                     notes: data.report.notes || "",
                     budgetRequested: data.report.budgetRequested || "",
                     requestExcavationTeam: data.report.requestExcavationTeam || false,
@@ -59,13 +57,13 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
     }
 
     async function handleSubmitFinal() {
-        if (!window.confirm("Are you sure you want to submit the final report? No more edits can be made, and it will be sent to the admin for approval.")) return;
+        if (!window.confirm("Are you sure you want to submit this field report? No more edits can be made, and it will be sent to the admin for approval.")) return;
         setError("");
         setSuccess("");
         setBusy(true);
         try {
-            const data = await api.post(`/researcher-report/${discoveryId}/submit`);
-            setSuccess("Final report submitted successfully.");
+            const data = await api.post(`/researcher-report/${discoveryId}/submit`, { ...form });
+            setSuccess("Field report submitted successfully.");
             setReport(data.report);
             // Notify parent to reload list so the card moves to Previous Projects once approved
             if (onSubmitted) onSubmitted();
@@ -80,43 +78,69 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
     if (!report) return <div className="alert alert-danger">{error || "Failed to load report"}</div>;
 
     const isDraft = report.status === "Draft";
-    const isPending = report.status === "Pending";
     const isApproved = report.status === "Approved";
     const isLocked = !isDraft; // Pending or Approved - no more edits allowed
 
+    // Once submitted the report is read-only, so show the submitted report back
+    // to the archaeologist as a summary instead of a locked, empty-looking form.
+    if (isLocked) {
+        return (
+            <div className="card" style={{ marginTop: "1rem", border: "2px dashed #c98a4b", backgroundColor: "#fdf8f2" }}>
+                <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Field Report</h3>
+
+                <div className={`alert ${isApproved ? "alert-success" : "alert-info"}`}>
+                    {isApproved
+                        ? "✅ Your field report was approved by the Government. If you requested an excavation team, a tender will be published for it."
+                        : "✅ Your field report has been submitted to the Government. You will be notified once it is reviewed — no further edits can be made."}
+                </div>
+
+                <p>
+                    <strong>Excavation team requested:</strong>{" "}
+                    {report.requestExcavationTeam ? "Yes" : "No"}
+                </p>
+                {report.budgetRequested != null && (
+                    <p>
+                        <strong>Requested budget:</strong> ৳{report.budgetRequested}
+                    </p>
+                )}
+                <p style={{ marginBottom: "0.25rem" }}><strong>Notes</strong></p>
+                <p
+                    style={{
+                        margin: 0,
+                        padding: "0.75rem 1rem",
+                        background: "#fff",
+                        border: "1px solid var(--border)",
+                        borderRadius: "6px",
+                        whiteSpace: "pre-wrap",
+                    }}
+                >
+                    {report.notes || "No notes were added to this report."}
+                </p>
+                <p className="hint" style={{ marginBottom: 0 }}>
+                    Submitted {new Date(report.updatedAt).toLocaleString()}
+                </p>
+            </div>
+        );
+    }
+
     return (
         <div className="card" style={{ marginTop: "1rem", border: "2px dashed #c98a4b", backgroundColor: "#fdf8f2" }}>
-            <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Researcher Report</h3>
+            <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Field Report</h3>
             <p className="hint">
-                {isApproved
-                    ? "This report has been approved by the Government. If you requested an excavation team, a tender will be published for it."
-                    : isPending
-                        ? "Final report submitted. Waiting for admin approval before this moves to Previous Assignments."
-                        : "Work on your findings below piece by piece. Save as draft until you are completely finished. Artifacts get logged later, against the excavation project itself."
-                }
+                Work on your findings below piece by piece. Save as draft until you are completely
+                finished. Artifacts get logged later, against the excavation project itself.
             </p>
 
             {error && <div className="alert alert-danger">{error}</div>}
             {success && <div className="alert alert-success">{success}</div>}
 
             <div className="form">
-                <label style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.5rem", cursor: isLocked ? "not-allowed" : "pointer" }}>
-                    <input
-                        type="checkbox"
-                        checked={form.possibleArtifact}
-                        onChange={(e) => setForm({ ...form, possibleArtifact: e.target.checked })}
-                        disabled={isLocked || busy}
-                        style={{ width: "20px", height: "20px" }}
-                    />
-                    <span style={{ fontWeight: 600 }}>Is there a possible artifact here? (Notify Admin)</span>
-                </label>
-
-                <label style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.5rem", cursor: isLocked ? "not-allowed" : "pointer" }}>
+                <label style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.5rem", cursor: busy ? "not-allowed" : "pointer" }}>
                     <input
                         type="checkbox"
                         checked={form.requestExcavationTeam}
                         onChange={(e) => setForm({ ...form, requestExcavationTeam: e.target.checked })}
-                        disabled={isLocked || busy}
+                        disabled={busy}
                         style={{ width: "20px", height: "20px" }}
                     />
                     <span style={{ fontWeight: 600 }}>Request an Excavation Team for this site</span>
@@ -130,7 +154,7 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
                         step="1000"
                         value={form.budgetRequested}
                         onChange={(e) => setForm({ ...form, budgetRequested: e.target.value })}
-                        disabled={isLocked || busy}
+                        disabled={busy}
                         placeholder="e.g. 50000"
                     />
                 </label>
@@ -141,17 +165,15 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
                         rows={5}
                         value={form.notes}
                         onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                        disabled={isLocked || busy}
+                        disabled={busy}
                         placeholder="Gradually update your information about the site here..."
                     />
                 </label>
 
-                {isDraft && (
-                    <div className="actions">
-                        <button className="btn" onClick={handleSaveDraft} disabled={busy}>Save Draft</button>
-                        <button className="btn btn-approve" onClick={handleSubmitFinal} disabled={busy}>Submit Final Report</button>
-                    </div>
-                )}
+                <div className="actions">
+                    <button className="btn" onClick={handleSaveDraft} disabled={busy}>Save Draft</button>
+                    <button className="btn btn-approve" onClick={handleSubmitFinal} disabled={busy}>Submit Field Report</button>
+                </div>
             </div>
 
         </div>

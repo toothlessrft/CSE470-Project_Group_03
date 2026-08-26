@@ -174,6 +174,15 @@ export default function ProjectDetail() {
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
+      {/* Ahad_23201016 - the excavation team reads the project; the lead
+          archaeologist is the one who records progress, artifacts and handover. */}
+      {permissions.isTeam && !isComplete && (
+        <div className="alert alert-info">
+          You have view-only access to this project. The lead archaeologist records progress,
+          artifacts and the final handover.
+        </div>
+      )}
+
       {isComplete && (
         <div className="alert alert-info">
           <CheckCircle2 size={15} style={{ verticalAlign: "middle" }} /> This excavation finished on{" "}

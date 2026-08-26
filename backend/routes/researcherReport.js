@@ -94,6 +94,7 @@ router.post("/:discoveryId/save", async (req, res) => {
 router.post("/:discoveryId/submit", async (req, res) => {
     try {
         const { discoveryId } = req.params;
+        const { possibleArtifact, notes, budgetRequested, requestExcavationTeam } = req.body || {};
 
         const report = await ResearcherReport.findOne({
             discoveryReport: discoveryId,
@@ -104,6 +105,14 @@ router.post("/:discoveryId/submit", async (req, res) => {
         if (report.status !== "Draft") {
             return res.status(400).json({ error: "This report has already been submitted." });
         }
+
+        // Submitting straight from the form (without hitting "Save Draft" first)
+        // has to persist what is on screen, otherwise the excavation-team
+        // request and the notes would be lost on the way to the admin.
+        if (possibleArtifact !== undefined) report.possibleArtifact = Boolean(possibleArtifact);
+        if (notes !== undefined) report.notes = notes || "";
+        if (budgetRequested !== undefined) report.budgetRequested = budgetRequested ? Number(budgetRequested) : null;
+        if (requestExcavationTeam !== undefined) report.requestExcavationTeam = Boolean(requestExcavationTeam);
 
         report.status = "Pending";
         await report.save();
