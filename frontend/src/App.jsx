@@ -63,6 +63,9 @@ import ExcavationProjects from "./pages/admin/ExcavationProjects";
 // Tool & Field Equipment Requests + Inventory Tracking
 import RequestEquipment from "./pages/tools/RequestEquipment";
 import ToolInventory from "./pages/admin/ToolInventory";
+// Cross Feedback & Performance Review System
+import SubmitReview from "./pages/SubmitReview";
+import ReviewHistory from "./pages/ReviewHistory";
 
 
 export default function App() {
@@ -89,6 +92,32 @@ export default function App() {
           element={
             <ProtectedRoute>
               <MyReports />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Cross Feedback & Performance Review System - open to any logged-in user */}
+        <Route
+          path="/reviews/history/:userId"
+          element={
+            <ProtectedRoute>
+              <ReviewHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reviews/history"
+          element={
+            <ProtectedRoute>
+              <ReviewHistory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/reviews/:projectId"
+          element={
+            <ProtectedRoute>
+              <SubmitReview />
             </ProtectedRoute>
           }
         />

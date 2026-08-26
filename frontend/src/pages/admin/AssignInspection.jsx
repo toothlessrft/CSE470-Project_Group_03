@@ -20,6 +20,7 @@ export default function AssignInspection() {
   const [notes, setNotes] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [ratings, setRatings] = useState({});
 
   // Report Approval & Artifact Allocation
   const [researcherReport, setResearcherReport] = useState(null);
@@ -37,7 +38,11 @@ export default function AssignInspection() {
         setReport(data.report);
         return api.get(`/admin/researchers?lat=${data.report.location.lat}&lng=${data.report.location.lng}`);
       })
-      .then((data) => setResearchers(data.researchers))
+      .then((data) => {
+        setResearchers(data.researchers);
+        const ids = data.researchers.map((r) => r._id).join(",");
+        if (ids) api.get(`/reviews/ratings?ids=${ids}`).then((r) => setRatings(r.ratings));
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
@@ -170,12 +175,16 @@ export default function AssignInspection() {
               Researcher (nearest listed first)
               <select value={researcherId} onChange={(e) => setResearcherId(e.target.value)} required>
                 <option value="">Select a researcher...</option>
-                {researchers.map((r) => (
-                  <option key={r._id} value={r._id}>
-                    {r.name} ({r.nid}){r.affiliation ? ` — ${r.affiliation}` : ""}
-                    {r.distance_km != null ? ` — ${r.distance_km.toFixed(1)} km away` : ""}
-                  </option>
-                ))}
+                {researchers.map((r) => {
+                  const rating = ratings[r._id];
+                  return (
+                    <option key={r._id} value={r._id}>
+                      {r.name} ({r.nid}){r.affiliation ? ` — ${r.affiliation}` : ""}
+                      {r.distance_km != null ? ` — ${r.distance_km.toFixed(1)} km away` : ""}
+                      {rating ? ` — ★ ${rating.average}/5 (${rating.count})` : " — No ratings yet"}
+                    </option>
+                  );
+                })}
               </select>
             </label>
             <label>

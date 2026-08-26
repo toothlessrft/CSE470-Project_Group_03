@@ -859,6 +859,10 @@ fieldset legend {
   color: var(--muted);
 }
 
+.profile-extra {
+  margin-top: 0.5rem;
+}
+
 .auth-wrap {
   min-height: calc(100vh - 64px);
   display: flex;

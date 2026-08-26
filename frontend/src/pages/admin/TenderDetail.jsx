@@ -17,6 +17,7 @@ import {
 import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
 import StatusBadge from "../../components/StatusBadge";
+import StarRating from "../../components/StarRating";
 
 export default function TenderDetail() {
   const { id } = useParams();
@@ -28,6 +29,7 @@ export default function TenderDetail() {
   const [busyId, setBusyId] = useState(null);
   const [cancelReason, setCancelReason] = useState("");
   const [showCancel, setShowCancel] = useState(false);
+  const [ratings, setRatings] = useState({});
 
   function load() {
     setLoading(true);
@@ -36,6 +38,8 @@ export default function TenderDetail() {
       .then((data) => {
         setTender(data.tender);
         setBids(data.bids);
+        const ids = data.bids.map((b) => b.team?._id).filter(Boolean).join(",");
+        if (ids) api.get(`/reviews/ratings?ids=${ids}`).then((r) => setRatings(r.ratings));
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -260,6 +264,14 @@ export default function TenderDetail() {
                   >
                     <div>
                       <strong style={{ fontSize: "1rem" }}>{b.company_name}</strong>
+                      <div style={{ margin: "0.3rem 0" }}>
+                        <StarRating
+                          value={ratings[b.team?._id]?.average ?? null}
+                          readOnly
+                          count={ratings[b.team?._id]?.count}
+                          size={14}
+                        />
+                      </div>
                       <p className="hint" style={{ margin: "0.15rem 0 0" }}>
                         Rep. {b.team?.representative}
                         {b.team?.representative_designation
