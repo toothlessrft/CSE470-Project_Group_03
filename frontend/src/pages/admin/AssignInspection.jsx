@@ -3,9 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { FileSignature } from "lucide-react"; // Ahad_23201016
 import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
-import SearchableSelect from "../../components/SearchableSelect";
 import StatusBadge from "../../components/StatusBadge";
-import { MUSEUMS } from "../../data/museums";
 
 export default function AssignInspection() {
   const { id } = useParams();
@@ -16,7 +14,6 @@ export default function AssignInspection() {
   const [loading, setLoading] = useState(true);
 
   const [researcherId, setResearcherId] = useState("");
-  const [budget, setBudget] = useState("");
   const [notes, setNotes] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -28,8 +25,8 @@ export default function AssignInspection() {
   const [rrError, setRrError] = useState("");
   const [rrSuccess, setRrSuccess] = useState("");
   const [approving, setApproving] = useState(false);
-  const [allocationForms, setAllocationForms] = useState({}); // itemId -> { destination, museumName }
-  const [allocatingId, setAllocatingId] = useState(null);
+  // Ahad_23201016 - a tender already published for this field report, if any
+  const [tender, setTender] = useState(null);
 
   useEffect(() => {
     api
@@ -53,7 +50,10 @@ export default function AssignInspection() {
     setRrLoading(true);
     api
       .get(`/admin/researcher-reports/${id}`)
-      .then((data) => setResearcherReport(data.report))
+      .then((data) => {
+        setResearcherReport(data.report);
+        setTender(data.tender || null);
+      })
       .catch(() => setResearcherReport(null))
       .finally(() => setRrLoading(false));
   }, [report, id]);
@@ -70,7 +70,6 @@ export default function AssignInspection() {
     try {
       const data = await api.post(`/admin/reports/${id}/assign`, {
         researcher_id: researcherId,
-        budget: budget ? Number(budget) : undefined,
         notes,
         due_date: dueDate,
       });
@@ -84,47 +83,18 @@ export default function AssignInspection() {
   }
 
   async function handleApproveReport() {
-    if (!window.confirm("Approve this final report? Its artifacts will be added to Smart Artifact Search.")) return;
+    if (!window.confirm("Approve this field report?")) return;
     setRrError("");
     setRrSuccess("");
     setApproving(true);
     try {
       const data = await api.post(`/admin/researcher-reports/${id}/approve`, {});
       setResearcherReport(data.report);
-      setRrSuccess("Report approved. Artifacts added to the catalogue as Unallocated.");
+      setRrSuccess("Field report approved.");
     } catch (err) {
       setRrError(err.message);
     } finally {
       setApproving(false);
-    }
-  }
-
-  function updateAllocationForm(itemId, patch) {
-    setAllocationForms((prev) => ({
-      ...prev,
-      [itemId]: { destination: "Museum", museumName: "", ...prev[itemId], ...patch },
-    }));
-  }
-
-  async function handleAllocate(itemId) {
-    const form = allocationForms[itemId] || { destination: "Museum", museumName: "" };
-    setRrError("");
-    setRrSuccess("");
-    setAllocatingId(itemId);
-    try {
-      const data = await api.post(`/admin/artifacts/${itemId}/allocate`, {
-        destination: form.destination,
-        museumName: form.museumName,
-      });
-      setResearcherReport((prev) => ({
-        ...prev,
-        allocatedItems: prev.allocatedItems.map((it) => (it._id === itemId ? data.item : it)),
-      }));
-      setRrSuccess(`${data.item.name} allocated to ${form.destination === "Museum" ? form.museumName : "Auction"}.`);
-    } catch (err) {
-      setRrError(err.message);
-    } finally {
-      setAllocatingId(null);
     }
   }
 
@@ -188,16 +158,6 @@ export default function AssignInspection() {
               </select>
             </label>
             <label>
-              Suggested budget (BDT)
-              <input
-                type="number"
-                min="0"
-                value={budget}
-                onChange={(e) => setBudget(e.target.value)}
-                placeholder="e.g. 5000"
-              />
-            </label>
-            <label>
               Notes for the researcher
               <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
             </label>
@@ -230,10 +190,10 @@ export default function AssignInspection() {
         </div>
       )}
 
-      {/* Report Approval & Artifact Allocation */}
+      {/* Field report review */}
       {report.verification?.result === "true" && (
         <div className="card" style={{ border: "2px dashed #c98a4b", backgroundColor: "#fdf8f2" }}>
-          <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Researcher Final Report</h3>
+          <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Researcher Field Report</h3>
 
           {rrLoading ? (
             <p className="hint">Loading researcher report...</p>
@@ -248,101 +208,34 @@ export default function AssignInspection() {
 
               <StatusBadge status={researcherReport.status} />
 
-              <p style={{ marginTop: "0.75rem" }}>
-                {researcherReport.possibleArtifact ? "Researcher flagged a possible artifact at this site." : "Researcher did not flag a possible artifact."}
-              </p>
               {researcherReport.requestExcavationTeam && (
-                <p>The researcher is requesting that an excavation team be assigned to this site.</p>
+                <p style={{ marginTop: "0.75rem" }}>
+                  The researcher is requesting that an excavation team be assigned to this site.
+                </p>
               )}
               {researcherReport.budgetRequested != null && (
                 <p>Requested budget: ৳{researcherReport.budgetRequested}</p>
               )}
-              {researcherReport.notes && <p>{researcherReport.notes}</p>}
 
-              <h4>Artifacts Found</h4>
-              {researcherReport.artifacts?.length === 0 ? (
-                <p className="hint">No artifacts were listed on this report.</p>
-              ) : researcherReport.status === "Pending" ? (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
-                  {researcherReport.artifacts.map((a, i) => (
-                    <div key={i} className="card" style={{ margin: 0, padding: "0.85rem 1rem" }}>
-                      <strong>{a.name}</strong>
-                      <p className="hint" style={{ margin: "0.2rem 0" }}>{a.Type}</p>
-                      {a.description && <p style={{ fontSize: "0.85rem" }}>{a.description}</p>}
-                      <p style={{ fontSize: "0.8rem", color: "#777", margin: 0 }}>
-                        {a.civilization && <>Civilization: {a.civilization}<br /></>}
-                        {a.era && <>Era: {a.era}<br /></>}
-                        {a.region && <>Region: {a.region}<br /></>}
-                        {a.material && <>Material: {a.material}<br /></>}
-                        {a.usage && <>Usage: {a.usage}</>}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
-                  {researcherReport.allocatedItems?.map((item) => {
-                    const form = allocationForms[item._id] || { destination: "Museum", museumName: item.museumName || "" };
-                    const isAllocated = item.allocation !== "Unallocated";
-                    return (
-                      <div key={item._id} className="card" style={{ margin: 0, padding: "0.85rem 1rem" }}>
-                        <strong>{item.name}</strong>
-                        <p className="hint" style={{ margin: "0.2rem 0" }}>{item.Type}</p>
-
-                        {isAllocated ? (
-                          <div className="alert alert-success" style={{ margin: "0.5rem 0 0" }}>
-                            ✅ {item.allocation === "Museum"
-                              ? `Allocated to museum storage — ${item.museumName}`
-                              : "Allocated for auction"}
-                          </div>
-                        ) : (
-                          <>
-                            <p style={{ fontSize: "0.85rem" }}>
-                              Allocation: <strong>Unallocated</strong>
-                            </p>
-                            <div className="form">
-                              <label>
-                                Send to
-                                <select
-                                  value={form.destination}
-                                  onChange={(e) => updateAllocationForm(item._id, { destination: e.target.value })}
-                                >
-                                  <option value="Museum">Museum Storage</option>
-                                  <option value="Auction">Auction</option>
-                                </select>
-                              </label>
-                              {form.destination === "Museum" && (
-                                <label>
-                                  Museum name
-                                  <SearchableSelect
-                                    options={MUSEUMS}
-                                    value={form.museumName}
-                                    onChange={(value) => updateAllocationForm(item._id, { museumName: value })}
-                                    placeholder="Search the museum to store this artifact..."
-                                    required
-                                  />
-                                </label>
-                              )}
-                              <button
-                                type="button"
-                                className="btn-small"
-                                disabled={allocatingId === item._id}
-                                onClick={() => handleAllocate(item._id)}
-                              >
-                                {allocatingId === item._id ? "Saving..." : "Save Allocation"}
-                              </button>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {/* Field inspection notes written by the archaeologist */}
+              <h4>Field inspection notes</h4>
+              <p
+                style={{
+                  margin: "0 0 1rem",
+                  padding: "0.75rem 1rem",
+                  background: "#fff",
+                  border: "1px solid var(--border)",
+                  borderLeft: "4px solid var(--accent)",
+                  borderRadius: "6px",
+                  whiteSpace: "pre-wrap",
+                }}
+              >
+                {researcherReport.notes || report.verification?.notes || "The researcher did not leave any notes."}
+              </p>
 
               {researcherReport.status === "Pending" && (
                 <button className="btn btn-approve" onClick={handleApproveReport} disabled={approving}>
-                  {approving ? "Approving..." : "Approve Final Report"}
+                  {approving ? "Approving..." : "Approve Field Report"}
                 </button>
               )}
 
@@ -354,18 +247,39 @@ export default function AssignInspection() {
                   className="card"
                   style={{ margin: "1rem 0 0", background: "var(--surface)", borderLeft: "4px solid var(--accent)" }}
                 >
-                  <h4 style={{ marginTop: 0 }}>Excavation Team Requested</h4>
-                  <p className="hint" style={{ marginTop: 0 }}>
-                    Publish an excavation tender so registered excavation teams can bid on this dig.
-                    Project details and the map location are carried over from this report automatically.
-                  </p>
-                  <Link
-                    className="btn"
-                    to={`/admin/tenders/new?report=${researcherReport._id}`}
-                    style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
-                  >
-                    <FileSignature size={15} /> Publish Excavation Tender
-                  </Link>
+                  {tender ? (
+                    <>
+                      {/* Ahad_23201016 - the tender for this report already exists, so
+                          show where it stands instead of offering to publish it again. */}
+                      <h4 style={{ marginTop: 0 }}>Excavation Tender Published</h4>
+                      <p className="hint" style={{ marginTop: 0 }}>
+                        &ldquo;{tender.title}&rdquo; &mdash; <StatusBadge status={tender.status} />
+                        {tender.deadline && ` Bidding closes ${new Date(tender.deadline).toLocaleDateString()}.`}
+                      </p>
+                      <Link
+                        className="btn"
+                        to={`/admin/tenders/${tender._id}`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                      >
+                        <FileSignature size={15} /> View Tender
+                      </Link>
+                    </>
+                  ) : (
+                    <>
+                      <h4 style={{ marginTop: 0 }}>Excavation Team Requested</h4>
+                      <p className="hint" style={{ marginTop: 0 }}>
+                        Publish an excavation tender so registered excavation teams can bid on this dig.
+                        Project details and the map location are carried over from this report automatically.
+                      </p>
+                      <Link
+                        className="btn"
+                        to={`/admin/tenders/new?report=${researcherReport._id}`}
+                        style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                      >
+                        <FileSignature size={15} /> Publish Excavation Tender
+                      </Link>
+                    </>
+                  )}
                 </div>
               )}
             </>

@@ -10,6 +10,8 @@ export default function MyAssignments() {
   const [loading, setLoading] = useState(true);
   const [notesById, setNotesById] = useState({});
   const [busyId, setBusyId] = useState(null);
+  // Which previous assignment is expanded in the "View details" panel
+  const [expandedId, setExpandedId] = useState(null);
 
   function load() {
     setLoading(true);
@@ -38,16 +40,17 @@ export default function MyAssignments() {
     }
   }
 
-  // Current: waiting to verify, or verified true and report not yet approved by admin
-  // (Draft or Pending admin approval both stay here)
-  const currentProjects = reports.filter(
-    (r) => r.verification?.result !== "false" && r.researcherReportStatus !== "Approved"
-  );
+  // Current: still waiting to verify, or verified true with the field report
+  // still an unsubmitted draft.
+  const isFinished = (r) =>
+    r.verification?.result === "false" ||
+    r.researcherReportStatus === "Pending" ||
+    r.researcherReportStatus === "Approved";
 
-  // Previous: rejected/unverifiable OR report approved by admin
-  const previousProjects = reports.filter(
-    (r) => r.verification?.result === "false" || r.researcherReportStatus === "Approved"
-  );
+  const currentProjects = reports.filter((r) => !isFinished(r));
+
+  // Previous: rejected/unverifiable, or the field report has been submitted.
+  const previousProjects = reports.filter(isFinished);
 
   // Full card for current projects (with map, verification form, report)
   function renderCurrentReport(r) {
@@ -73,10 +76,28 @@ export default function MyAssignments() {
 
         <h4>Assignment</h4>
         <p>
-          {r.assignment?.budget ? `Suggested budget: ৳${r.assignment.budget}` : "No budget suggested"}
-          {r.assignment?.due_date && ` — report due ${new Date(r.assignment.due_date).toLocaleDateString()}`}
+          {r.assignment?.due_date
+            ? `Report due ${new Date(r.assignment.due_date).toLocaleDateString()}`
+            : "No due date set"}
         </p>
-        {r.assignment?.notes && <p className="hint">Note from admin: {r.assignment.notes}</p>}
+        {r.assignment?.notes && (
+          <div
+            style={{
+              margin: "0.5rem 0 1rem",
+              padding: "0.75rem 1rem",
+              background: "#fdf8f2",
+              border: "1px solid #e6cdb2",
+              borderLeft: "4px solid #c98a4b",
+              borderRadius: "6px",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            <strong style={{ display: "block", color: "#7c4a2d", marginBottom: "0.2rem" }}>
+              📌 Note from admin
+            </strong>
+            {r.assignment.notes}
+          </div>
+        )}
 
         <h4>Reporter contact</h4>
         <p>
@@ -128,6 +149,8 @@ export default function MyAssignments() {
   // Compact summary card for previous/completed projects
   function renderPreviousReport(r) {
     const isRejected = r.verification?.result === "false";
+    const isSubmitted = r.researcherReportStatus === "Pending";
+    const expanded = expandedId === r._id;
     return (
       <div
         key={r._id}
@@ -164,12 +187,61 @@ export default function MyAssignments() {
         >
           {isRejected
             ? "❌ Verification: Could not be verified"
-            : "✅ Report Approved"}
+            : isSubmitted
+            ? "📤 Field report submitted — awaiting Government approval"
+            : "✅ Field Report Approved"}
         </div>
         {r.reporter?.name && (
           <p className="hint" style={{ margin: 0, fontSize: "0.8rem" }}>
             Reporter: {r.reporter.name} — {r.reporter.email}
           </p>
+        )}
+
+        {/* Previous assignments are read-only, but the full record is still
+            available on demand. */}
+        <div>
+          <button
+            className="btn-small"
+            onClick={() => setExpandedId(expanded ? null : r._id)}
+          >
+            {expanded ? "Hide details" : "View details"}
+          </button>
+        </div>
+
+        {expanded && (
+          <div style={{ marginTop: "0.5rem" }}>
+            <GoogleMapPicker value={r.location} editable={false} height={200} />
+            {r.notes && <p style={{ marginBottom: 0 }}>{r.notes}</p>}
+            {r.images?.length > 0 && (
+              <div className="image-grid">
+                {r.images.map((src, i) => (
+                  <div className="image-thumb" key={i}>
+                    <img src={src} alt={`report-${i}`} />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <h4 style={{ marginBottom: "0.25rem" }}>Assignment</h4>
+            <p className="hint" style={{ margin: 0 }}>
+              {r.assignment?.due_date
+                ? `Report due ${new Date(r.assignment.due_date).toLocaleDateString()}`
+                : "No due date recorded"}
+            </p>
+            {r.assignment?.notes && (
+              <p style={{ margin: "0.35rem 0 0" }}>
+                <strong>Note from admin:</strong> {r.assignment.notes}
+              </p>
+            )}
+
+            <h4 style={{ marginBottom: "0.25rem" }}>Field verification</h4>
+            <p style={{ margin: 0 }}>
+              {isRejected ? "Could not be verified" : "Confirmed genuine"}
+              {r.verification?.notes ? ` — ${r.verification.notes}` : ""}
+            </p>
+
+            {!isRejected && <ResearcherReportDraft discoveryId={r._id} onSubmitted={load} />}
+          </div>
         )}
       </div>
     );
