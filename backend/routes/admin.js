@@ -425,7 +425,14 @@ router.get("/researcher-reports/:discoveryId", async (req, res) => {
     .populate("adminReview.reviewedBy", "name")
     .populate("allocatedItems");
   if (!report) return res.status(404).json({ error: "Researcher report not found." });
-  res.json({ report });
+
+  // Ahad_23201016 - so the field report page can show the published tender
+  // instead of offering to publish a second one for the same report.
+  const tender = await Tender.findOne({ fieldReport: report._id, status: { $ne: "Cancelled" } })
+    .select("title status deadline estimated_budget")
+    .sort("-createdAt");
+
+  res.json({ report, tender: tender || null });
 });
 
 // POST /api/admin/researcher-reports/:discoveryId/approve
