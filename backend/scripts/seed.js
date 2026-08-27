@@ -10,6 +10,7 @@ const ExcavationRequest = require("../models/ExcavationRequest");
 const ExcavationProject = require("../models/ExcavationProject");
 const ETeam = require("../models/ETeam");
 const Item = require("../models/Item");
+const { ARTIFACT_IMAGES } = require("../config/artifactImages"); // real catalogue photographs
 const ItemRequest = require("../models/ItemRequest");
 const Tool = require("../models/Tool");
 const ToolRentalRequest = require("../models/ToolRentalRequest");
@@ -197,6 +198,8 @@ async function run() {
 
   const baseMuseumItems = itemDefs.map((item, index) => ({
     ...item,
+    // Real freely-licensed photograph for this kind of object, where we have one
+    picture: ARTIFACT_IMAGES[item.name]?.picture || "",
     site: item.site._id,
     allocation: "Museum",
     museumName: MUSEUMS[index % MUSEUMS.length],

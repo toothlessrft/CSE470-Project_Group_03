@@ -23,6 +23,7 @@ const inventoryRoutes = require("./routes/inventory"); // Tool & Field Equipment
 const museumsRoutes = require("./routes/museums"); // Museum Directory
 const nearMeRoutes = require("./routes/nearMe"); // Near Me
 const reviewsRoutes = require("./routes/reviews"); // Cross Feedback & Performance Review System
+const aiRoutes = require("./routes/ai"); // AI Artifact Identification
 const { startReminderScheduler } = require("./services/reminders");
 
 const app = express();
@@ -59,6 +60,7 @@ app.use("/api/inventory", inventoryRoutes);
 app.use("/api/museums", museumsRoutes);
 app.use("/api/near-me", nearMeRoutes);
 app.use("/api/reviews", reviewsRoutes);
+app.use("/api/ai", aiRoutes); // AI Artifact Identification
 
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));

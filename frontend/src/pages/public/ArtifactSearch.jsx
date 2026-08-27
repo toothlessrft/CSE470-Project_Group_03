@@ -89,6 +89,27 @@ export default function ArtifactSearch() {
       runQuery({ museumName: museumFilter }, "museum");
       return;
     }
+    // AI Artifact Identification hands its suggested tags over as query
+    // params, so the filter panel opens already filled in.
+    const tagFields = ["civilization", "era", "region", "material", "usage"];
+    const prefill = {};
+    tagFields.forEach((field) => {
+      const value = searchParams.get(field);
+      if (value) prefill[field] = value;
+    });
+
+    if (Object.keys(prefill).length > 0) {
+      const nextFilters = { civilization: "", era: "", region: "", material: "", usage: "", location: "", ...prefill };
+      setQ("");
+      setSelectedSite(null);
+      setMapSearchLocation(null);
+      setMapSearchQuery("");
+      setFilters(nextFilters);
+      setSearchMode("filters");
+      runQuery(nextFilters, "filters");
+      return;
+    }
+
     setSearchMode(null);
     runQuery({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -449,6 +470,25 @@ export default function ArtifactSearch() {
       >
         {results.map((item) => (
           <div key={item._id} className="card" style={{ margin: 0 }}>
+            {/* Artifact photograph, when the record has one */}
+            {item.picture && (
+              <img
+                src={item.picture}
+                alt={item.name}
+                loading="lazy"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                }}
+                style={{
+                  width: "100%",
+                  height: "160px",
+                  objectFit: "cover",
+                  borderRadius: "var(--radius-sm)",
+                  marginBottom: "0.75rem",
+                  background: "var(--bg)",
+                }}
+              />
+            )}
             <h4 style={{ marginTop: 0, marginBottom: "0.4rem" }}>{item.name}</h4>
             <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "#8a7a68" }}>
               {item.Type} {item.site_name ? `· ${item.site_name}` : ""}
