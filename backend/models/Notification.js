@@ -26,6 +26,19 @@ const CATEGORIES = [
   "account", // registration approval, role changes, system messages
 ];
 
+// Categories that are only ever delivered to a fixed set of roles. Enforced
+// centrally in services/notify.js, so a stray caller cannot leak one of these
+// into an inbox it does not belong in, and mirrored on the frontend in
+// NotificationBell.jsx so the category row is hidden even if a row somehow
+// predates this rule.
+//
+// "review" is the Cross Feedback & Performance Review bucket: only the lead
+// archaeologist and the excavation team on a dig ever rate each other, so no
+// other role should see this category at all.
+const CATEGORY_ROLES = {
+  review: ["archaeologist", "excavation_team"],
+};
+
 // Government/Admin has no bell - unread counts are shown as red circles on the
 // Admin Dashboard cards instead, and this is the key that maps a notification
 // to the card it belongs under.
@@ -92,3 +105,4 @@ notificationSchema.index({ dedupe_key: 1 }, { unique: true, sparse: true });
 module.exports = mongoose.model("Notification", notificationSchema);
 module.exports.CATEGORIES = CATEGORIES;
 module.exports.DASHBOARD_KEYS = DASHBOARD_KEYS;
+module.exports.CATEGORY_ROLES = CATEGORY_ROLES;

@@ -26,6 +26,11 @@ import {
   Star,
 } from "lucide-react";
 import { api } from "../api";
+<<<<<<< Updated upstream
+=======
+import { goToLink } from "../utils/goToLink";
+import { useAuth } from "../context/AuthContext";
+>>>>>>> Stashed changes
 
 // Keep in sync with CATEGORIES in backend/models/Notification.js
 const CATEGORY_LABELS = [
@@ -42,7 +47,24 @@ const CATEGORY_LABELS = [
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_LABELS.map((c) => [c.key, c]));
 
+<<<<<<< Updated upstream
 const POLL_MS = 45 * 1000;
+=======
+// Keep in sync with CATEGORY_ROLES in backend/models/Notification.js.
+// The backend already refuses to create a restricted notification for the
+// wrong role, so this is belt-and-braces: it also hides rows that predate
+// that rule, which would otherwise still be sitting in an old inbox.
+const CATEGORY_ROLES = {
+  review: ["archaeologist", "excavation_team"],
+};
+
+function canSeeCategory(category, role) {
+  const allowed = CATEGORY_ROLES[category];
+  return !allowed || allowed.includes(role);
+}
+
+const POLL_MS = 15 * 1000;
+>>>>>>> Stashed changes
 
 function timeAgo(value) {
   if (!value) return "";
@@ -58,10 +80,21 @@ function timeAgo(value) {
 }
 
 export default function NotificationBell() {
+  const { user } = useAuth();
+  const role = user?.role || "";
+
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState({ unread: 0, byCategory: {} });
-  const [notifications, setNotifications] = useState([]);
+  const [allNotifications, setAllNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Everything below works off the role-filtered list, so a restricted
+  // category cannot show up in the category list, the per-category counts, or
+  // "Mark read".
+  const notifications = useMemo(
+    () => allNotifications.filter((n) => canSeeCategory(n.category, role)),
+    [allNotifications, role]
+  );
 
   // null = category list, a key = that category's list, plus `selected` for detail
   const [activeCategory, setActiveCategory] = useState(null);
@@ -81,9 +114,17 @@ export default function NotificationBell() {
     setLoading(true);
     api
       .get("/notifications?limit=100")
+<<<<<<< Updated upstream
       .then((data) => setNotifications(data.notifications || []))
       .catch(() => setNotifications([]))
       .finally(() => setLoading(false));
+=======
+      .then((data) => setAllNotifications(data.notifications || []))
+      .catch(() => setAllNotifications([]))
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
+>>>>>>> Stashed changes
   }, []);
 
   // Poll the cheap summary endpoint; the full list is only fetched on open.
@@ -148,7 +189,7 @@ export default function NotificationBell() {
     if (notification.read) return;
 
     // Optimistic - the badge should drop the moment it is opened.
-    setNotifications((prev) =>
+    setAllNotifications((prev) =>
       prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
     );
     setSummary((prev) => ({ ...prev, unread: Math.max((prev.unread || 1) - 1, 0) }));
@@ -167,8 +208,12 @@ export default function NotificationBell() {
 
   async function markAllRead() {
     const body = activeCategory ? { category: activeCategory } : {};
-    setNotifications((prev) =>
-      prev.map((n) => (!activeCategory || n.category === activeCategory ? { ...n, read: true } : n))
+    setAllNotifications((prev) =>
+      prev.map((n) =>
+        canSeeCategory(n.category, role) && (!activeCategory || n.category === activeCategory)
+          ? { ...n, read: true }
+          : n
+      )
     );
     try {
       await api.post("/notifications/read-all", body);
@@ -177,7 +222,16 @@ export default function NotificationBell() {
     }
   }
 
-  const unread = summary.unread || 0;
+  // The summary endpoint counts every category, so subtract any the current
+  // role is not allowed to see - otherwise the badge could show a number the
+  // user can never open or clear.
+  const unread = useMemo(() => {
+    let total = summary.unread || 0;
+    for (const [key, count] of Object.entries(summary.byCategory || {})) {
+      if (!canSeeCategory(key, role)) total -= count;
+    }
+    return Math.max(total, 0);
+  }, [summary, role]);
 
   return (
     <div className="notif-wrap" ref={panelRef}>

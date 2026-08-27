@@ -7,7 +7,10 @@
 //      user's actual action (placing a bid, approving a report) to 500, so
 //      every helper swallows and logs its own errors.
 //   2. Nobody is notified about their own action - `exclude` drops the actor.
+//   3. Role-restricted categories (CATEGORY_ROLES in models/Notification.js)
+//      are dropped if the recipient's role is not on the allow list.
 const Notification = require("../models/Notification");
+const { CATEGORY_ROLES } = require("../models/Notification");
 const User = require("../models/User");
 
 function idOf(value) {
@@ -51,6 +54,18 @@ async function notify({
     let resolvedRole = role;
     if (!resolvedRole) {
       resolvedRole = user?.role || (await User.findById(userId).select("role"))?.role || "";
+    }
+
+    // Rule 3: some categories are role-restricted (see CATEGORY_ROLES in
+    // models/Notification.js). "review" in particular must never land in a
+    // museum manager's or the public's bell, so the check lives here rather
+    // than being repeated at every call site.
+    const allowedRoles = CATEGORY_ROLES[category];
+    if (allowedRoles && !allowedRoles.includes(resolvedRole)) {
+      console.warn(
+        `[notify] skipped "${category}" notification for role "${resolvedRole || "unknown"}" - restricted to ${allowedRoles.join(", ")}.`
+      );
+      return null;
     }
 
     return await Notification.create({
