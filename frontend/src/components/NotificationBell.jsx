@@ -24,8 +24,11 @@ import {
   ArrowUpRight,
   Inbox,
   Star,
+  HelpCircle,
 } from "lucide-react";
 import { api } from "../api";
+import { goToLink } from "../utils/goToLink";
+import { useAuth } from "../context/AuthContext";
 
 // Keep in sync with CATEGORIES in backend/models/Notification.js
 const CATEGORY_LABELS = [
@@ -35,14 +38,28 @@ const CATEGORY_LABELS = [
   { key: "request", label: "Requests & Approvals", icon: ClipboardCheck },
   { key: "assignment", label: "Assignments & Transfers", icon: MapPinned },
   { key: "tender", label: "Tenders & Bids", icon: FileSignature },
-  { key: "review", label: "Reviews & Ratings", icon: Star },
+  { key: "review", label: "Review & Feedback", icon: Star },
   { key: "reminder", label: "Deadline Reminders", icon: Clock },
   { key: "account", label: "Account", icon: UserCheck },
+  { key: "qna", label: "Q&A", icon: HelpCircle },
 ];
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_LABELS.map((c) => [c.key, c]));
 
-const POLL_MS = 45 * 1000;
+// Keep in sync with CATEGORY_ROLES in backend/models/Notification.js.
+// The backend already refuses to create a restricted notification for the
+// wrong role, so this is belt-and-braces: it also hides rows that predate
+// that rule, which would otherwise still be sitting in an old inbox.
+const CATEGORY_ROLES = {
+  review: ["archaeologist", "excavation_team"],
+};
+
+function canSeeCategory(category, role) {
+  const allowed = CATEGORY_ROLES[category];
+  return !allowed || allowed.includes(role);
+}
+
+const POLL_MS = 15 * 1000;
 
 function timeAgo(value) {
   if (!value) return "";
@@ -58,10 +75,21 @@ function timeAgo(value) {
 }
 
 export default function NotificationBell() {
+  const { user } = useAuth();
+  const role = user?.role || "";
+
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState({ unread: 0, byCategory: {} });
-  const [notifications, setNotifications] = useState([]);
+  const [allNotifications, setAllNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Everything below works off the role-filtered list, so a restricted
+  // category cannot show up in the category list, the per-category counts, or
+  // "Mark read".
+  const notifications = useMemo(
+    () => allNotifications.filter((n) => canSeeCategory(n.category, role)),
+    [allNotifications, role]
+  );
 
   // null = category list, a key = that category's list, plus `selected` for detail
   const [activeCategory, setActiveCategory] = useState(null);
@@ -77,21 +105,31 @@ export default function NotificationBell() {
       .catch(() => {});
   }, []);
 
-  const loadNotifications = useCallback(() => {
-    setLoading(true);
+  const loadNotifications = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     api
       .get("/notifications?limit=100")
-      .then((data) => setNotifications(data.notifications || []))
-      .catch(() => setNotifications([]))
-      .finally(() => setLoading(false));
+      .then((data) => setAllNotifications(data.notifications || []))
+      .catch(() => setAllNotifications([]))
+      .finally(() => {
+        if (!silent) setLoading(false);
+      });
   }, []);
 
-  // Poll the cheap summary endpoint; the full list is only fetched on open.
+  // Poll the cheap summary endpoint for the bell's badge. While the panel is
+  // open, also re-poll the full list on the same tick - otherwise the
+  // per-category counts (built from `notifications`, fetched once on open)
+  // drift out of sync with the badge (built from `summary`, always polled),
+  // which is exactly what shows a different number on the bell than in the
+  // category rows.
   useEffect(() => {
     loadSummary();
-    const timer = setInterval(loadSummary, POLL_MS);
+    const timer = setInterval(() => {
+      loadSummary();
+      if (open) loadNotifications(true);
+    }, POLL_MS);
     return () => clearInterval(timer);
-  }, [loadSummary]);
+  }, [loadSummary, loadNotifications, open]);
 
   // Close on an outside click or Escape.
   useEffect(() => {
@@ -148,7 +186,7 @@ export default function NotificationBell() {
     if (notification.read) return;
 
     // Optimistic - the badge should drop the moment it is opened.
-    setNotifications((prev) =>
+    setAllNotifications((prev) =>
       prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
     );
     setSummary((prev) => ({ ...prev, unread: Math.max((prev.unread || 1) - 1, 0) }));
@@ -162,13 +200,17 @@ export default function NotificationBell() {
 
   function goToNotification(notification) {
     setOpen(false);
-    if (notification.link) navigate(notification.link);
+    goToLink(navigate, notification.link);
   }
 
   async function markAllRead() {
     const body = activeCategory ? { category: activeCategory } : {};
-    setNotifications((prev) =>
-      prev.map((n) => (!activeCategory || n.category === activeCategory ? { ...n, read: true } : n))
+    setAllNotifications((prev) =>
+      prev.map((n) =>
+        canSeeCategory(n.category, role) && (!activeCategory || n.category === activeCategory)
+          ? { ...n, read: true }
+          : n
+      )
     );
     try {
       await api.post("/notifications/read-all", body);
@@ -177,7 +219,16 @@ export default function NotificationBell() {
     }
   }
 
-  const unread = summary.unread || 0;
+  // The summary endpoint counts every category, so subtract any the current
+  // role is not allowed to see - otherwise the badge could show a number the
+  // user can never open or clear.
+  const unread = useMemo(() => {
+    let total = summary.unread || 0;
+    for (const [key, count] of Object.entries(summary.byCategory || {})) {
+      if (!canSeeCategory(key, role)) total -= count;
+    }
+    return Math.max(total, 0);
+  }, [summary, role]);
 
   return (
     <div className="notif-wrap" ref={panelRef}>
@@ -187,7 +238,7 @@ export default function NotificationBell() {
         onClick={togglePanel}
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
       >
-        <Bell size={17} />
+        <Bell size={21} />
         {unread > 0 && <span className="notif-count">{unread > 99 ? "99+" : unread}</span>}
       </button>
 
@@ -251,7 +302,7 @@ export default function NotificationBell() {
                     <span>You're all caught up.</span>
                   </p>
                 )}
-                {categories.map(({ key, label, icon: Icon, total, unread: catUnread }) => (
+                {categories.map(({ key, label, icon: Icon, unread: catUnread }) => (
                   <button
                     type="button"
                     key={key}
@@ -263,9 +314,6 @@ export default function NotificationBell() {
                     </span>
                     <span className="notif-cat-text">
                       <strong>{label}</strong>
-                      <small>
-                        {total} notification{total === 1 ? "" : "s"}
-                      </small>
                     </span>
                     {catUnread > 0 && <span className="notif-pill">{catUnread}</span>}
                     <ChevronRight size={15} className="notif-chevron" />

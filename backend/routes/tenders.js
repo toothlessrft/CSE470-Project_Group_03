@@ -12,6 +12,8 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { notify, notifyMany, notifyRole, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
+const { ensureChatForProject, archiveChatForProject } = require("../services/teamChat"); // Project Team Group Chat
+const { sendReviewRequests } = require("../services/reviewNotifications"); // Cross Feedback & Performance Review
 
 const router = express.Router();
 router.use(requireAuth);
@@ -383,6 +385,10 @@ router.post("/admin/:id/award", requireRole("admin"), async (req, res) => {
       },
       agreed_timeline_days: winningBid.timeline_days,
     });
+
+    // Project Team Group Chat - auto-created now that both the lead
+    // archaeologist and the awarded excavation team are set on the project.
+    await ensureChatForProject(project);
 
     winningBid.status = "Accepted";
     winningBid.reviewed_by = req.user._id;
@@ -806,6 +812,9 @@ router.post("/projects/:id/complete", async (req, res) => {
   );
   const updated = await ExcavationProject.findById(project._id);
 
+  // Project Team Group Chat - archived on completion, stays in chat history.
+  await archiveChatForProject(project._id);
+
   // Notification: closure report is with the Government, artifacts need allocating.
   await notifyAdmins({
     category: "request",
@@ -830,34 +839,12 @@ router.post("/projects/:id/complete", async (req, res) => {
     [req.user._id]
   );
 
-  // Cross Feedback & Performance Review System: whichever side didn't click
-  // "Complete" gets asked to rate the other. The person who just completed it
-  // gets their own rating prompt immediately in the UI (see ProjectDetail.jsx).
-  const otherPartyId =
-    req.user.role === "archaeologist"
-      ? project.excavation_team?._id || project.excavation_team
-      : project.lead_archaeologist?._id || project.lead_archaeologist;
-
-  if (otherPartyId) {
-    // Falls back to "assignment" if this server's Notification schema hasn't
-    // picked up the "review" category yet, so the notification always gets
-    // sent even if that file update was missed.
-    const reviewCategory = Notification.CATEGORIES?.includes("review") ? "review" : "assignment";
-    const sent = await notify({
-      user: otherPartyId,
-      category: reviewCategory,
-      type: "review.requested",
-      title: "Report submitted, rate your partner",
-      message: `The excavation "${project.p_name}" is complete. Share a rating and feedback about your partner.`,
-      link: `/reviews/${project._id}`,
-      actionRequired: true,
-    });
-    if (!sent) {
-      console.error(
-        `[reviews] could not notify ${otherPartyId} to rate project ${project._id} - check that Notification.js includes the "review" category.`
-      );
-    }
-  }
+  // Cross Feedback & Performance Review System: both sides are asked to rate
+  // each other. The person who clicked "Complete" also sees the rating popup
+  // inline straight away (see ProjectDetail.jsx), but they still get the
+  // notification - dismissing that popup with "Maybe later" would otherwise
+  // leave them no way back to it.
+  await sendReviewRequests(updated);
 
   res.json({
     message: "Project completed and submitted to the Government for artifact allocation.",

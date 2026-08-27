@@ -59,33 +59,39 @@ router.get("/work-summary", async (req, res) => {
 
     const [
       unassignedReports,
-      reportsToReview,
       tendersWithBids,
       projectsAwaitingAllocation,
       pendingItemRequests,
       pendingToolRequests,
-      overdueEquipment,
       excavationRequests,
       pendingUsers,
       activeAuctions,
     ] = await Promise.all([
-      // Discoveries with nobody assigned yet
+      // Discoveries with nobody assigned yet - exactly what the "Pending" tab
+      // on Field Reports shows by default. Final researcher reports awaiting
+      // approval live under that same page's "Verified" tab rather than a
+      // count of their own, so they're deliberately not added in here - a
+      // badge has to match what you see the moment you land on the page.
       DiscoveryReport.countDocuments({ status: "Pending" }),
-      // Field reports submitted and waiting on an approve/reject
-      ResearcherReport.countDocuments({ status: "Pending" }),
       // Open tenders that have at least one bid still to be judged
       TenderBid.distinct("tender", { status: "Pending" }).then(async (ids) =>
         ids.length ? Tender.countDocuments({ _id: { $in: ids }, status: "Open" }) : 0
       ),
-      // Completed digs whose finds still need a destination
-      ExcavationProject.countDocuments({ submitted_to_admin: true, allocation_done: false }),
-      ItemRequest.countDocuments({ approval_status: "Pending" }),
-      ToolRentalRequest.countDocuments({ approval_status: "Pending" }),
-      ToolRentalRequest.countDocuments({
-        approval_status: "Approved",
-        returned_at: null,
-        end_date: { $lt: now },
+      // Completed digs whose finds still need a destination. Requires at
+      // least one artifact so a completed project with nothing recovered
+      // (or one that only exists to anchor a review, never a real dig) can't
+      // sit flagged as "awaiting allocation" forever with nothing to do.
+      ExcavationProject.countDocuments({
+        submitted_to_admin: true,
+        allocation_done: false,
+        "artifacts.0": { $exists: true },
       }),
+      ItemRequest.countDocuments({ approval_status: "Pending" }),
+      // Same query the Equipment Inventory page's own "Requests" tab uses by
+      // default (routes/inventory.js GET /requests, filtered client-side) -
+      // this used to be overdue-equipment instead, a different number than
+      // what that tab actually shows on load.
+      ToolRentalRequest.countDocuments({ approval_status: "Pending" }),
       ExcavationRequest.countDocuments({}),
       User.countDocuments({ status: "pending" }),
       Auction.countDocuments({ status: "Active" }),
@@ -93,12 +99,12 @@ router.get("/work-summary", async (req, res) => {
 
     res.json({
       counts: {
-        field_reports: unassignedReports + reportsToReview,
+        field_reports: unassignedReports,
         tenders: tendersWithBids,
         excavation_projects: projectsAwaitingAllocation,
         item_requests: pendingItemRequests,
         tool_requests: pendingToolRequests,
-        tool_inventory: overdueEquipment,
+        tool_inventory: pendingToolRequests,
         excavation_requests: excavationRequests,
         pending_users: pendingUsers,
         auctions: activeAuctions,
@@ -134,13 +140,15 @@ router.post("/item-requests/:id", async (req, res) => {
     ).populate("item", "name");
 
     // Notification: museum authority hears back on their loan request.
+    // No "Go to page" here - there's no page showing this manager's own
+    // request history (the request itself is gone once approved; it's now
+    // just an allocated item), so a link would only lead somewhere unrelated.
     await notify({
       user: request?.museum_manager,
       category: "request",
       type: "item.request.approved",
       title: "Item request approved",
       message: `Your request for "${request?.item?.name || "an artifact"}" has been approved by the Government/Admin.`,
-      link: "/mm/request-items",
     });
 
     // Notification: logged under Approved Requests for the whole admin desk.
@@ -166,7 +174,6 @@ router.post("/item-requests/:id", async (req, res) => {
       type: "item.request.denied",
       title: "Item request denied",
       message: `Your request for "${request?.item?.name || "an artifact"}" was not approved.`,
-      link: "/mm/request-items",
     });
 
     return res.json({ message: "Item request denied and deleted!" });

@@ -77,7 +77,10 @@ export default function ExcavationProjects() {
   const visible = projects.filter((p) => {
     if (tab === "All") return true;
     if (tab === "Active") return !p.end_date;
-    return Boolean(p.end_date) && !p.allocation_done;
+    // Mirrors the "excavation_projects" badge query on the backend: only a
+    // completed dig that actually recovered something and isn't fully
+    // allocated yet counts as awaiting allocation.
+    return Boolean(p.end_date) && !p.allocation_done && (p.artifacts?.length || 0) > 0;
   });
 
   if (loading)

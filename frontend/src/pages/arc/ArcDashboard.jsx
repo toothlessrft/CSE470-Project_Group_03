@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { FolderKanban, ClipboardList, Gavel, Wrench } from "lucide-react";
+import { FolderKanban, ClipboardList, Gavel, Wrench, HelpCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
@@ -28,6 +28,7 @@ export default function ArcDashboard() {
     { to: "/arc/assignments", icon: ClipboardList, title: "Field Inspections & Reports", description: "Verify assigned discoveries and compile researcher reports" },
     { to: "/equipment", icon: Wrench, title: "Tools & Equipment", description: "Request excavation tools and field equipment for your active digs" },
     { to: "/auctions", icon: Gavel, title: "Auctions", description: "Bid on artifacts released for auction" },
+    { to: "/qna", icon: HelpCircle, title: "Public Archaeology Q&A", description: "Answer public questions and manage your posted answers" },
   ];
 
   return (

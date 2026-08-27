@@ -3,6 +3,7 @@ const express = require("express");
 const Notification = require("../models/Notification");
 const { requireAuth } = require("../middleware/auth");
 const { ensureDemoNotifications } = require("../services/sampleNotifications");
+const { ensureReviewRequestNotifications } = require("../services/reviewNotifications");
 
 const router = express.Router();
 router.use(requireAuth);
@@ -22,6 +23,7 @@ router.get("/", async (req, res) => {
     if (unread === "true") filter.read = false;
 
     await ensureDemoNotifications(req.user);
+    await ensureReviewRequestNotifications(req.user);
 
     const notifications = await Notification.find(filter)
       .sort({ action_required: -1, read: 1, createdAt: -1 })
@@ -40,6 +42,7 @@ router.get("/", async (req, res) => {
 router.get("/summary", async (req, res) => {
   try {
     await ensureDemoNotifications(req.user);
+    await ensureReviewRequestNotifications(req.user);
 
     const rows = await Notification.aggregate([
       { $match: { user: req.user._id, read: false } },

@@ -290,7 +290,8 @@ async function forMuseumManager(user) {
       type: `item.request.${r.approval_status.toLowerCase()}`,
       title: `Item request ${r.approval_status.toLowerCase()}`,
       message: `Your request for "${r.item?.name || "an artifact"}" is ${r.approval_status}.`,
-      link: "/mm/request-items",
+      // No "Go to page" - /mm/request-items is just the submission form, it
+      // doesn't show this manager's request history.
       read: i > 0,
       ageHours: 34 + i * 9,
     });
@@ -650,11 +651,16 @@ async function ensureDemoNotifications(user) {
     const userId = String(user._id);
     if (verified.has(userId)) return;
 
-    const existing = await Notification.countDocuments({ user: user._id, demo: true });
-    if (existing >= MIN_SAMPLES) {
-      verified.add(userId);
-      return;
-    }
+    // Always rebuild from scratch (once per server process) rather than only
+    // topping up when short of MIN_SAMPLES. A previous batch may reference
+    // records (an exhibition, an auction...) that have since been deleted or
+    // unpublished without a full reseed - e.g. an admin removing a test
+    // listing, or restarting the server against a database that was seeded
+    // a while ago. Topping up alone would never clear those out; a stale
+    // "New exhibition announced" notification would sit there forever
+    // pointing at nothing. Rebuilding on every process boot means a plain
+    // server restart is enough to self-heal, without requiring a reseed.
+    await Notification.deleteMany({ user: user._id, demo: true });
 
     const builder = BUILDERS[user.role] || forPublic;
     let samples = await builder(user);
