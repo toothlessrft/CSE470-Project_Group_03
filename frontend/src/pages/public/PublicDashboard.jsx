@@ -1,7 +1,10 @@
-import { Landmark, MapPin, FileText, Images, Search, CalendarDays, Gavel, LocateFixed } from "lucide-react";
+import { Landmark, MapPin, FileText, Images, Search, CalendarDays, Gavel, LocateFixed, HelpCircle } from "lucide-react";
 import ActionGrid from "../../components/ActionGrid";
+import ProfileCard from "../../components/ProfileCard";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PublicDashboard() {
+  const { user } = useAuth();
   const actions = [
     {
       to: "/exhibitions",
@@ -34,16 +37,16 @@ export default function PublicDashboard() {
       description: "Bid on artifacts released for auction, and build your wishlist.",
     },
     {
-      to: "/heritage-sites",
-      icon: Landmark,
-      title: "Heritage Sites",
-      description: "Explore famous heritage locations. (Coming Soon)",
-    },
-    {
       to: "/my-reports",
       icon: FileText,
       title: "My Reports",
       description: "Track the status of discoveries you have submitted to ArchiveEarth.",
+    },
+    {
+      to: "/qna",
+      icon: HelpCircle,
+      title: "Public Archaeology Q&A",
+      description: "Ask archaeologists a question, or browse answers from the community.",
     },
   ];
 
@@ -56,22 +59,17 @@ export default function PublicDashboard() {
         discovered artifacts and exploring Bangladesh's cultural heritage.
       </p>
 
+      {user && (
+        <ProfileCard
+          name={user.name}
+          nid={user.nid}
+          email={user.email}
+          role="Public Member"
+          lines={[user.phone && `Phone: ${user.phone}`]}
+        />
+      )}
+
       <ActionGrid items={actions} />
-
-      <div
-        style={{
-          marginTop: "40px",
-          padding: "25px",
-          borderRadius: "12px",
-          background: "#fff",
-        }}
-      >
-        <h2>Featured Artifacts</h2>
-
-        <p style={{ color: "#777" }}>
-          Artifact gallery will appear here in the next version.
-        </p>
-      </div>
     </div>
   );
 }

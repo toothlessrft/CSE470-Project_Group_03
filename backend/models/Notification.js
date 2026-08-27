@@ -24,6 +24,7 @@ const CATEGORIES = [
   "review", // cross feedback & performance reviews between archaeologists and excavation teams
   "reminder", // automatic deadline reminders
   "account", // registration approval, role changes, system messages
+  "qna", // Public Archaeology Q&A - new question, new answer, new comment
 ];
 
 // Categories that are only ever delivered to a fixed set of roles. Enforced

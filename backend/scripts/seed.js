@@ -22,6 +22,13 @@ const Auction = require("../models/Auction");
 const Bid = require("../models/Bid");
 const Wishlist = require("../models/Wishlist");
 const Review = require("../models/Review");
+const TeamChat = require("../models/TeamChat"); // Project Team Group Chat
+const ChatMessage = require("../models/ChatMessage"); // Project Team Group Chat
+const Question = require("../models/Question"); // Public Archaeology Q&A
+const Answer = require("../models/Answer"); // Public Archaeology Q&A
+const QnAComment = require("../models/QnAComment"); // Public Archaeology Q&A
+const Notification = require("../models/Notification");
+const { ensureChatForProject, archiveChatForProject } = require("../services/teamChat"); // Project Team Group Chat
 const { MUSEUMS } = require("../config/museums");
 
 const DEFAULT_PASSWORD = "password123"; // every seeded user gets this password
@@ -48,6 +55,17 @@ async function run() {
     Auction.deleteMany({}),
     Wishlist.deleteMany({}),
     Review.deleteMany({}),
+    TeamChat.deleteMany({}), // Project Team Group Chat
+    ChatMessage.deleteMany({}), // Project Team Group Chat
+    Question.deleteMany({}), // Public Archaeology Q&A
+    Answer.deleteMany({}), // Public Archaeology Q&A
+    QnAComment.deleteMany({}), // Public Archaeology Q&A
+    // Every notification (real or sample) references a user and usually a
+    // record that just got recreated above with a brand new _id, so nothing
+    // in here can still be valid after a reseed - leaving old rows behind
+    // just means stale notifications pointing at records that no longer
+    // exist (e.g. an exhibition that was deleted by the last reseed).
+    Notification.deleteMany({}),
   ]);
 
   // Some older seed runs left stale unique indexes on the bids collection.
@@ -98,7 +116,7 @@ async function run() {
     { nid: "MM003", role: "museum_manager", status: "approved", name: "Nusrat Jahan", email: "nusrat@museum.bd", phone: "+8801801234567", password: hash, roleProfile: { museum_name: "Varendra Research Museum", m_city: "Rajshahi", m_street: "University Road" } },
     // Ahad_23201016 - Excavation Team accounts. Each one is a company, and
     // `name` is that company's representative. Log in with nid E001/E002/E003.
-    { nid: "E001", role: "excavation_team", status: "approved", name: "Rahim Khan", email: "rahim@bengalexcavation.bd", phone: "+8801756789012", password: hash, roleProfile: { company_name: "Bengal Excavation Works Ltd.", representative_designation: "Site Operations Manager", team_size: 24, organization: "Bengal Excavation Works Ltd.", team_leader: "Rahim Khan" } },
+    { nid: "E001", role: "excavation_team", status: "approved", name: "Rahim Khan", email: "rahim@bengalexcavation.bd", phone: "+8801756789012", password: hash, roleProfile: { company_name: "Bengal Excavation Works Ltd.", team_size: 24, organization: "Bengal Excavation Works Ltd.", team_leader: "Rahim Khan" } },
     { nid: "E002", role: "excavation_team", status: "approved", name: "Sultana Ahmed", email: "sultana@heritagedigs.bd", phone: "+8801767890123", password: hash, roleProfile: { company_name: "Heritage Digs & Conservation", representative_designation: "Managing Director", team_size: 16, organization: "Heritage Digs & Conservation", team_leader: "Sultana Ahmed" } },
     { nid: "E003", role: "excavation_team", status: "approved", name: "Jamal Uddin", email: "jamal@padmagroundworks.bd", phone: "+8801778901234", password: hash, roleProfile: { company_name: "Padma Groundworks", representative_designation: "Field Supervisor", team_size: 31, organization: "Padma Groundworks", team_leader: "Jamal Uddin" } },
     { nid: "MNG001", role: "manager", status: "approved", name: "Kamal Hossain", email: "kamal@eng.bd", phone: "+8801511111111", password: hash },
@@ -1135,6 +1153,9 @@ async function run() {
     submitted_to_admin: true,
     completed_at: new Date(nowMs - 15 * tDay),
     completion_notes: "Boundary trenches closed, no further finds expected.",
+    // No artifacts were ever attached to this project - it only exists to
+    // anchor the reviews below - so there is genuinely nothing to allocate.
+    allocation_done: true,
   });
 
   const reviewProjectBogura = await ExcavationProject.create({
@@ -1150,6 +1171,7 @@ async function run() {
     submitted_to_admin: true,
     completed_at: new Date(nowMs - 35 * tDay),
     completion_notes: "Kiln footprint mapped and backfilled.",
+    allocation_done: true,
   });
 
   const reviewProjectRajshahi = await ExcavationProject.create({
@@ -1165,6 +1187,7 @@ async function run() {
     submitted_to_admin: true,
     completed_at: new Date(nowMs - 50 * tDay),
     completion_notes: "Salvage excavation completed ahead of riverbank erosion.",
+    allocation_done: true,
   });
 
   await Review.create([
@@ -1243,7 +1266,7 @@ async function run() {
   // complete, so the review popup + partner notification can be tested end
   // to end with clean data (in addition to the existing activeProject above,
   // which is lead_archaeologist: bob / excavation_team: rahim). ----
-  await ExcavationProject.create({
+  const khulnaProject = await ExcavationProject.create({
     p_name: "Khulna Coastal Shell Midden Excavation",
     organization: "Padma Groundworks",
     start_date: new Date(nowMs - 10 * tDay),
@@ -1255,6 +1278,16 @@ async function run() {
     location: { lat: 22.8456, lng: 89.5403, address: "Rupsa Riverbank, Khulna" },
   });
 
+  // Every other project above that has both a lead archaeologist and an
+  // excavation team assigned (the review-anchor digs + Khulna) also gets its
+  // group chat, same as the two seeded with full conversations - a project
+  // being fully staffed is what creates the chat, not which script path
+  // created the project.
+  for (const proj of [reviewProjectSylhet, reviewProjectBogura, reviewProjectRajshahi, khulnaProject]) {
+    await ensureChatForProject(proj);
+    if (proj.end_date) await archiveChatForProject(proj._id);
+  }
+
   console.log("Creating sample wishlist entries...");
   await Wishlist.create([
     { user: shirin._id, item: itemByNameUpdated["Gold Amulet"]._id }, // not currently up for auction
@@ -1262,6 +1295,134 @@ async function run() {
     { user: publicUser._id, item: itemByNameUpdated["Ancient Mirror Fragment"]._id }, // active auction user is winning
     { user: rahim._id, item: itemByNameUpdated["Gold Earring"]._id },
   ]);
+
+  // Tiny inline placeholder photo (data URL), same convention as every other
+  // uploaded image in this app (ImageUploader stores data URLs directly).
+  const PLACEHOLDER_IMAGE =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
+
+  console.log("Creating Project Team Group Chats (dummy + working data)...");
+
+  // Live chat on the still-active Comilla dig (Bob leads, Rahim's company is
+  // the excavation team) - shows an ongoing conversation, image sharing, and
+  // a participant added after the fact (Mizan joining as a second opinion).
+  const activeChat = await TeamChat.create({
+    project: activeProject._id,
+    participants: [
+      { user: bob._id, role: "archaeologist", added_at: new Date(nowMs - 68 * tDay) },
+      { user: rahim._id, role: "excavation_team", added_at: new Date(nowMs - 68 * tDay) },
+      { user: mizan._id, role: "archaeologist", added_by: bob._id, added_at: new Date(nowMs - 30 * tDay) },
+    ],
+  });
+
+  await ChatMessage.create([
+    { chat: activeChat._id, sender: bob._id, system: true, text: `Group chat created for "${activeProject.p_name}". Assigned members can now message and share updates here.`, createdAt: new Date(nowMs - 68 * tDay) },
+    { chat: activeChat._id, sender: bob._id, text: "Welcome to the Comilla dig chat - let's use this thread for daily coordination.", createdAt: new Date(nowMs - 67 * tDay) },
+    { chat: activeChat._id, sender: rahim._id, text: "Sounds good. Crew arrives on site tomorrow morning, starting with the north trench.", createdAt: new Date(nowMs - 67 * tDay + 3600000) },
+    { chat: activeChat._id, sender: bob._id, text: "Great, I'll be there by 9am to log the context sheets.", createdAt: new Date(nowMs - 66 * tDay) },
+    { chat: activeChat._id, sender: rahim._id, image: PLACEHOLDER_IMAGE, text: "First find of the week - terracotta plaque fragment turned up around 40cm.", createdAt: new Date(nowMs - 40 * tDay) },
+    { chat: activeChat._id, sender: bob._id, text: "Nice find! Bag it separately, I'll log it as a project artifact this evening.", createdAt: new Date(nowMs - 40 * tDay + 1800000) },
+    { chat: activeChat._id, sender: bob._id, system: true, text: `${bob.name} added ${mizan.name} to the group chat.`, createdAt: new Date(nowMs - 30 * tDay) },
+    { chat: activeChat._id, sender: mizan._id, text: "Thanks for the add - happy to help review the terracotta typology whenever you need a second opinion.", createdAt: new Date(nowMs - 30 * tDay + 900000) },
+    { chat: activeChat._id, sender: rahim._id, image: PLACEHOLDER_IMAGE, text: "Glazed storage jar rim just came out of context 118.", createdAt: new Date(nowMs - 22 * tDay) },
+    { chat: activeChat._id, sender: bob._id, text: "Logged. Keep the finds log updated daily please, the allocation review is coming up soon.", createdAt: new Date(nowMs - 21 * tDay) },
+    { chat: activeChat._id, sender: rahim._id, text: "Will do. Weather's held up well this week, we're roughly on schedule.", createdAt: new Date(nowMs - 5 * tDay) },
+  ]);
+
+  // Bob (the lead) has read up to a few days ago; Rahim and Mizan have not
+  // read the latest messages yet, so the DM icon has a real unread badge to
+  // show right after seeding.
+  await TeamChat.updateOne(
+    { _id: activeChat._id, "participants.user": bob._id },
+    { $set: { "participants.$.last_read_at": new Date(nowMs - 6 * tDay) } }
+  );
+
+  // Archived chat on the completed Somapura dig (Alice + Sultana's team) -
+  // shows a finished conversation that stays visible in chat history.
+  const archivedChat = await TeamChat.create({
+    project: completedProject._id,
+    participants: [
+      { user: alice._id, role: "archaeologist", added_at: new Date(nowMs - 178 * tDay), last_read_at: new Date(nowMs - 6 * tDay) },
+      { user: sultana._id, role: "excavation_team", added_at: new Date(nowMs - 178 * tDay), last_read_at: new Date(nowMs - 6 * tDay) },
+    ],
+    archived: true,
+    archived_at: new Date(nowMs - 6 * tDay),
+  });
+
+  await ChatMessage.create([
+    { chat: archivedChat._id, sender: alice._id, system: true, text: `Group chat created for "${completedProject.p_name}". Assigned members can now message and share updates here.`, createdAt: new Date(nowMs - 178 * tDay) },
+    { chat: archivedChat._id, sender: sultana._id, text: "Conservation lab is ready, we'll start the metal-detecting survey Monday.", createdAt: new Date(nowMs - 175 * tDay) },
+    { chat: archivedChat._id, sender: alice._id, text: "Perfect, I'll be onsite for the first lift.", createdAt: new Date(nowMs - 175 * tDay + 3600000) },
+    { chat: archivedChat._id, sender: sultana._id, image: PLACEHOLDER_IMAGE, text: "Bronze Avalokitesvara figure just lifted intact, traces of gilding visible.", createdAt: new Date(nowMs - 120 * tDay) },
+    { chat: archivedChat._id, sender: alice._id, text: "Beautiful. Straight into the conservation tray, I'll log it tonight.", createdAt: new Date(nowMs - 120 * tDay + 1800000) },
+    { chat: archivedChat._id, sender: sultana._id, text: "All three objects are conserved and packed, ready for handover whenever you are.", createdAt: new Date(nowMs - 7 * tDay) },
+    { chat: archivedChat._id, sender: alice._id, text: "Submitting the closure report today. Great work on this one.", createdAt: new Date(nowMs - 6 * tDay - 1800000) },
+    { chat: archivedChat._id, sender: alice._id, system: true, text: "This excavation project has been completed. The chat is now archived and read-only, but stays in your chat history.", createdAt: new Date(nowMs - 6 * tDay) },
+  ]);
+
+  console.log("Creating Public Archaeology Q&A (dummy + working data)...");
+
+  // Answered question with a photo and a follow-up discussion thread.
+  const qGoldEarring = await Question.create({
+    askedBy: publicUser._id,
+    title: "What does a gold floral earring like this tell us about Gupta-era craftsmanship?",
+    body: "I found a reference to a Gupta-period gold earring with floral motifs from Paundra Vardhana. What techniques were used to make jewelry like this, and how common was gold ornamentation for that period?",
+    images: [PLACEHOLDER_IMAGE],
+    createdAt: new Date(nowMs - 12 * tDay),
+  });
+  await Answer.create({
+    question: qGoldEarring._id,
+    answeredBy: alice._id,
+    body: "Gupta-era goldsmiths used repoussé and granulation techniques to create floral motifs like this. Gold ornamentation was largely restricted to elite and royal households - most commoners wore copper or silver-alloy jewelry instead.",
+    createdAt: new Date(nowMs - 11 * tDay),
+  });
+  await Question.updateOne({ _id: qGoldEarring._id }, { $inc: { answeredCount: 1 } });
+  await QnAComment.create([
+    { question: qGoldEarring._id, author: publicUser._id, body: "That's fascinating, thank you! Were these earrings usually buried with their owners?", createdAt: new Date(nowMs - 10 * tDay) },
+    { question: qGoldEarring._id, author: alice._id, body: "Sometimes, though many were passed down or recovered from hoards buried during unrest rather than from burials.", createdAt: new Date(nowMs - 10 * tDay + 3600000) },
+  ]);
+
+  // Answered question, no photo, single answer.
+  const qBronzeBell = await Question.create({
+    askedBy: shirin._id,
+    title: "How do archaeologists date bronze ritual objects without written inscriptions?",
+    body: "A lot of the bronze bells and ladles I've seen in auction listings don't have visible inscriptions. How do experts date them?",
+    createdAt: new Date(nowMs - 8 * tDay),
+  });
+  await Answer.create({
+    question: qBronzeBell._id,
+    answeredBy: bob._id,
+    body: "Stylistic analysis (motifs, casting technique, alloy composition) combined with the stratigraphic context they were recovered from gives a fairly tight date range even without inscriptions. Metallurgical testing (XRF) also helps compare against known dated assemblages.",
+    createdAt: new Date(nowMs - 7 * tDay),
+  });
+  await Question.updateOne({ _id: qBronzeBell._id }, { $inc: { answeredCount: 1 } });
+
+  // Still-open question, waiting for an archaeologist to answer.
+  const qUnanswered = await Question.create({
+    askedBy: publicUser._id,
+    title: "Is it legal for me to keep small pottery shards I find while walking near Mahasthangarh?",
+    body: "I sometimes see broken pottery pieces on the surface near the Mahasthangarh site boundary. Am I allowed to pick them up, or should I report them instead?",
+    createdAt: new Date(nowMs - 2 * tDay),
+  });
+  await QnAComment.create({
+    question: qUnanswered._id,
+    author: shirin._id,
+    body: "I'd like to know this too, I've wondered the same thing!",
+    createdAt: new Date(nowMs - 1 * tDay),
+  });
+
+  // Answered by more than one archaeologist, so "My Answers" has real cross-author data.
+  const qMultiAnswer = await Question.create({
+    askedBy: shirin._id,
+    title: "Why were so many Pala-era Buddhist sites built with cruciform ground plans?",
+    body: "Somapura Mahavihara and a few other Pala sites share this cruciform layout. Is there a religious or practical reason behind it?",
+    createdAt: new Date(nowMs - 25 * tDay),
+  });
+  await Answer.create([
+    { question: qMultiAnswer._id, answeredBy: alice._id, body: "The cruciform plan reflects mandala-based cosmology in Vajrayana Buddhist practice - the layout mirrors a sacred diagram meant to be walked in ritual circumambulation.", createdAt: new Date(nowMs - 24 * tDay) },
+    { question: qMultiAnswer._id, answeredBy: mizan._id, body: "Worth adding: it's also practical for large numbers of monks and pilgrims to circulate around the central shrine during festivals without congestion.", createdAt: new Date(nowMs - 23 * tDay) },
+  ]);
+  await Question.updateOne({ _id: qMultiAnswer._id }, { $inc: { answeredCount: 2 } });
 
   console.log("\nDone! Database seeded.");
   console.log("");
@@ -1284,6 +1445,13 @@ async function run() {
   console.log("left both ways (Alice, Charlie, Mizan / Rahim, Jamal, Sultana all have ratings),");
   console.log("plus 2 active fully-assigned projects (Comilla: Bob+Rahim, Khulna: Alice+Jamal)");
   console.log("ready to be marked complete to test the review popup + partner notification.");
+  console.log("");
+  console.log("Project Team Group Chats: 1 live chat on the Comilla dig (Bob, Rahim, Mizan)");
+  console.log("with a real conversation and shared photos, plus 1 archived chat on the completed");
+  console.log("Somapura dig (Alice, Sultana) kept in chat history.");
+  console.log("");
+  console.log("Public Archaeology Q&A: 4 questions (PUB001, Shirin) - 2 answered with follow-up");
+  console.log("comments, 1 answered by two archaeologists (Alice + Mizan), 1 still open and unanswered.");
   process.exit(0);
 }
 

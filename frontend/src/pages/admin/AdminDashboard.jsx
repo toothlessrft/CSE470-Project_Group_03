@@ -3,7 +3,6 @@ import { ClipboardCheck, Hammer, MapPinned, ListChecks, ScanSearch, Users, Gavel
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
-import NotificationList from "../../components/NotificationList";
 
 // How often the outstanding-work counts are refreshed while the tab is open.
 const REFRESH_MS = 20 * 1000;
@@ -81,13 +80,6 @@ export default function AdminDashboard() {
       </p>
 
       <ActionGrid items={actions} />
-
-      {/* The admin has no navbar bell, so the full inbox lives here - including
-          anything not filed under one of the cards above. */}
-      <h2 className="section-title" style={{ marginTop: "2.2rem" }}>
-        Notifications
-      </h2>
-      <NotificationList />
     </div>
   );
 }

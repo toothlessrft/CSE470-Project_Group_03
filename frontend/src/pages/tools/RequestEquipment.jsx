@@ -4,9 +4,17 @@
 // lead archaeologist or the assigned team of an *active* project request
 // equipment, so if this page shows no projects there is nothing to request for.
 import { useEffect, useMemo, useState } from "react";
-import { Wrench, PackageCheck, AlertTriangle, Undo2, X } from "lucide-react";
+import { Wrench, PackageCheck, AlertTriangle, Undo2, X, PlusCircle, ClipboardList, Boxes } from "lucide-react";
 import { api } from "../../api";
 import StatusBadge from "../../components/StatusBadge";
+
+// The 3 sections used to be stacked and scrolled through; now they're picked
+// via these cards, same look as the dashboard's own 3-box action grids.
+const SECTIONS = [
+  { key: "new", icon: PlusCircle, title: "New Request", description: "Request a tool or piece of field equipment for an active project." },
+  { key: "mine", icon: ClipboardList, title: "My Requests", description: "Track what you've requested, and mark equipment returned." },
+  { key: "catalogue", icon: Boxes, title: "Equipment Catalogue", description: "Browse everything available across the tool inventory." },
+];
 
 const EMPTY_FORM = {
   tool_id: "",
@@ -18,6 +26,7 @@ const EMPTY_FORM = {
 };
 
 export default function RequestEquipment() {
+  const [section, setSection] = useState(null);
   const [tools, setTools] = useState([]);
   const [projects, setProjects] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -136,8 +145,37 @@ export default function RequestEquipment() {
         </div>
       )}
 
+      {section ? (
+        <button type="button" className="btn-link" onClick={() => setSection(null)} style={{ marginBottom: "0.5rem" }}>
+          ← Back to Tools & Equipment
+        </button>
+      ) : (
+        <div className="action-grid">
+          {SECTIONS.map(({ key, icon: Icon, title, description }) => (
+            <button
+              type="button"
+              key={key}
+              className="action-card"
+              style={{ cursor: "pointer", textAlign: "left", font: "inherit", width: "100%" }}
+              onClick={() => setSection(key)}
+            >
+              <div className="action-icon">
+                <Icon size={22} strokeWidth={2} />
+              </div>
+              <div>
+                <h4>{title}</h4>
+                <p>{description}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* ---- Request form ---- */}
-      {projects.length > 0 && (
+      {section === "new" && projects.length === 0 && (
+        <p className="hint">Nothing to request yet - see the notice above.</p>
+      )}
+      {section === "new" && projects.length > 0 && (
         <>
           <h2 className="section-title">New request</h2>
           <form className="form" onSubmit={handleSubmit}>
@@ -230,6 +268,8 @@ export default function RequestEquipment() {
       )}
 
       {/* ---- My requests ---- */}
+      {section === "mine" && (
+      <>
       <h2 className="section-title" style={{ marginTop: "2.2rem" }}>
         My requests
       </h2>
@@ -297,8 +337,12 @@ export default function RequestEquipment() {
           )}
         </tbody>
       </table>
+      </>
+      )}
 
       {/* ---- Catalogue ---- */}
+      {section === "catalogue" && (
+      <>
       <h2 className="section-title" style={{ marginTop: "2.2rem" }}>
         Equipment catalogue
       </h2>
@@ -348,6 +392,8 @@ export default function RequestEquipment() {
         ))}
         {visibleTools.length === 0 && <p className="hint">No equipment matches that filter.</p>}
       </div>
+      </>
+      )}
     </div>
   );
 }

@@ -15,6 +15,8 @@ const COLORS = {
   "On Loan": "#b5834d",
   "Under Conservation": "#d17d00",
   Transferred: "#5b6b8c",
+  Answered: "#2e7d32",
+  Open: "#6b6258",
 };
 
 export default function StatusBadge({ status }) {

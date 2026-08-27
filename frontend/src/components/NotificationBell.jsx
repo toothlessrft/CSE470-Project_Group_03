@@ -24,6 +24,7 @@ import {
   ArrowUpRight,
   Inbox,
   Star,
+  HelpCircle,
 } from "lucide-react";
 import { api } from "../api";
 import { goToLink } from "../utils/goToLink";
@@ -37,9 +38,10 @@ const CATEGORY_LABELS = [
   { key: "request", label: "Requests & Approvals", icon: ClipboardCheck },
   { key: "assignment", label: "Assignments & Transfers", icon: MapPinned },
   { key: "tender", label: "Tenders & Bids", icon: FileSignature },
-  { key: "review", label: "Reviews & Ratings", icon: Star },
+  { key: "review", label: "Review & Feedback", icon: Star },
   { key: "reminder", label: "Deadline Reminders", icon: Clock },
   { key: "account", label: "Account", icon: UserCheck },
+  { key: "qna", label: "Q&A", icon: HelpCircle },
 ];
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_LABELS.map((c) => [c.key, c]));
@@ -103,8 +105,8 @@ export default function NotificationBell() {
       .catch(() => {});
   }, []);
 
-  const loadNotifications = useCallback(() => {
-    setLoading(true);
+  const loadNotifications = useCallback((silent = false) => {
+    if (!silent) setLoading(true);
     api
       .get("/notifications?limit=100")
       .then((data) => setAllNotifications(data.notifications || []))
@@ -114,12 +116,20 @@ export default function NotificationBell() {
       });
   }, []);
 
-  // Poll the cheap summary endpoint; the full list is only fetched on open.
+  // Poll the cheap summary endpoint for the bell's badge. While the panel is
+  // open, also re-poll the full list on the same tick - otherwise the
+  // per-category counts (built from `notifications`, fetched once on open)
+  // drift out of sync with the badge (built from `summary`, always polled),
+  // which is exactly what shows a different number on the bell than in the
+  // category rows.
   useEffect(() => {
     loadSummary();
-    const timer = setInterval(loadSummary, POLL_MS);
+    const timer = setInterval(() => {
+      loadSummary();
+      if (open) loadNotifications(true);
+    }, POLL_MS);
     return () => clearInterval(timer);
-  }, [loadSummary]);
+  }, [loadSummary, loadNotifications, open]);
 
   // Close on an outside click or Escape.
   useEffect(() => {
@@ -190,7 +200,7 @@ export default function NotificationBell() {
 
   function goToNotification(notification) {
     setOpen(false);
-    if (notification.link) navigate(notification.link);
+    goToLink(navigate, notification.link);
   }
 
   async function markAllRead() {
@@ -228,7 +238,7 @@ export default function NotificationBell() {
         onClick={togglePanel}
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
       >
-        <Bell size={17} />
+        <Bell size={21} />
         {unread > 0 && <span className="notif-count">{unread > 99 ? "99+" : unread}</span>}
       </button>
 
@@ -292,7 +302,7 @@ export default function NotificationBell() {
                     <span>You're all caught up.</span>
                   </p>
                 )}
-                {categories.map(({ key, label, icon: Icon, total, unread: catUnread }) => (
+                {categories.map(({ key, label, icon: Icon, unread: catUnread }) => (
                   <button
                     type="button"
                     key={key}
@@ -304,9 +314,6 @@ export default function NotificationBell() {
                     </span>
                     <span className="notif-cat-text">
                       <strong>{label}</strong>
-                      <small>
-                        {total} notification{total === 1 ? "" : "s"}
-                      </small>
                     </span>
                     {catUnread > 0 && <span className="notif-pill">{catUnread}</span>}
                     <ChevronRight size={15} className="notif-chevron" />

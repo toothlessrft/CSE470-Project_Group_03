@@ -66,6 +66,14 @@ import ToolInventory from "./pages/admin/ToolInventory";
 // Cross Feedback & Performance Review System
 import SubmitReview from "./pages/SubmitReview";
 import ReviewHistory from "./pages/ReviewHistory";
+// Project Team Group Chat
+import TeamChatPage from "./pages/chat/TeamChatPage";
+// Public Archaeology Q&A
+import QnAList from "./pages/qna/QnAList";
+import QuestionDetail from "./pages/qna/QuestionDetail";
+import AskQuestion from "./pages/qna/AskQuestion";
+import MyQuestions from "./pages/qna/MyQuestions";
+import MyAnswers from "./pages/qna/MyAnswers";
 
 
 export default function App() {
@@ -481,6 +489,44 @@ export default function App() {
           element={
             <ProtectedRoute role="admin">
               <CreateAuction />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Project Team Group Chat - open to any assigned/authorized member */}
+        <Route
+          path="/chats/:projectId"
+          element={
+            <ProtectedRoute>
+              <TeamChatPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Public Archaeology Q&A - browsing is open to everyone, guests included */}
+        <Route path="/qna" element={<QnAList />} />
+        <Route path="/qna/:id" element={<QuestionDetail />} />
+        <Route
+          path="/qna/ask"
+          element={
+            <ProtectedRoute role="public">
+              <AskQuestion />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/qna/my-questions"
+          element={
+            <ProtectedRoute role="public">
+              <MyQuestions />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/qna/my-answers"
+          element={
+            <ProtectedRoute role="archaeologist">
+              <MyAnswers />
             </ProtectedRoute>
           }
         />

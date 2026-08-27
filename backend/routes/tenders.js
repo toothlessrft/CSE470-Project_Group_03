@@ -386,6 +386,10 @@ router.post("/admin/:id/award", requireRole("admin"), async (req, res) => {
       agreed_timeline_days: winningBid.timeline_days,
     });
 
+    // Project Team Group Chat - auto-created now that both the lead
+    // archaeologist and the awarded excavation team are set on the project.
+    await ensureChatForProject(project);
+
     winningBid.status = "Accepted";
     winningBid.reviewed_by = req.user._id;
     winningBid.reviewed_at = new Date();
@@ -807,6 +811,9 @@ router.post("/projects/:id/complete", async (req, res) => {
     }
   );
   const updated = await ExcavationProject.findById(project._id);
+
+  // Project Team Group Chat - archived on completion, stays in chat history.
+  await archiveChatForProject(project._id);
 
   // Notification: closure report is with the Government, artifacts need allocating.
   await notifyAdmins({

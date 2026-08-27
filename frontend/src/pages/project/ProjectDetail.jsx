@@ -203,6 +203,11 @@ export default function ProjectDetail() {
 
       <div className="report-header">
         <h1 style={{ margin: 0 }}>{project.p_name}</h1>
+        {team && (
+          <Link to={`/chats/${project._id}`} className="btn-small btn-outline-light" style={{ marginLeft: "auto", marginRight: "0.75rem" }}>
+            <MessageCircle size={14} /> Team Chat
+          </Link>
+        )}
         <span
           style={{
             display: "inline-block",

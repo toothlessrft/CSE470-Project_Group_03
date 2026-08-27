@@ -11,11 +11,11 @@ import {
   FileText,
   LocateFixed,
   Compass,
-  ScanSearch,
-  ShieldCheck,
+  HelpCircle,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
+import ChatBell from "./ChatBell";
 import NavDropdown from "./NavDropdown";
 
 const ROLE_LABELS = {
@@ -41,6 +41,7 @@ const EXPLORE_ITEMS = [
   { to: "/museums", icon: Landmark, label: "Museum Directory" },
   { to: "/near-me", icon: LocateFixed, label: "Near Me" },
   { to: "/auctions", icon: Gavel, label: "Auctions" },
+  { to: "/qna", icon: HelpCircle, label: "QnA" },
 ];
 
 export default function Navbar() {
@@ -51,12 +52,6 @@ export default function Navbar() {
     await logout();
     navigate("/login");
   }
-
-  const adminItems = [
-    { to: "/admin/reports", icon: ScanSearch, label: "Field Reports" },
-    { to: "/admin/auctions", icon: Gavel, label: "Manage Auctions" },
-    { to: "/admin/tenders", icon: FileText, label: "Tenders" },
-  ];
 
   return (
     <nav className="navbar">
@@ -71,11 +66,11 @@ export default function Navbar() {
           <>
             <Link to="/report-discovery"><MapPin size={15} /> Report Discovery</Link>
 
-            {user.role === "admin" && <NavDropdown label="Admin Tools" icon={ShieldCheck} items={adminItems} />}
             {user.role === "excavation_team" && (
               <Link to="/et/tenders"><FileText size={15} /> Tenders</Link>
             )}
 
+            {(user.role === "archaeologist" || user.role === "excavation_team") && <ChatBell />}
             <NotificationBell />
 
             <Link
