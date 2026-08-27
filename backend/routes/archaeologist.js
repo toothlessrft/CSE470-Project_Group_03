@@ -11,6 +11,7 @@ const DiscoveryReport = require("../models/DiscoveryReport");
 const ResearcherReport = require("../models/ResearcherReport"); // Researcher Report: Ahad
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { notify, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
+const { sendReviewRequests } = require("../services/reviewNotifications"); // Cross Feedback & Performance Review
 
 const router = express.Router();
 router.use(requireAuth, requireRole("archaeologist"));
@@ -104,10 +105,22 @@ router.get("/projects", async (req, res) => {
 
 // POST /api/arc/projects/:id/end  (was /project/<id>/end)
 router.post("/projects/:id/end", async (req, res) => {
-  await ExcavationProject.updateOne(
-    { _id: req.params.id, lead_archaeologist: req.user._id },
+  const result = await ExcavationProject.updateOne(
+    { _id: req.params.id, lead_archaeologist: req.user._id, end_date: null },
     { end_date: new Date() }
   );
+
+  // Cross Feedback & Performance Review System: this is the second way a dig
+  // can finish (the other is /api/tenders/projects/:id/complete), so the
+  // review prompts have to be raised here too - otherwise a project ended
+  // from "Manage Projects" would never ask either side for a rating.
+  // Guarded on modifiedCount so re-ending an already-finished project is a
+  // no-op rather than a second round of prompts.
+  if (result.modifiedCount) {
+    const project = await ExcavationProject.findById(req.params.id);
+    await sendReviewRequests(project);
+  }
+
   res.json({ message: "Project ended." });
 });
 

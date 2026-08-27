@@ -2,7 +2,7 @@
 // clicking a project from Manage Projects (archaeologist) or My Projects
 // (excavation team); the admin can open it too. Everyone reads the same
 // record - the buttons on offer just depend on the role.
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
   ArrowLeft,
@@ -17,6 +17,11 @@ import {
   Trash2,
   CheckCircle2,
   Gavel,
+<<<<<<< Updated upstream
+=======
+  MessageCircle,
+  Star,
+>>>>>>> Stashed changes
 } from "lucide-react";
 import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
@@ -48,6 +53,11 @@ export default function ProjectDetail() {
   const [busy, setBusy] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
+  // Cross Feedback & Performance Review: whether this user still owes their
+  // partner a rating on this project. null until checked (or when the check
+  // does not apply, e.g. an admin viewing someone else's dig).
+  const [reviewStatus, setReviewStatus] = useState(null);
+
   function load() {
     setLoading(true);
     api
@@ -61,6 +71,24 @@ export default function ProjectDetail() {
   }
 
   useEffect(load, [projectId]);
+
+  // Only the two people on the dig can rate each other, and only once it is
+  // finished - the endpoint rejects anyone else, so don't even ask outside
+  // those cases (an admin viewing the page would just get a 403).
+  const canReview = Boolean(project?.end_date) && (permissions.isLead || permissions.isTeam);
+
+  const loadReviewStatus = useCallback(() => {
+    if (!canReview) {
+      setReviewStatus(null);
+      return;
+    }
+    api
+      .get(`/reviews/project/${projectId}`)
+      .then(setReviewStatus)
+      .catch(() => setReviewStatus(null));
+  }, [canReview, projectId]);
+
+  useEffect(loadReviewStatus, [loadReviewStatus]);
 
   async function handleArtifactSubmit(form) {
     setModalError("");
@@ -133,6 +161,29 @@ export default function ProjectDetail() {
     );
 
   const isComplete = Boolean(project.end_date);
+
+  // "Rate your partner", rendered next to whichever party the current user is
+  // entitled to review. Only shown once the dig is finished - there is nothing
+  // to rate mid-project, and the API would reject it anyway.
+  //
+  // Deliberately NOT gated on reviewStatus having loaded: that call is only
+  // needed to choose the label, and gating on it means one failed request
+  // silently hides the button with no way for the user to tell why. The modal
+  // re-fetches the same context itself and reports any real problem.
+  const alreadyRated = Boolean(reviewStatus?.already_reviewed);
+  const ratePartnerButton = canReview ? (
+    <button
+      type="button"
+      className={alreadyRated ? "btn-small" : "btn"}
+      onClick={() => setShowReviewModal(true)}
+      style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+      title={alreadyRated ? "You have already rated your partner on this project" : "Rate your partner"}
+    >
+      <Star size={14} fill={alreadyRated ? "currentColor" : "none"} />
+      {alreadyRated ? "Your rating" : "Rate your partner"}
+    </button>
+  ) : null;
+
   const canEdit = permissions.canEdit;
   const progressColor = PROGRESS_COLORS[project.progress] || "var(--muted)";
   const team = project.excavation_team;
@@ -270,9 +321,13 @@ export default function ProjectDetail() {
 
       {/* Excavation team */}
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>
-          <Users size={16} style={{ verticalAlign: "middle" }} /> Excavation Team
-        </h3>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+          <h3 style={{ marginTop: 0, marginBottom: "0.5rem" }}>
+            <Users size={16} style={{ verticalAlign: "middle" }} /> Excavation Team
+          </h3>
+          {/* Mirror image of the button below: the archaeologist rates the team. */}
+          {permissions.isLead && team && ratePartnerButton}
+        </div>
         {team ? (
           <table className="table" style={{ marginTop: 0 }}>
             <tbody>
@@ -312,7 +367,12 @@ export default function ProjectDetail() {
 
         {project.lead_archaeologist && (
           <>
-            <h4>Lead Archaeologist</h4>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+              <h4 style={{ margin: "1rem 0 0.5rem" }}>Lead Archaeologist</h4>
+              {/* The excavation team rates the archaeologist, so this button
+                  only belongs on their side of the page. */}
+              {permissions.isTeam && ratePartnerButton}
+            </div>
             <p style={{ fontSize: "0.9rem", margin: 0 }}>
               {project.lead_archaeologist.name} ({project.lead_archaeologist.nid}) —{" "}
               {project.lead_archaeologist.email}
@@ -480,7 +540,11 @@ export default function ProjectDetail() {
       />
 
       {showReviewModal && (
-        <ReviewModal projectId={projectId} onClose={() => setShowReviewModal(false)} onSubmitted={() => {}} />
+        <ReviewModal
+          projectId={projectId}
+          onClose={() => setShowReviewModal(false)}
+          onSubmitted={loadReviewStatus}
+        />
       )}
     </div>
   );
