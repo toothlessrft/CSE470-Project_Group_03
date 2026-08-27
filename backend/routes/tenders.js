@@ -12,11 +12,8 @@ const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { notify, notifyMany, notifyRole, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
-<<<<<<< Updated upstream
-=======
 const { ensureChatForProject, archiveChatForProject } = require("../services/teamChat"); // Project Team Group Chat
 const { sendReviewRequests } = require("../services/reviewNotifications"); // Cross Feedback & Performance Review
->>>>>>> Stashed changes
 
 const router = express.Router();
 router.use(requireAuth);
@@ -835,43 +832,12 @@ router.post("/projects/:id/complete", async (req, res) => {
     [req.user._id]
   );
 
-<<<<<<< Updated upstream
-  // Cross Feedback & Performance Review System: whichever side didn't click
-  // "Complete" gets asked to rate the other. The person who just completed it
-  // gets their own rating prompt immediately in the UI (see ProjectDetail.jsx).
-  const otherPartyId =
-    req.user.role === "archaeologist"
-      ? project.excavation_team?._id || project.excavation_team
-      : project.lead_archaeologist?._id || project.lead_archaeologist;
-
-  if (otherPartyId) {
-    // Falls back to "assignment" if this server's Notification schema hasn't
-    // picked up the "review" category yet, so the notification always gets
-    // sent even if that file update was missed.
-    const reviewCategory = Notification.CATEGORIES?.includes("review") ? "review" : "assignment";
-    const sent = await notify({
-      user: otherPartyId,
-      category: reviewCategory,
-      type: "review.requested",
-      title: "Report submitted, rate your partner",
-      message: `The excavation "${project.p_name}" is complete. Share a rating and feedback about your partner.`,
-      link: `/reviews/${project._id}`,
-      actionRequired: true,
-    });
-    if (!sent) {
-      console.error(
-        `[reviews] could not notify ${otherPartyId} to rate project ${project._id} - check that Notification.js includes the "review" category.`
-      );
-    }
-  }
-=======
   // Cross Feedback & Performance Review System: both sides are asked to rate
   // each other. The person who clicked "Complete" also sees the rating popup
   // inline straight away (see ProjectDetail.jsx), but they still get the
   // notification - dismissing that popup with "Maybe later" would otherwise
   // leave them no way back to it.
   await sendReviewRequests(updated);
->>>>>>> Stashed changes
 
   res.json({
     message: "Project completed and submitted to the Government for artifact allocation.",

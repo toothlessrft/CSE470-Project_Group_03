@@ -26,11 +26,8 @@ import {
   Star,
 } from "lucide-react";
 import { api } from "../api";
-<<<<<<< Updated upstream
-=======
 import { goToLink } from "../utils/goToLink";
 import { useAuth } from "../context/AuthContext";
->>>>>>> Stashed changes
 
 // Keep in sync with CATEGORIES in backend/models/Notification.js
 const CATEGORY_LABELS = [
@@ -47,9 +44,6 @@ const CATEGORY_LABELS = [
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_LABELS.map((c) => [c.key, c]));
 
-<<<<<<< Updated upstream
-const POLL_MS = 45 * 1000;
-=======
 // Keep in sync with CATEGORY_ROLES in backend/models/Notification.js.
 // The backend already refuses to create a restricted notification for the
 // wrong role, so this is belt-and-braces: it also hides rows that predate
@@ -64,7 +58,6 @@ function canSeeCategory(category, role) {
 }
 
 const POLL_MS = 15 * 1000;
->>>>>>> Stashed changes
 
 function timeAgo(value) {
   if (!value) return "";
@@ -114,17 +107,11 @@ export default function NotificationBell() {
     setLoading(true);
     api
       .get("/notifications?limit=100")
-<<<<<<< Updated upstream
-      .then((data) => setNotifications(data.notifications || []))
-      .catch(() => setNotifications([]))
-      .finally(() => setLoading(false));
-=======
       .then((data) => setAllNotifications(data.notifications || []))
       .catch(() => setAllNotifications([]))
       .finally(() => {
         if (!silent) setLoading(false);
       });
->>>>>>> Stashed changes
   }, []);
 
   // Poll the cheap summary endpoint; the full list is only fetched on open.

@@ -17,11 +17,8 @@ import {
   Trash2,
   CheckCircle2,
   Gavel,
-<<<<<<< Updated upstream
-=======
   MessageCircle,
   Star,
->>>>>>> Stashed changes
 } from "lucide-react";
 import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
