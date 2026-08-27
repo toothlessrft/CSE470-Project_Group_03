@@ -2,6 +2,7 @@ const express = require("express");
 const mongoose = require("mongoose");
 const Review = require("../models/Review");
 const ExcavationProject = require("../models/ExcavationProject");
+const Notification = require("../models/Notification");
 const { requireAuth } = require("../middleware/auth");
 
 const router = express.Router();
@@ -77,6 +78,14 @@ router.post("/project/:projectId", async (req, res) => {
       rating,
       feedback: (req.body.feedback || "").trim(),
     });
+
+    // The prompt has now been answered, so retire it: left unread it keeps a
+    // red badge and an action-required marker on the bell forever, since
+    // nothing else in the app would ever clear it.
+    await Notification.updateMany(
+      { user: req.user._id, type: "review.requested", "meta.project": project._id, read: false },
+      { read: true, read_at: new Date(), action_required: false }
+    );
 
     res.status(201).json({ message: "Thanks for your feedback!", review });
   } catch (err) {
