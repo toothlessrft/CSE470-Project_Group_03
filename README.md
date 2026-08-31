@@ -2,7 +2,7 @@
 
 A comprehensive web application for managing archaeological excavation projects, artifact loans, research reports, and field teams.
 
-## Project Overview
+## "Project Overview"
 
 This system supports multiple user roles (Admin, Archaeologist, Museum Manager, Excavation Team) with role-based access control, artifact management, team coordination, and reporting capabilities.
 
