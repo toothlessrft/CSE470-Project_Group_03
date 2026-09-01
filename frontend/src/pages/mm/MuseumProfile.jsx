@@ -61,7 +61,7 @@ export default function MuseumProfile() {
         const data = await api.put("/mm/museum-profile", { ...form, location });
       setProfile(data.profile);
       setMode("view");
-      flashSuccess("Museum profile updated. This is what visitors will see.");
+      flashSuccess("Museum profile updated. These details are now public.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -69,53 +69,77 @@ export default function MuseumProfile() {
     }
   }
 
-  if (loading) return <div className="page">Loading museum profile...</div>;
+  if (loading)
+    return (
+      <div className="page">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading museum profile
+        </div>
+      </div>
+    );
 
   return (
     <div className="page">
-      <h1>Museum Profile</h1>
-      <p className="page-subtitle">
-        {profile?.museum_name ? `Public-facing details for ${profile.museum_name}.` : "Public-facing details for your museum."}{" "}
-        Shown on the Museum Directory and Near Me pages.
-      </p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Public listing</span>
+          <h1>Museum profile</h1>
+          <p className="page-subtitle">
+            {profile?.museum_name
+              ? `Visitor information for ${profile.museum_name}.`
+              : "Visitor information for your museum."}{" "}
+            These details appear in the museum directory and in location searches.
+          </p>
+        </div>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {successMsg && <div className="alert alert-success">{successMsg}</div>}
 
       {mode === "view" ? (
-        <div className="card">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem" }}>
-            <h2 style={{ margin: 0 }}>{profile.museum_name}</h2>
-            <button type="button" className="btn-small btn-outline-light" onClick={startEdit}>
-              <Pencil size={14} /> Edit
+        <div className="panel">
+          <div className="panel-head">
+            <h2>{profile.museum_name}</h2>
+            <button type="button" className="btn-small btn-secondary" onClick={startEdit}>
+              <Pencil size={14} aria-hidden="true" /> Edit details
             </button>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", marginTop: "1rem" }}>
-            <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <MapPin size={16} />
-              {profile.address || <span className="hint">No address set yet.</span>}
-            </p>
-            <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Clock size={16} />
-              {profile.operating_hours || <span className="hint">No operating hours set yet.</span>}
-            </p>
-            <p style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.5rem" }}>
-              <Ticket size={16} />
-              {profile.ticket_info || <span className="hint">No ticket info set yet.</span>}
-            </p>
-          </div>
+          <div className="panel-body">
+            <dl className="detail-list" style={{ marginBottom: "1.25rem" }}>
+              <div>
+                <dt>
+                  <MapPin size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Address
+                </dt>
+                <dd>{profile.address || <span className="hint">Not set</span>}</dd>
+              </div>
+              <div>
+                <dt>
+                  <Clock size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Opening hours
+                </dt>
+                <dd>{profile.operating_hours || <span className="hint">Not set</span>}</dd>
+              </div>
+              <div>
+                <dt>
+                  <Ticket size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Admission
+                </dt>
+                <dd>{profile.ticket_info || <span className="hint">Not set</span>}</dd>
+              </div>
+            </dl>
 
-          <div style={{ marginTop: "1.25rem" }}>
             {profile.location?.lat != null ? (
               <GoogleMapPicker value={profile.location} editable={false} />
             ) : (
-              <p className="hint">No location pinned on the map yet — it won't appear on Near Me until you add one.</p>
+              <div className="alert alert-warning" style={{ marginBottom: 0 }}>
+                No map location has been set. Your museum will not appear in location searches until
+                one is added.
+              </div>
             )}
           </div>
         </div>
       ) : (
         <form className="card form" onSubmit={handleSave}>
+          <h3 style={{ margin: 0 }}>Visitor information</h3>
           <label>
             Address
             <input
@@ -135,7 +159,7 @@ export default function MuseumProfile() {
           </label>
 
           <label>
-            Ticket info / link
+            Admission and ticketing
             <input
               value={form.ticket_info}
               onChange={(e) => setForm((p) => ({ ...p, ticket_info: e.target.value }))}
@@ -144,18 +168,18 @@ export default function MuseumProfile() {
           </label>
 
           <label>
-            Location on map
+            Map location
             <GoogleMapPicker value={location} onChange={(v) => setLocation({ lat: v.lat, lng: v.lng })} />
           </label>
 
-          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+          <div className="actions">
             <button type="submit" className="btn" disabled={saving}>
-              {saving ? "Saving..." : "Save museum profile"}
+              {saving ? "Saving" : "Save profile"}
             </button>
             {/* Only offer Cancel once something has already been saved before -
                 otherwise there's nothing to go "back" to. */}
             {profile?.address || profile?.operating_hours || profile?.ticket_info || profile?.location ? (
-              <button type="button" className="btn-small btn-outline-light" onClick={() => setMode("view")} disabled={saving}>
+              <button type="button" className="btn btn-secondary" onClick={() => setMode("view")} disabled={saving}>
                 Cancel
               </button>
             ) : null}

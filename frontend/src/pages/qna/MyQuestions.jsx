@@ -1,7 +1,7 @@
 // Public Archaeology Q&A - "My Questions" for the logged-in Public member
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Plus, MessageSquare } from "lucide-react";
+import { ArrowLeft, Plus, MessageSquare, MessagesSquare } from "lucide-react";
 import { api } from "../../api";
 import StatusBadge from "../../components/StatusBadge";
 
@@ -18,49 +18,58 @@ export default function MyQuestions() {
 
   return (
     <div className="page">
-      <p>
-        <Link to="/qna" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-          <ArrowLeft size={14} /> Back to Q&amp;A
-        </Link>
-      </p>
+      <Link className="back-link" to="/qna">
+        <ArrowLeft size={14} aria-hidden="true" /> Back to questions
+      </Link>
 
-      <div className="report-header">
-        <h1 style={{ margin: 0 }}>My Questions</h1>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Public enquiries</span>
+          <h1>My questions</h1>
+          <p className="page-subtitle">
+            Everything you have asked, and the answers each question has attracted.
+          </p>
+        </div>
         <Link to="/qna/ask" className="btn">
-          <Plus size={14} /> Ask a Question
+          <Plus size={16} aria-hidden="true" /> Ask a question
         </Link>
       </div>
 
       {loading ? (
-        <p className="hint">Loading...</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading your questions
+        </div>
       ) : questions.length === 0 ? (
-        <div className="card">
-          <p className="hint" style={{ margin: 0 }}>
-            You haven't asked any questions yet.
-          </p>
+        <div className="empty-state">
+          <MessagesSquare size={26} aria-hidden="true" />
+          <h3>You have not asked anything yet</h3>
+          <p>Questions you publish appear here with the answers they receive.</p>
+          <Link className="btn" to="/qna/ask">
+            Ask a question
+          </Link>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: "0.9rem" }}>
+        <ul className="record-list">
           {questions.map((q) => (
-            <Link
-              to={`/qna/${q._id}`}
-              key={q._id}
-              className="card"
-              style={{ display: "block", textDecoration: "none", color: "inherit" }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "flex-start" }}>
-                <h3 style={{ margin: "0 0 0.35rem" }}>{q.title}</h3>
-                <StatusBadge status={q.answeredCount > 0 ? "Answered" : "Open"} />
-              </div>
-              <p className="hint" style={{ margin: 0, display: "flex", gap: "1rem", alignItems: "center" }}>
-                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-                  <MessageSquare size={12} /> {q.answeredCount || 0} answer{q.answeredCount === 1 ? "" : "s"}
-                </span>
-                <span>{new Date(q.createdAt).toLocaleDateString()}</span>
-              </p>
-            </Link>
+            <li key={q._id}>
+              <Link to={`/qna/${q._id}`} className="record-row" style={{ textDecoration: "none", color: "inherit" }}>
+                <div className="record-main">
+                  <h4>{q.title}</h4>
+                  <p className="meta-row">
+                    <span>
+                      <MessageSquare size={12} aria-hidden="true" /> {q.answeredCount || 0} answer
+                      {q.answeredCount === 1 ? "" : "s"}
+                    </span>
+                    <span>{new Date(q.createdAt).toLocaleDateString()}</span>
+                  </p>
+                </div>
+                <div className="record-side">
+                  <StatusBadge status={q.answeredCount > 0 ? "Answered" : "Open"} />
+                </div>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

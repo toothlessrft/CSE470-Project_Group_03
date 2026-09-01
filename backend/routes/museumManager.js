@@ -173,6 +173,7 @@ router.put("/my-museum-items/:itemId", async (req, res) => {
     "availability",
     "condition",
     "ownership",
+    "picture",
   ];
   for (const key of allowed) {
     if (req.body[key] !== undefined) item[key] = req.body[key];
@@ -251,6 +252,7 @@ router.post("/my-museum-items", async (req, res) => {
       condition,
       ownership,
       location,
+      picture,
     } = req.body;
     if (!name) return res.status(400).json({ error: "name is required." });
 
@@ -258,6 +260,7 @@ router.post("/my-museum-items", async (req, res) => {
       name,
       Type: Type || "other",
       description,
+      picture: picture || "",
       civilization,
       era,
       region,

@@ -19,35 +19,50 @@ export default function MyBids() {
 
   return (
     <div className="page">
-      <h1>My Bids</h1>
-      <p className="page-subtitle">Track the status of every tender you've bid on.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Procurement</span>
+          <h1>Submitted bids</h1>
+          <p className="page-subtitle">Every tender you have bid on, and where each bid stands.</p>
+        </div>
+        <Link className="btn btn-secondary" to="/sc/tenders">
+          Browse open tenders
+        </Link>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
       {loading ? (
-        <p>Loading...</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading your bids
+        </div>
       ) : bids.length === 0 ? (
-        <div className="card">
-          You haven&apos;t submitted any bids yet. <Link to="/sc/tenders">Browse open tenders</Link>.
+        <div className="empty-state">
+          <h3>No bids lodged</h3>
+          <p>Bids you submit against published tenders are tracked here.</p>
+          <Link className="btn" to="/sc/tenders">
+            Browse open tenders
+          </Link>
         </div>
       ) : (
+        <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
               <th>Tender</th>
               <th>Location</th>
-              <th>Your Cost</th>
-              <th>Timeline</th>
-              <th>Deadline</th>
+              <th>Your price</th>
+              <th>Programme</th>
+              <th>Closes</th>
               <th>Status</th>
             </tr>
           </thead>
           <tbody>
             {bids.map((b) => (
               <tr key={b._id}>
-                <td>{b.tender?.title || "Tender removed"}</td>
+                <td>{b.tender?.title || "Tender withdrawn"}</td>
                 <td>{b.tender?.location}</td>
-                <td>৳{b.cost}</td>
+                <td className="num">৳{Number(b.cost || 0).toLocaleString()}</td>
                 <td>{b.timeline}</td>
                 <td>{b.tender?.deadline ? new Date(b.tender.deadline).toLocaleDateString() : "—"}</td>
                 <td>
@@ -57,6 +72,7 @@ export default function MyBids() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
     </div>
   );

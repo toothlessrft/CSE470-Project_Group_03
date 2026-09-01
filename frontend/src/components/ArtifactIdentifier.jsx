@@ -1,25 +1,25 @@
 // AI Artifact Identification
-// Floating launcher in the bottom-right corner. Opens a panel where you upload
-// a photo and get back a suggested civilization / type / era / material, plus
-// the closest matches already in the catalogue. Everything it produces is a
-// suggestion for a specialist to check - it never writes to the catalogue.
+// Docked launcher in the bottom-right corner. Opens a panel where you upload
+// a photograph and get back a suggested civilization / class / era / material,
+// plus the closest matches already in the catalogue. Everything it produces is
+// a suggestion for a specialist to check - it never writes to the catalogue.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, X, Search, RotateCcw } from "lucide-react";
+import { ScanSearch, X, Search, RotateCcw, ImagePlus, Info } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 
 const MAX_SIZE = 1024 * 1024; // 1 MB, same cap as the discovery report uploader
 
-const CONFIDENCE_STYLES = {
-  high: { background: "var(--success-bg)", color: "var(--success)", label: "High confidence" },
-  medium: { background: "#fdf8f2", color: "#7c4a2d", label: "Medium confidence" },
-  low: { background: "var(--danger-bg)", color: "var(--danger)", label: "Low confidence" },
+const CONFIDENCE = {
+  high: { className: "conf-high", label: "High confidence" },
+  medium: { className: "conf-medium", label: "Moderate confidence" },
+  low: { className: "conf-low", label: "Low confidence" },
 };
 
 const TAG_FIELDS = [
   ["civilization", "Civilization"],
-  ["Type", "Artifact type"],
+  ["Type", "Object class"],
   ["era", "Era"],
   ["material", "Material"],
   ["region", "Region"],
@@ -56,7 +56,7 @@ export default function ArtifactIdentifier() {
     e.target.value = "";
     if (!file) return;
     if (file.size > MAX_SIZE) {
-      setError("Please choose an image smaller than 1 MB.");
+      setError("Choose a photograph smaller than 1 MB.");
       return;
     }
     setError("");
@@ -90,8 +90,8 @@ export default function ArtifactIdentifier() {
     setNeedsSetup(false);
   }
 
-  // Hands the suggested tags to Smart Artifact Search, which already filters
-  // on exactly these fields.
+  // Hands the suggested tags to the catalogue search, which already filters on
+  // exactly these fields.
   function searchCatalogue() {
     const s = result.suggestion;
     const usp = new URLSearchParams();
@@ -102,287 +102,215 @@ export default function ArtifactIdentifier() {
     navigate(`/search?${usp.toString()}`);
   }
 
+  // Open one comparable match on its own in the catalogue.
+  function openInCatalogue(itemId) {
+    setOpen(false);
+    navigate(`/search?id=${itemId}`);
+  }
+
   const suggestion = result?.suggestion;
-  const confidence = CONFIDENCE_STYLES[suggestion?.confidence] || CONFIDENCE_STYLES.low;
+  const confidence = CONFIDENCE[suggestion?.confidence] || CONFIDENCE.low;
 
   return (
     <>
-      {/* Launcher */}
       <button
         type="button"
+        className="identify-launcher"
         onClick={() => setOpen((v) => !v)}
-        aria-label="Identify an artifact with AI"
-        title="Identify an artifact with AI"
-        style={{
-          position: "fixed",
-          bottom: "1.5rem",
-          right: "1.5rem",
-          zIndex: 1000,
-          width: "56px",
-          height: "56px",
-          borderRadius: "50%",
-          border: "none",
-          cursor: "pointer",
-          background: "var(--primary)",
-          color: "#fff",
-          boxShadow: "var(--shadow-hover)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
+        aria-expanded={open}
+        aria-label={open ? "Close artifact identification" : "Open artifact identification"}
       >
-        {open ? <X size={22} /> : <Sparkles size={22} />}
+        {open ? <X size={17} aria-hidden="true" /> : <ScanSearch size={17} aria-hidden="true" />}
+        <span>{open ? "Close" : "Identify a find"}</span>
       </button>
 
-      {/* Panel */}
       {open && (
-        <div
-          style={{
-            position: "fixed",
-            bottom: "5.5rem",
-            right: "1.5rem",
-            zIndex: 1000,
-            width: "min(380px, calc(100vw - 3rem))",
-            maxHeight: "min(620px, calc(100vh - 8rem))",
-            overflowY: "auto",
-            background: "var(--surface)",
-            border: "1px solid var(--border)",
-            borderRadius: "var(--radius)",
-            boxShadow: "var(--shadow-hover)",
-            padding: "1.15rem",
-          }}
-        >
-          <h3 style={{ margin: "0 0 0.15rem", fontSize: "1.05rem", color: "var(--primary)" }}>
-            <Sparkles size={16} style={{ verticalAlign: "middle" }} /> Identify an Artifact
-          </h3>
-          <p className="hint" style={{ margin: "0 0 0.9rem", fontSize: "0.8rem" }}>
-            Upload a photo for a preliminary AI reading. Always have a specialist confirm it.
-          </p>
-
-          {needsSetup && (
-            <div
-              style={{
-                padding: "0.7rem 0.85rem",
-                marginBottom: "0.75rem",
-                background: "#fdf8f2",
-                border: "1px solid #e6cdb2",
-                borderLeft: "4px solid var(--accent)",
-                borderRadius: "var(--radius-sm)",
-                fontSize: "0.82rem",
-              }}
+        <div className="identify-panel">
+          <div className="panel-head">
+            <div>
+              <span className="eyebrow">Assisted identification</span>
+              <h3>Identify a find</h3>
+            </div>
+            <button
+              type="button"
+              className="modal-close"
+              onClick={() => setOpen(false)}
+              aria-label="Close"
             >
-              <strong style={{ display: "block", color: "#7c4a2d", marginBottom: "0.2rem" }}>
-                Setup needed
-              </strong>
-              Artifact identification is not switched on yet. Add a{" "}
-              <code>GEMINI_API_KEY</code> to <code>backend/.env</code> and restart the backend.{" "}
-              A free key comes from aistudio.google.com — no payment method needed.
-            </div>
-          )}
+              <X size={17} aria-hidden="true" />
+            </button>
+          </div>
 
-          {error && (
-            <div className="alert alert-danger" style={{ fontSize: "0.85rem" }}>
-              {error}
-            </div>
-          )}
+          <div className="panel-body">
+            <p className="hint" style={{ marginTop: 0 }}>
+              Upload a photograph for a preliminary reading. Results are indicative only and must be
+              confirmed by a specialist before any record is created.
+            </p>
 
-          {!result && (
-            <>
-              {image ? (
-                <div className="image-thumb" style={{ marginBottom: "0.75rem" }}>
-                  <img src={image} alt="artifact to identify" />
-                  <button type="button" className="image-remove" onClick={reset}>
-                    ×
-                  </button>
-                </div>
-              ) : (
-                <label
-                  style={{
-                    display: "block",
-                    padding: "1.5rem 1rem",
-                    marginBottom: "0.75rem",
-                    textAlign: "center",
-                    border: "2px dashed var(--border)",
-                    borderRadius: "var(--radius-sm)",
-                    cursor: "pointer",
-                    color: "var(--muted)",
-                    fontSize: "0.88rem",
-                  }}
-                >
-                  + Choose a photo
-                  <input type="file" accept="image/*" hidden onChange={handleFile} />
+            {needsSetup && (
+              <div className="alert alert-warning">
+                <Info size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+                <span>
+                  <strong style={{ display: "block", marginBottom: "0.15rem" }}>
+                    Service not configured
+                  </strong>
+                  Identification is not switched on yet. Add a <code>GEMINI_API_KEY</code> to{" "}
+                  <code>backend/.env</code> and restart the backend.
+                </span>
+              </div>
+            )}
+
+            {error && <div className="alert alert-danger">{error}</div>}
+
+            {!result && (
+              <>
+                {image ? (
+                  <div className="image-thumb" style={{ marginBottom: "0.75rem" }}>
+                    <img src={image} alt="Photograph awaiting identification" />
+                    <button
+                      type="button"
+                      className="image-remove"
+                      onClick={reset}
+                      aria-label="Remove photograph"
+                    >
+                      <X size={13} aria-hidden="true" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="identify-drop">
+                    <ImagePlus size={20} aria-hidden="true" />
+                    <span>Choose a photograph</span>
+                    <small>JPEG or PNG, up to 1 MB</small>
+                    <input type="file" accept="image/*" hidden onChange={handleFile} />
+                  </label>
+                )}
+
+                <label className="identify-hint-field">
+                  Where was it found? (optional)
+                  <input
+                    type="text"
+                    className="input"
+                    value={hint}
+                    onChange={(e) => setHint(e.target.value)}
+                    placeholder="e.g. river bank near Comilla"
+                    disabled={busy}
+                  />
                 </label>
-              )}
 
-              <label style={{ fontSize: "0.85rem" }}>
-                Where was it found? (optional)
-                <input
-                  type="text"
-                  value={hint}
-                  onChange={(e) => setHint(e.target.value)}
-                  placeholder="e.g. river bank near Comilla"
-                  disabled={busy}
-                />
-              </label>
+                <button
+                  className="btn identify-submit"
+                  disabled={!image || busy}
+                  onClick={identify}
+                >
+                  {busy ? "Analysing photograph" : "Run identification"}
+                </button>
+              </>
+            )}
 
-              <button
-                className="btn"
-                style={{ width: "100%", marginTop: "0.75rem" }}
-                disabled={!image || busy}
-                onClick={identify}
-              >
-                {busy ? "Analysing photo..." : "Identify Artifact"}
-              </button>
-            </>
-          )}
+            {result && (
+              <>
+                {image && (
+                  <div className="image-thumb" style={{ marginBottom: "0.75rem" }}>
+                    <img src={image} alt="Identified artifact" />
+                  </div>
+                )}
 
-          {result && (
-            <>
-              {image && (
-                <div className="image-thumb" style={{ marginBottom: "0.75rem" }}>
-                  <img src={image} alt="identified artifact" />
-                </div>
-              )}
+                {!suggestion.identifiable ? (
+                  <div className="alert alert-danger">{suggestion.summary}</div>
+                ) : (
+                  <>
+                    <span className={`identify-confidence ${confidence.className}`}>
+                      {confidence.label}
+                    </span>
 
-              {!suggestion.identifiable ? (
-                <div className="alert alert-danger" style={{ fontSize: "0.85rem" }}>
-                  {suggestion.summary}
-                </div>
-              ) : (
-                <>
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "0.2rem 0.65rem",
-                      borderRadius: "999px",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      background: confidence.background,
-                      color: confidence.color,
-                    }}
-                  >
-                    {confidence.label}
-                  </span>
-
-                  <table className="table" style={{ margin: "0.75rem 0", fontSize: "0.85rem" }}>
-                    <tbody>
+                    <dl className="identify-tags">
                       {TAG_FIELDS.map(([field, label]) =>
                         suggestion[field] ? (
-                          <tr key={field}>
-                            <th style={{ width: "42%" }}>{label}</th>
-                            <td>{suggestion[field]}</td>
-                          </tr>
+                          <div key={field}>
+                            <dt>{label}</dt>
+                            <dd>{suggestion[field]}</dd>
+                          </div>
                         ) : null
                       )}
-                    </tbody>
-                  </table>
+                    </dl>
 
-                  <p style={{ fontSize: "0.85rem" }}>{suggestion.summary}</p>
+                    <p className="identify-summary">{suggestion.summary}</p>
 
-                  {suggestion.alternatives?.length > 0 && (
-                    <>
-                      <h4 style={{ margin: "0.75rem 0 0.35rem", fontSize: "0.9rem" }}>
-                        Other possibilities
-                      </h4>
-                      <ul style={{ margin: 0, paddingLeft: "1.1rem", fontSize: "0.82rem" }}>
-                        {suggestion.alternatives.map((alt, i) => (
-                          <li key={i} style={{ marginBottom: "0.3rem" }}>
-                            <strong>
-                              {[alt.civilization, alt.era].filter(Boolean).join(" — ") || "Alternative"}
-                            </strong>
-                            {alt.note ? ` — ${alt.note}` : ""}
-                          </li>
+                    {suggestion.alternatives?.length > 0 && (
+                      <>
+                        <h4 className="identify-subhead">Other possibilities</h4>
+                        <ul className="identify-alts">
+                          {suggestion.alternatives.map((alt, i) => (
+                            <li key={i}>
+                              <strong>
+                                {[alt.civilization, alt.era].filter(Boolean).join(" — ") ||
+                                  "Alternative"}
+                              </strong>
+                              {alt.note ? ` — ${alt.note}` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      </>
+                    )}
+
+                    {suggestion.caution && (
+                      <p className="identify-caution">
+                        <strong>To confirm:</strong> {suggestion.caution}
+                      </p>
+                    )}
+
+                    <h4 className="identify-subhead">
+                      Comparable records in the catalogue ({result.similar.length})
+                    </h4>
+                    {result.similar.length === 0 ? (
+                      <p className="hint" style={{ margin: 0 }}>
+                        Nothing in the catalogue matches these attributes yet.
+                      </p>
+                    ) : (
+                      <div className="identify-similar">
+                        {result.similar.map((item) => (
+                          <button
+                            type="button"
+                            className="identify-similar-row"
+                            key={item._id}
+                            onClick={() => openInCatalogue(item._id)}
+                            title={`Open ${item.name} in the catalogue`}
+                          >
+                            {item.picture && (
+                              <img
+                                src={item.picture}
+                                alt={item.name}
+                                loading="lazy"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = "none";
+                                }}
+                              />
+                            )}
+                            <div style={{ minWidth: 0 }}>
+                              <strong>{item.name}</strong>
+                              <p className="hint" style={{ margin: "0.1rem 0 0" }}>
+                                {[item.civilization, item.era, item.site_name]
+                                  .filter(Boolean)
+                                  .join(" · ") || item.Type}
+                              </p>
+                            </div>
+                          </button>
                         ))}
-                      </ul>
-                    </>
-                  )}
+                      </div>
+                    )}
 
-                  {suggestion.caution && (
-                    <p
-                      className="hint"
-                      style={{
-                        margin: "0.75rem 0 0",
-                        padding: "0.6rem 0.8rem",
-                        background: "#fdf8f2",
-                        borderLeft: "3px solid var(--accent)",
-                        borderRadius: "var(--radius-sm)",
-                        fontSize: "0.8rem",
-                      }}
-                    >
-                      To confirm: {suggestion.caution}
-                    </p>
-                  )}
+                    <button className="btn identify-submit" onClick={searchCatalogue}>
+                      <Search size={14} aria-hidden="true" /> Search catalogue with these attributes
+                    </button>
+                  </>
+                )}
 
-                  <h4 style={{ margin: "1rem 0 0.35rem", fontSize: "0.9rem" }}>
-                    Similar discoveries ({result.similar.length})
-                  </h4>
-                  {result.similar.length === 0 ? (
-                    <p className="hint" style={{ margin: 0, fontSize: "0.82rem" }}>
-                      Nothing in the catalogue matches these tags yet.
-                    </p>
-                  ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                      {result.similar.map((item) => (
-                        <div
-                          key={item._id}
-                          style={{
-                            display: "flex",
-                            gap: "0.55rem",
-                            alignItems: "center",
-                            padding: "0.5rem 0.7rem",
-                            border: "1px solid var(--border)",
-                            borderRadius: "var(--radius-sm)",
-                            fontSize: "0.82rem",
-                          }}
-                        >
-                          {item.picture && (
-                            <img
-                              src={item.picture}
-                              alt={item.name}
-                              loading="lazy"
-                              onError={(e) => {
-                                e.currentTarget.style.display = "none";
-                              }}
-                              style={{
-                                width: "44px",
-                                height: "44px",
-                                objectFit: "cover",
-                                borderRadius: "var(--radius-sm)",
-                                flexShrink: 0,
-                              }}
-                            />
-                          )}
-                          <div style={{ minWidth: 0 }}>
-                          <strong>{item.name}</strong>
-                          <p className="hint" style={{ margin: "0.1rem 0 0", fontSize: "0.76rem" }}>
-                            {[item.civilization, item.era, item.site_name].filter(Boolean).join(" · ") ||
-                              item.Type}
-                          </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <button
-                    className="btn"
-                    style={{ width: "100%", marginTop: "0.85rem" }}
-                    onClick={searchCatalogue}
-                  >
-                    <Search size={14} /> Search catalogue with these tags
-                  </button>
-                </>
-              )}
-
-              <button
-                className="btn-small"
-                style={{ width: "100%", marginTop: "0.5rem" }}
-                onClick={reset}
-              >
-                <RotateCcw size={13} /> Try another photo
-              </button>
-            </>
-          )}
+                <button className="btn btn-secondary identify-submit" onClick={reset}>
+                  <RotateCcw size={13} aria-hidden="true" /> Try another photograph
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </>

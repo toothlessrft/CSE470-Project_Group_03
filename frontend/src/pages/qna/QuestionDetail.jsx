@@ -95,38 +95,50 @@ export default function QuestionDetail() {
     }
   }
 
-  if (loading && !question) return <div className="page"><p className="hint">Loading question...</p></div>;
+  if (loading && !question)
+    return (
+      <div className="page">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading the question
+        </div>
+      </div>
+    );
   if (!question)
     return (
       <div className="page">
-        <div className="alert alert-danger">{error || "Question not found."}</div>
+        <div className="alert alert-danger">{error || "This question could not be found."}</div>
       </div>
     );
 
   return (
     <div className="page">
-      <p>
-        <Link to="/qna" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-          <ArrowLeft size={14} /> Back to Q&amp;A
-        </Link>
-      </p>
+      <Link className="back-link" to="/qna">
+        <ArrowLeft size={14} aria-hidden="true" /> Back to questions
+      </Link>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="card">
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "flex-start" }}>
-          <h1 style={{ margin: "0 0 0.5rem", fontSize: "1.5rem" }}>{question.title}</h1>
-          <StatusBadge status={answers.length > 0 ? "Answered" : "Open"} />
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Public enquiry</span>
+          <h1>{question.title}</h1>
+          <p className="meta-row">
+            <span>
+              <UserIcon size={12} aria-hidden="true" /> Asked by {question.askedBy?.name}
+            </span>
+            <span>{new Date(question.createdAt).toLocaleDateString()}</span>
+          </p>
         </div>
-        <p className="hint" style={{ margin: "0 0 0.9rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
-          <UserIcon size={12} /> Asked by {question.askedBy?.name} on {new Date(question.createdAt).toLocaleDateString()}
-        </p>
-        {question.body && <p style={{ fontSize: "0.95rem", lineHeight: 1.55 }}>{question.body}</p>}
+        <StatusBadge status={answers.length > 0 ? "Answered" : "Open"} />
+      </div>
+
+      <div className="card">
+        {question.body && <p style={{ fontSize: "0.9375rem", lineHeight: 1.6 }}>{question.body}</p>}
         {question.images?.length > 0 && (
           <div className="image-grid" style={{ marginTop: "0.75rem" }}>
             {question.images.map((src, i) => (
               <div className="image-thumb" key={i}>
-                <img src={src} alt={`question-${i}`} />
+                <img src={src} alt={`Photograph ${i + 1} attached to the question`} />
               </div>
             ))}
           </div>
@@ -134,13 +146,21 @@ export default function QuestionDetail() {
       </div>
 
       {/* Answers */}
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>
-          <MessageSquare size={16} style={{ verticalAlign: "middle" }} /> {answers.length} Answer
-          {answers.length === 1 ? "" : "s"}
-        </h3>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>
+            <MessageSquare size={15} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.35rem" }} />
+            {answers.length} answer{answers.length === 1 ? "" : "s"}
+          </h3>
+        </div>
+        <div className="panel-body">
 
-        {answers.length === 0 && <p className="hint">No answers yet. An archaeologist will respond soon.</p>}
+        {answers.length === 0 && (
+          <p className="hint" style={{ margin: 0 }}>
+            No answer yet. Questions are picked up by archaeologists working in the relevant period
+            or region.
+          </p>
+        )}
 
         {answers.map((a) => {
           const isOwner = user && a.answeredBy?._id === user.id;
@@ -155,8 +175,8 @@ export default function QuestionDetail() {
                   {a.edited && " (edited)"}
                 </p>
                 {isOwner && !isEditing && (
-                  <button type="button" className="btn-link" onClick={() => startEdit(a)}>
-                    <Edit2 size={13} /> Edit
+                  <button type="button" className="btn-small btn-secondary" onClick={() => startEdit(a)}>
+                    <Edit2 size={13} aria-hidden="true" /> Revise
                   </button>
                 )}
               </div>
@@ -166,46 +186,54 @@ export default function QuestionDetail() {
                   <textarea rows={4} value={editBody} onChange={(e) => setEditBody(e.target.value)} />
                   <div className="actions">
                     <button type="button" className="btn-small" disabled={editBusy} onClick={() => saveEdit(a._id)}>
-                      {editBusy ? "Saving..." : "Save"}
+                      {editBusy ? "Saving" : "Save revision"}
                     </button>
-                    <button type="button" className="btn-link" onClick={() => setEditingAnswerId(null)}>
+                    <button
+                      type="button"
+                      className="btn-small btn-secondary"
+                      onClick={() => setEditingAnswerId(null)}
+                    >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <p style={{ margin: 0, fontSize: "0.92rem", lineHeight: 1.5 }}>{a.body}</p>
+                <p style={{ margin: 0, fontSize: "0.9375rem", lineHeight: 1.6 }}>{a.body}</p>
               )}
             </div>
           );
         })}
 
         {user?.role === "archaeologist" && (
-          <form onSubmit={submitAnswer} className="form" style={{ marginTop: "1rem" }}>
+          <form onSubmit={submitAnswer} className="form" style={{ marginTop: "1.25rem" }}>
             {answerError && <div className="alert alert-danger">{answerError}</div>}
             <label>
-              Post an answer
+              Your answer
               <textarea
                 rows={4}
-                placeholder="Share your expertise..."
+                placeholder="Answer plainly, and say where the evidence for it comes from"
                 value={answerBody}
                 onChange={(e) => setAnswerBody(e.target.value)}
               />
             </label>
             <button type="submit" className="btn" disabled={answerBusy || !answerBody.trim()}>
-              {answerBusy ? "Posting..." : "Post Answer"}
+              {answerBusy ? "Publishing" : "Publish answer"}
             </button>
           </form>
         )}
+        </div>
       </div>
 
       {/* Discussion / comments */}
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Discussion ({comments.length})</h3>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Discussion ({comments.length})</h3>
+        </div>
+        <div className="panel-body">
 
         {!user && (
-          <p className="hint">
-            <Link to="/login">Log in</Link> to follow and join this discussion.
+          <p className="hint" style={{ marginTop: 0 }}>
+            <Link to="/login">Sign in</Link> to join this discussion.
           </p>
         )}
 
@@ -218,7 +246,11 @@ export default function QuestionDetail() {
             <p style={{ margin: 0, fontSize: "0.9rem" }}>{c.body}</p>
           </div>
         ))}
-        {comments.length === 0 && <p className="hint">No comments yet.</p>}
+        {comments.length === 0 && (
+          <p className="hint" style={{ margin: 0 }}>
+            No comments on this question yet.
+          </p>
+        )}
 
         {user && commentError && (
           <div className="alert alert-danger" style={{ marginTop: "1rem", marginBottom: 0 }}>
@@ -226,19 +258,22 @@ export default function QuestionDetail() {
           </div>
         )}
         {user && (
-          <form onSubmit={submitComment} style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-            <input
-              type="text"
-              placeholder="Add a comment..."
-              value={commentBody}
-              onChange={(e) => setCommentBody(e.target.value)}
-              style={{ flex: 1 }}
-            />
-            <button type="submit" className="btn-small" disabled={commentBusy || !commentBody.trim()}>
-              <Send size={13} />
+          <form onSubmit={submitComment} className="home-search-row" style={{ marginTop: "1.25rem" }}>
+            <label className="home-search-field">
+              <input
+                type="text"
+                placeholder="Add to the discussion"
+                aria-label="Add a comment"
+                value={commentBody}
+                onChange={(e) => setCommentBody(e.target.value)}
+              />
+            </label>
+            <button type="submit" className="btn" disabled={commentBusy || !commentBody.trim()}>
+              <Send size={14} aria-hidden="true" /> Post
             </button>
           </form>
         )}
+        </div>
       </div>
     </div>
   );

@@ -11,15 +11,24 @@ export default function ManageExcavationRequests() {
 
   return (
     <div className="page">
-      <h1>Manage Excavation Requests</h1>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Licensing</span>
+          <h1>Excavation proposals</h1>
+          <p className="page-subtitle">
+            Research proposals from archaeologists seeking a licence to excavate.
+          </p>
+        </div>
+      </div>
+      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Archaeologist</th>
+            <th>Applicant</th>
             <th>Site</th>
             <th>Proposal</th>
-            <th>Budget</th>
-            <th>Actions</th>
+            <th>Budget requested</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -28,19 +37,24 @@ export default function ManageExcavationRequests() {
               <td>{r.archaeologist?.name}</td>
               <td>{r.site?.name}</td>
               <td>{r.proposal}</td>
-              <td>{r.budget}</td>
+              <td className="num">৳{Number(r.budget || 0).toLocaleString()}</td>
               <td>
-                <Link to={`/admin/excavation-requests/${r._id}`}>Review</Link>
+                <Link className="btn-small btn-secondary" to={`/admin/excavation-requests/${r._id}`}>
+                  Assess
+                </Link>
               </td>
             </tr>
           ))}
           {requests.length === 0 && (
             <tr>
-              <td colSpan={5}>No excavation requests.</td>
+              <td colSpan={5} className="hint">
+                No proposals awaiting assessment.
+              </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

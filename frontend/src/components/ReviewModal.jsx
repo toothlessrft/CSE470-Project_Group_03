@@ -46,26 +46,17 @@ export default function ReviewModal({ projectId, onClose, onSubmitted }) {
   }
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(0,0,0,0.4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 2000,
-        padding: "1rem",
-      }}
-    >
-      <div className="card" style={{ maxWidth: 440, width: "100%" }}>
+    <div className="modal-overlay">
+      <div className="modal" style={{ maxWidth: 460 }}>
         {loading ? (
-          <p>Loading...</p>
+          <p className="loading-state">
+            <span className="spinner" aria-hidden="true" /> Loading review details
+          </p>
         ) : error && !context ? (
           <>
             <div className="alert alert-danger">{error}</div>
             {onClose && (
-              <button className="btn-small" onClick={onClose}>
+              <button className="btn btn-secondary" onClick={onClose}>
                 Close
               </button>
             )}
@@ -73,10 +64,11 @@ export default function ReviewModal({ projectId, onClose, onSubmitted }) {
         ) : done || context?.already_reviewed ? (
           <>
             <h3 style={{ marginTop: 0 }}>
-              {done ? "Thanks for your feedback!" : "You've already reviewed this project"}
+              {done ? "Review recorded" : "Review already submitted"}
             </h3>
             <p className="page-subtitle">
-              Your review of {context?.reviewee_name} has been recorded{done ? "" : " previously"}.
+              Your assessment of {context?.reviewee_name} has been added to their performance
+              record{done ? "" : " previously"}.
             </p>
             {onClose && (
               <button className="btn" onClick={onClose}>
@@ -86,36 +78,39 @@ export default function ReviewModal({ projectId, onClose, onSubmitted }) {
           </>
         ) : (
           <form onSubmit={handleSubmit}>
-            <h3 style={{ marginTop: 0 }}>Rate your partner</h3>
+            <h3 style={{ marginTop: 0 }}>Assess your collaborator</h3>
             <p className="page-subtitle" style={{ marginTop: 0 }}>
-              How was working with <strong>{context?.reviewee_name}</strong> on &quot;{context?.project?.p_name}&quot;?
+              Rate how <strong>{context?.reviewee_name}</strong> performed on{" "}
+              <strong>{context?.project?.p_name}</strong>. Reviews are visible on their public
+              profile.
             </p>
 
             {error && <div className="alert alert-danger">{error}</div>}
 
             <div style={{ margin: "1rem 0" }}>
-              <StarRating value={rating} onChange={setRating} size={28} />
+              <span className="stat-label">Overall rating</span>
+              <StarRating value={rating} onChange={setRating} size={26} />
             </div>
 
             <label>
-              Feedback (optional)
+              Written feedback (optional)
               <textarea
                 value={feedback}
                 onChange={(e) => setFeedback(e.target.value)}
-                placeholder="How did the collaboration go?"
+                placeholder="Punctuality, field discipline, quality of recording, communication"
                 rows={4}
               />
             </label>
 
-            <div className="actions" style={{ marginTop: "1rem" }}>
-              <button type="submit" className="btn" disabled={busy}>
-                {busy ? "Submitting..." : "Submit Review"}
-              </button>
+            <div className="modal-footer">
               {onClose && (
-                <button type="button" className="btn-small" onClick={onClose} disabled={busy}>
-                  Maybe later
+                <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+                  Not now
                 </button>
               )}
+              <button type="submit" className="btn" disabled={busy}>
+                {busy ? "Recording..." : "Submit assessment"}
+              </button>
             </div>
           </form>
         )}

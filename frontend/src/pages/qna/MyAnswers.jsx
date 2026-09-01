@@ -2,7 +2,7 @@
 // inline editing so they can fix an answer without leaving the list.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Edit2 } from "lucide-react";
+import { ArrowLeft, Edit2, MessagesSquare } from "lucide-react";
 import { api } from "../../api";
 
 export default function MyAnswers() {
@@ -45,61 +45,81 @@ export default function MyAnswers() {
 
   return (
     <div className="page">
-      <p>
-        <Link to="/qna" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-          <ArrowLeft size={14} /> Back to Q&amp;A
-        </Link>
-      </p>
+      <Link className="back-link" to="/qna">
+        <ArrowLeft size={14} aria-hidden="true" /> Back to questions
+      </Link>
 
-      <h1>My Answers</h1>
-      <p className="page-subtitle">Everything you've answered on Public Archaeology Q&amp;A. Edit anytime.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Public enquiries</span>
+          <h1>My answers</h1>
+          <p className="page-subtitle">
+            Everything you have answered for the public. Answers can be revised at any time.
+          </p>
+        </div>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
       {loading ? (
-        <p className="hint">Loading...</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading your answers
+        </div>
       ) : answers.length === 0 ? (
-        <div className="card">
-          <p className="hint" style={{ margin: 0 }}>
-            You haven't answered any questions yet. Browse open questions on the Q&amp;A page.
-          </p>
+        <div className="empty-state">
+          <MessagesSquare size={26} aria-hidden="true" />
+          <h3>No answers yet</h3>
+          <p>Questions awaiting an answer are listed on the public enquiries page.</p>
+          <Link className="btn" to="/qna">
+            Browse open questions
+          </Link>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: "0.9rem" }}>
+        <div style={{ display: "grid", gap: "0.85rem" }}>
           {answers.map((a) => (
-            <div className="card" key={a._id}>
-              <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "flex-start" }}>
-                <div>
-                  <Link to={`/qna/${a.question?._id}`} style={{ fontWeight: 600 }}>
-                    {a.question?.title}
-                  </Link>
-                  <p className="hint" style={{ margin: "0.25rem 0 0" }}>
-                    Asked by {a.question?.askedBy?.name || "a public member"} · Answered{" "}
-                    {new Date(a.createdAt).toLocaleDateString()}
-                    {a.edited && " (edited)"}
+            <div className="card" key={a._id} style={{ margin: 0 }}>
+              <div className="report-header">
+                <div style={{ minWidth: 0 }}>
+                  <h4 style={{ margin: 0 }}>
+                    <Link to={`/qna/${a.question?._id}`}>{a.question?.title}</Link>
+                  </h4>
+                  <p className="meta-row">
+                    <span>Asked by {a.question?.askedBy?.name || "a public member"}</span>
+                    <span>
+                      Answered {new Date(a.createdAt).toLocaleDateString()}
+                      {a.edited && " · revised"}
+                    </span>
                   </p>
                 </div>
                 {editingId !== a._id && (
-                  <button type="button" className="btn-link" onClick={() => startEdit(a)}>
-                    <Edit2 size={13} /> Edit
+                  <button
+                    type="button"
+                    className="btn-small btn-secondary"
+                    onClick={() => startEdit(a)}
+                  >
+                    <Edit2 size={13} aria-hidden="true" /> Revise
                   </button>
                 )}
               </div>
 
               {editingId === a._id ? (
-                <div className="form" style={{ gap: "0.5rem", marginTop: "0.6rem" }}>
+                <div className="form" style={{ gap: "0.6rem", marginTop: "0.85rem" }}>
                   <textarea rows={4} value={editBody} onChange={(e) => setEditBody(e.target.value)} />
                   <div className="actions">
                     <button type="button" className="btn-small" disabled={busy} onClick={() => saveEdit(a._id)}>
-                      {busy ? "Saving..." : "Save"}
+                      {busy ? "Saving" : "Save revision"}
                     </button>
-                    <button type="button" className="btn-link" onClick={() => setEditingId(null)}>
+                    <button
+                      type="button"
+                      className="btn-small btn-secondary"
+                      onClick={() => setEditingId(null)}
+                    >
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <p style={{ margin: "0.6rem 0 0", fontSize: "0.92rem", lineHeight: 1.5 }}>{a.body}</p>
+                <p style={{ margin: "0.85rem 0 0", fontSize: "0.9375rem", lineHeight: 1.6 }}>{a.body}</p>
               )}
             </div>
           ))}

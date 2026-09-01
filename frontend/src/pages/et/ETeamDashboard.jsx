@@ -1,7 +1,7 @@
 // Ahad_23201016 - Excavation Team dashboard (replaces the Site Caretaker one).
 // The account is a company; the profile shown is the company representative.
 import { useEffect, useState } from "react";
-import { FileSearch, ClipboardList, FolderKanban, Gavel, Wrench } from "lucide-react";
+import { FileSearch, ClipboardList, FolderKanban, Gavel } from "lucide-react";
 import { Link } from "react-router-dom";
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
@@ -27,58 +27,64 @@ export default function ETeamDashboard() {
     api.get(`/reviews/history/${user.id}`).then((data) => setRating({ average: data.average, count: data.count }));
   }, [user?.id]);
 
-  if (!team) return <div className="page">Loading...</div>;
+  if (!team)
+    return (
+      <div className="page">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading your workspace
+        </div>
+      </div>
+    );
 
   const actions = [
     {
       to: "/et/tenders",
       icon: FileSearch,
-      title: "Browse Tenders",
-      description: "Find open government excavation tenders and submit a bid",
+      title: "Open tenders",
+      description: "Review published excavation tenders and submit a bid",
     },
     {
       to: "/et/bids",
       icon: ClipboardList,
-      title: "My Bids",
-      description: "Track bid status, edit or withdraw before the deadline",
+      title: "Submitted bids",
+      description: "Track outcomes, and revise or withdraw before the closing date",
     },
     {
       to: "/et/projects",
       icon: FolderKanban,
-      title: "Manage Projects",
-      description: "Run your awarded excavations and log recovered artifacts",
-    },
-    {
-      to: "/equipment",
-      icon: Wrench,
-      title: "Tools & Equipment",
-      description: "Request excavation tools and field equipment for your assigned digs",
+      title: "Awarded projects",
+      description: "Run the excavations you hold and log every recovered artifact",
     },
     {
       to: "/auctions",
       icon: Gavel,
-      title: "Auctions",
-      description: "Bid on artifacts released for auction",
+      title: "Artifact auctions",
+      description: "Bid on lots released for lawful sale",
     },
   ];
 
   return (
     <div className="page">
-      <h1>Excavation Team Dashboard</h1>
-      <p className="page-subtitle">
-        Bid on government excavation tenders and deliver the digs you win.
-      </p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Excavation Contractor</span>
+          <h1>Contract workspace</h1>
+          <p className="page-subtitle">
+            Bid for government excavation tenders and deliver the contracts you are awarded.
+          </p>
+        </div>
+      </div>
 
       <ProfileCard
         name={team.company_name || team.name}
         nid={team.nid}
         email={team.email}
-        role="Excavation Team"
+        role="Excavation Contractor"
         lines={[
           `Representative: ${team.name}${
             team.representative_designation ? ` (${team.representative_designation})` : ""
           }`,
-          team.team_size != null && `Team size: ${team.team_size} members`,
+          team.team_size != null && `Field crew: ${team.team_size} members`,
           team.phone && `Phone: ${team.phone}`,
         ]}
         extra={
@@ -91,28 +97,24 @@ export default function ETeamDashboard() {
       />
 
       {stats && (
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
-            gap: "1rem",
-            marginTop: "1.25rem",
-          }}
-        >
+        <div className="stat-row">
           {[
             { label: "Open tenders", value: stats.open_tenders },
-            { label: "Pending bids", value: stats.pending_bids },
+            { label: "Bids pending", value: stats.pending_bids },
             { label: "Active projects", value: stats.active_projects },
-            { label: "Completed projects", value: stats.completed_projects },
+            { label: "Completed", value: stats.completed_projects },
           ].map((s) => (
-            <div key={s.label} className="card" style={{ margin: 0, padding: "1rem 1.25rem" }}>
-              <p className="hint" style={{ margin: 0 }}>{s.label}</p>
-              <strong style={{ fontSize: "1.6rem", color: "var(--primary)" }}>{s.value}</strong>
+            <div key={s.label} className="stat">
+              <span className="stat-label">{s.label}</span>
+              <span className="stat-value">{s.value}</span>
             </div>
           ))}
         </div>
       )}
 
+      <div className="section-head">
+        <h2>Contract management</h2>
+      </div>
       <ActionGrid items={actions} />
     </div>
   );

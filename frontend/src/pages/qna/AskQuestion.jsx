@@ -33,20 +33,25 @@ export default function AskQuestion() {
 
   return (
     <div className="page narrow">
-      <p>
-        <Link to="/qna" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-          <ArrowLeft size={14} /> Back to Q&amp;A
-        </Link>
-      </p>
+      <Link className="back-link" to="/qna">
+        <ArrowLeft size={14} aria-hidden="true" /> Back to questions
+      </Link>
 
-      <h1>Ask a Question</h1>
-      <p className="page-subtitle">Archaeologists and researchers on ArchiveEarth will answer directly here.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Public enquiry</span>
+          <h1>Ask a question</h1>
+          <p className="page-subtitle">
+            Working archaeologists and researchers answer questions directly on the register.
+          </p>
+        </div>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={handleSubmit} className="form">
         <label>
-          Title *
+          Question
           <input
             type="text"
             required
@@ -56,20 +61,20 @@ export default function AskQuestion() {
           />
         </label>
         <label>
-          Details
+          Background
           <textarea
             rows={5}
-            placeholder="Add any context, what you found, where, and what you'd like to know..."
+            placeholder="What you saw, where, and what you would like to know about it"
             value={body}
             onChange={(e) => setBody(e.target.value)}
           />
         </label>
         <label>
-          Photos (optional)
+          Photographs (optional)
           <ImageUploader images={images} onChange={setImages} />
         </label>
         <button type="submit" className="btn" disabled={busy}>
-          {busy ? "Posting..." : "Post Question"}
+          {busy ? "Publishing" : "Publish question"}
         </button>
       </form>
     </div>

@@ -24,7 +24,7 @@ import {
   ArrowUpRight,
   Inbox,
   Star,
-  HelpCircle,
+  MessagesSquare,
 } from "lucide-react";
 import { api } from "../api";
 import { goToLink } from "../utils/goToLink";
@@ -32,16 +32,16 @@ import { useAuth } from "../context/AuthContext";
 
 // Keep in sync with CATEGORIES in backend/models/Notification.js
 const CATEGORY_LABELS = [
-  { key: "auction", label: "Auction Updates", icon: Gavel },
-  { key: "event", label: "Exhibitions & Events", icon: CalendarDays },
-  { key: "report", label: "Report Status", icon: FileText },
-  { key: "request", label: "Requests & Approvals", icon: ClipboardCheck },
-  { key: "assignment", label: "Assignments & Transfers", icon: MapPinned },
-  { key: "tender", label: "Tenders & Bids", icon: FileSignature },
-  { key: "review", label: "Review & Feedback", icon: Star },
-  { key: "reminder", label: "Deadline Reminders", icon: Clock },
-  { key: "account", label: "Account", icon: UserCheck },
-  { key: "qna", label: "Q&A", icon: HelpCircle },
+  { key: "auction", label: "Auction updates", icon: Gavel },
+  { key: "event", label: "Exhibitions & events", icon: CalendarDays },
+  { key: "report", label: "Report status", icon: FileText },
+  { key: "request", label: "Requests & approvals", icon: ClipboardCheck },
+  { key: "assignment", label: "Assignments & transfers", icon: MapPinned },
+  { key: "tender", label: "Tenders & bids", icon: FileSignature },
+  { key: "review", label: "Performance reviews", icon: Star },
+  { key: "reminder", label: "Deadline reminders", icon: Clock },
+  { key: "account", label: "Account & access", icon: UserCheck },
+  { key: "qna", label: "Public questions", icon: MessagesSquare },
 ];
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_LABELS.map((c) => [c.key, c]));
@@ -238,7 +238,7 @@ export default function NotificationBell() {
         onClick={togglePanel}
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
       >
-        <Bell size={21} />
+        <Bell size={19} aria-hidden="true" />
         {unread > 0 && <span className="notif-count">{unread > 99 ? "99+" : unread}</span>}
       </button>
 
@@ -247,11 +247,11 @@ export default function NotificationBell() {
           <div className="notif-panel-head">
             {selected ? (
               <button type="button" className="notif-back" onClick={() => setSelected(null)}>
-                <ChevronLeft size={15} /> Back
+                <ChevronLeft size={15} aria-hidden="true" /> Back
               </button>
             ) : activeCategory ? (
               <button type="button" className="notif-back" onClick={() => setActiveCategory(null)}>
-                <ChevronLeft size={15} /> All categories
+                <ChevronLeft size={15} aria-hidden="true" /> All categories
               </button>
             ) : (
               <strong>Notifications</strong>
@@ -259,13 +259,17 @@ export default function NotificationBell() {
 
             {!selected && (
               <button type="button" className="notif-mark-all" onClick={markAllRead}>
-                <CheckCheck size={14} /> Mark read
+                <CheckCheck size={14} aria-hidden="true" /> Mark all read
               </button>
             )}
           </div>
 
           <div className="notif-panel-body">
-            {loading && <p className="notif-empty">Loading...</p>}
+            {loading && (
+              <p className="notif-empty">
+                <span className="spinner" aria-hidden="true" /> Loading notifications
+              </p>
+            )}
 
             {/* ---- Level 3: one notification in full ---- */}
             {!loading && selected && (
@@ -278,7 +282,7 @@ export default function NotificationBell() {
                 <p className="notif-detail-msg">{selected.message}</p>
                 {selected.deadline_at && (
                   <p className="notif-detail-deadline">
-                    <Clock size={13} /> Due {new Date(selected.deadline_at).toLocaleString()}
+                    <Clock size={13} aria-hidden="true" /> Due {new Date(selected.deadline_at).toLocaleString()}
                   </p>
                 )}
                 {selected.link && (
@@ -287,7 +291,7 @@ export default function NotificationBell() {
                     className="btn-small notif-goto"
                     onClick={() => goToNotification(selected)}
                   >
-                    Go to page <ArrowUpRight size={14} />
+                    Open record <ArrowUpRight size={14} aria-hidden="true" />
                   </button>
                 )}
               </div>
@@ -298,8 +302,8 @@ export default function NotificationBell() {
               <>
                 {categories.length === 0 && (
                   <p className="notif-empty">
-                    <Inbox size={26} />
-                    <span>You're all caught up.</span>
+                    <Inbox size={24} aria-hidden="true" />
+                    <span>Nothing outstanding. You are up to date.</span>
                   </p>
                 )}
                 {categories.map(({ key, label, icon: Icon, unread: catUnread }) => (
@@ -310,13 +314,13 @@ export default function NotificationBell() {
                     onClick={() => setActiveCategory(key)}
                   >
                     <span className="notif-cat-icon">
-                      <Icon size={16} />
+                      <Icon size={15} aria-hidden="true" />
                     </span>
                     <span className="notif-cat-text">
                       <strong>{label}</strong>
                     </span>
                     {catUnread > 0 && <span className="notif-pill">{catUnread}</span>}
-                    <ChevronRight size={15} className="notif-chevron" />
+                    <ChevronRight size={15} className="notif-chevron" aria-hidden="true" />
                   </button>
                 ))}
               </>
@@ -326,7 +330,7 @@ export default function NotificationBell() {
             {!loading && !selected && activeCategory && (
               <>
                 <p className="notif-section-title">{CATEGORY_MAP[activeCategory]?.label}</p>
-                {visible.length === 0 && <p className="notif-empty">Nothing here yet.</p>}
+                {visible.length === 0 && <p className="notif-empty">No entries in this category.</p>}
                 {visible.map((n) => (
                   <button
                     type="button"

@@ -18,7 +18,7 @@ export default function RequestMaintenance() {
     setSuccess("");
     try {
       await api.post("/sc/request_maintenance", { damage, repair_cost: repairCost });
-      setSuccess("Maintenance request submitted successfully!");
+      setSuccess("Request submitted to the heritage authority for assessment.");
       setDamage("");
       setRepairCost("");
     } catch (err) {
@@ -28,20 +28,39 @@ export default function RequestMaintenance() {
 
   return (
     <div className="page narrow">
-      <h1>Request Maintenance {siteName && `- ${siteName}`}</h1>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">{siteName || "Site conservation"}</span>
+          <h1>Request maintenance</h1>
+          <p className="page-subtitle">
+            Report damage or deterioration at your assigned site and request a repair budget.
+          </p>
+        </div>
+      </div>
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
       <form onSubmit={handleSubmit} className="form">
         <label>
-          Damage description
-          <textarea value={damage} onChange={(e) => setDamage(e.target.value)} required />
+          Description of the damage
+          <textarea
+            value={damage}
+            onChange={(e) => setDamage(e.target.value)}
+            placeholder="What has deteriorated, how far it has progressed, and what is at risk"
+            required
+          />
         </label>
         <label>
-          Estimated repair cost
-          <input type="number" value={repairCost} onChange={(e) => setRepairCost(e.target.value)} required />
+          Estimated repair cost (৳)
+          <input
+            type="number"
+            min="0"
+            value={repairCost}
+            onChange={(e) => setRepairCost(e.target.value)}
+            required
+          />
         </label>
         <button type="submit" className="btn">
-          Submit Request
+          Submit request
         </button>
       </form>
     </div>
