@@ -287,7 +287,7 @@ router.post("/projects/:id/items", async (req, res) => {
     });
     if (!project) return res.status(404).json({ error: "No active site found." });
 
-    const { name, description, discovery_date, Type, specialization } = req.body;
+    const { name, description, discovery_date, Type, specialization, picture } = req.body;
 
     const item = await Item.create({
       site: project.site,
@@ -295,6 +295,7 @@ router.post("/projects/:id/items", async (req, res) => {
       description,
       discovery_date,
       Type,
+      picture: picture || "",
       specialization, // { utility_pottery, material_type, utility_metal, alloy, painter, ... age, ... }
     });
 

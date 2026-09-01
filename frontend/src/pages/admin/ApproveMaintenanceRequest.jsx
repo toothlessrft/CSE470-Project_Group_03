@@ -28,17 +28,26 @@ export default function ApproveMaintenanceRequest() {
 
   return (
     <div className="page">
-      <h1>Approve Maintenance Requests</h1>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Site conservation</span>
+          <h1>Maintenance requests</h1>
+          <p className="page-subtitle">
+            Repair work proposed for recorded sites, and the budget authorised against each.
+          </p>
+        </div>
+      </div>
       {message && <div className="alert alert-success">{message}</div>}
+      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
             <th>Site</th>
-            <th>Caretaker</th>
+            <th>Reported by</th>
             <th>Damage</th>
-            <th>Repair Cost</th>
-            <th>Approved Budget</th>
-            <th>Actions</th>
+            <th>Estimated cost</th>
+            <th>Budget authorised</th>
+            <th>Decision</th>
           </tr>
         </thead>
         <tbody>
@@ -47,12 +56,12 @@ export default function ApproveMaintenanceRequest() {
               <td>{r.site?.name}</td>
               <td>{r.caretaker?.name}</td>
               <td>{r.damage}</td>
-              <td>{r.repair_cost}</td>
+              <td className="num">৳{Number(r.repair_cost || 0).toLocaleString()}</td>
               <td>
                 <input
                   type="number"
                   className="inline-input"
-                  placeholder="amount"
+                  placeholder="৳"
                   value={budgets[r._id] || ""}
                   onChange={(e) => setBudgets({ ...budgets, [r._id]: e.target.value })}
                 />
@@ -62,18 +71,21 @@ export default function ApproveMaintenanceRequest() {
                   Approve
                 </button>
                 <button className="btn-small btn-deny" onClick={() => deny(r._id)}>
-                  Deny
+                  Decline
                 </button>
               </td>
             </tr>
           ))}
           {requests.length === 0 && (
             <tr>
-              <td colSpan={6}>No pending requests.</td>
+              <td colSpan={6} className="hint">
+                Nothing awaiting a decision.
+              </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

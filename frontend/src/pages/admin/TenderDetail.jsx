@@ -115,14 +115,15 @@ export default function TenderDetail() {
 
   return (
     <div className="page">
-      <p>
-        <Link to="/admin/tenders" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-          <ArrowLeft size={14} /> Back to tenders
-        </Link>
-      </p>
+      <Link className="back-link" to="/admin/tenders">
+        <ArrowLeft size={14} aria-hidden="true" /> Back to tenders
+      </Link>
 
-      <div className="report-header">
-        <h1 style={{ margin: 0 }}>{tender.title}</h1>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Excavation tender</span>
+          <h1>{tender.title}</h1>
+        </div>
         <StatusBadge status={tender.status === "Open" ? "Active" : tender.status} />
       </div>
 
@@ -131,21 +132,28 @@ export default function TenderDetail() {
 
       {isOpen && deadlinePassed && (
         <div className="alert alert-info">
-          <Clock size={14} style={{ verticalAlign: "middle" }} /> The bidding deadline has passed. No
-          new or revised bids can come in — evaluate the bids below and assign a team.
+          <Clock size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>
+            Bidding has closed. No further bids can be lodged or revised — evaluate the submissions
+            below and award the contract.
+          </span>
         </div>
       )}
 
       {tender.status === "Awarded" && tender.awarded_team && (
         <div className="alert alert-success">
-          <Trophy size={15} style={{ verticalAlign: "middle" }} /> Awarded to{" "}
-          <strong>{tender.awarded_team.company_name}</strong> (rep. {tender.awarded_team.representative}) on{" "}
-          {new Date(tender.awarded_at).toLocaleDateString()}.{" "}
-          {tender.project && (
-            <Link to={`/admin/excavation-projects`}>
-              View the active project <ArrowRight size={12} style={{ verticalAlign: "middle" }} />
-            </Link>
-          )}
+          <Trophy size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>
+            Awarded to <strong>{tender.awarded_team.company_name}</strong>, represented by{" "}
+            {tender.awarded_team.representative}, on{" "}
+            {new Date(tender.awarded_at).toLocaleDateString()}.{" "}
+            {tender.project && (
+              <Link to="/admin/excavation-projects">
+                Open the active project{" "}
+                <ArrowRight size={12} aria-hidden="true" style={{ verticalAlign: "middle" }} />
+              </Link>
+            )}
+          </span>
         </div>
       )}
 
@@ -156,78 +164,87 @@ export default function TenderDetail() {
       )}
 
       {/* Tender details */}
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Tender Details</h3>
-        <div
-          style={{
-            display: "flex",
-            gap: "1.5rem",
-            flexWrap: "wrap",
-            marginBottom: "1rem",
-            fontSize: "0.9rem",
-            color: "var(--muted)",
-          }}
-        >
-          <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-            <Banknote size={15} /> Estimated budget:{" "}
-            <strong style={{ color: "var(--text)" }}>
-              ৳{tender.estimated_budget?.toLocaleString()}
-            </strong>
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-            <CalendarClock size={15} /> Deadline:{" "}
-            <strong style={{ color: "var(--text)" }}>
-              {new Date(tender.deadline).toLocaleString()}
-            </strong>
-          </span>
-          <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-            <Users size={15} /> {liveBids.length} active bid{liveBids.length === 1 ? "" : "s"}
-          </span>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Tender particulars</h3>
         </div>
+        <div className="panel-body">
+          <dl className="detail-list">
+            <div>
+              <dt>
+                <Banknote size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Estimated budget
+              </dt>
+              <dd className="num">৳{tender.estimated_budget?.toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>
+                <CalendarClock size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Bids close
+              </dt>
+              <dd className="num">{new Date(tender.deadline).toLocaleString()}</dd>
+            </div>
+            <div>
+              <dt>
+                <Users size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Live bids
+              </dt>
+              <dd className="num">{liveBids.length}</dd>
+            </div>
+          </dl>
 
-        <h4>Project Details</h4>
-        <p style={{ fontSize: "0.92rem" }}>{tender.project_details}</p>
+          <h4 className="section-title">Scope of work</h4>
+          <p style={{ fontSize: "0.9375rem" }}>{tender.project_details}</p>
 
-        {tender.requirements && (
-          <>
-            <h4>Requirements</h4>
-            <p style={{ fontSize: "0.92rem" }}>{tender.requirements}</p>
-          </>
-        )}
+          {tender.requirements && (
+            <>
+              <h4 className="section-title">Contractor requirements</h4>
+              <p style={{ fontSize: "0.9375rem" }}>{tender.requirements}</p>
+            </>
+          )}
 
-        {tender.archaeologist && (
-          <>
-            <h4>Lead Archaeologist</h4>
-            <p style={{ fontSize: "0.9rem", margin: 0 }}>
-              {tender.archaeologist.name} ({tender.archaeologist.nid}) — {tender.archaeologist.email}
-            </p>
-          </>
-        )}
+          {tender.archaeologist && (
+            <>
+              <h4 className="section-title">Lead archaeologist</h4>
+              <p style={{ fontSize: "0.9375rem", margin: 0 }}>
+                {tender.archaeologist.name} ({tender.archaeologist.nid}) —{" "}
+                {tender.archaeologist.email}
+              </p>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Location */}
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>
-          <MapPin size={16} style={{ verticalAlign: "middle" }} /> Excavation Location
-        </h3>
-        {tender.location?.lat != null ? (
-          <>
-            <GoogleMapPicker value={tender.location} editable={false} height={250} />
-            <p className="hint" style={{ marginBottom: 0 }}>
-              {tender.location.address || `${tender.location.lat}, ${tender.location.lng}`}
+      <div className="panel">
+        <div className="panel-head">
+          <h3>
+            <MapPin size={15} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.35rem" }} />
+            Site location
+          </h3>
+        </div>
+        <div className="panel-body">
+          {tender.location?.lat != null ? (
+            <>
+              <GoogleMapPicker value={tender.location} editable={false} height={250} />
+              <p className="hint" style={{ margin: "0.6rem 0 0" }}>
+                {tender.location.address || `${tender.location.lat}, ${tender.location.lng}`}
+              </p>
+            </>
+          ) : (
+            <p className="hint" style={{ margin: 0 }}>
+              No coordinates are recorded for this tender.
             </p>
-          </>
-        ) : (
-          <p className="hint">No coordinates recorded for this tender.</p>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Bids */}
-      <div className="card">
-        <h3 style={{ marginTop: 0 }}>Submitted Bids ({bids.length})</h3>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Submitted bids ({bids.length})</h3>
+        </div>
+        <div className="panel-body">
         {bids.length === 0 ? (
           <p className="hint" style={{ margin: 0 }}>
-            No excavation teams have bid on this tender yet.
+            No contractor has bid on this tender yet.
           </p>
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -240,116 +257,86 @@ export default function TenderDetail() {
                   className="card"
                   style={{
                     margin: 0,
-                    padding: "1.1rem 1.25rem",
-                    background: b.status === "Accepted" ? "#f5fbf6" : "var(--surface)",
-                    borderLeft: `4px solid ${
+                    borderLeft: `3px solid ${
                       b.status === "Accepted"
                         ? "var(--success)"
                         : b.status === "Rejected"
                         ? "var(--danger)"
                         : b.status === "Withdrawn"
-                        ? "var(--border)"
+                        ? "var(--border-strong)"
                         : "var(--accent)"
                     }`,
                   }}
                 >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      gap: "0.75rem",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div>
-                      <strong style={{ fontSize: "1rem" }}>{b.company_name}</strong>
-                      <div style={{ margin: "0.3rem 0" }}>
-                        <StarRating
-                          value={ratings[b.team?._id]?.average ?? null}
-                          readOnly
-                          count={ratings[b.team?._id]?.count}
-                          size={14}
-                        />
-                      </div>
-                      <p className="hint" style={{ margin: "0.15rem 0 0" }}>
-                        Rep. {b.team?.representative}
+                  <div className="report-header">
+                    <div style={{ minWidth: 0 }}>
+                      <h4 style={{ margin: "0 0 0.25rem" }}>{b.company_name}</h4>
+                      <StarRating
+                        value={ratings[b.team?._id]?.average ?? null}
+                        readOnly
+                        count={ratings[b.team?._id]?.count}
+                        size={14}
+                      />
+                      <p className="record-meta" style={{ marginTop: "0.3rem" }}>
+                        {b.team?.representative}
                         {b.team?.representative_designation
                           ? ` (${b.team.representative_designation})`
                           : ""}{" "}
                         · {b.team?.email}
                       </p>
                     </div>
-                    <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
-                      {isLowest && (
-                        <span
-                          className="status-badge"
-                          style={{ backgroundColor: "#2e7d32" }}
-                          title="Lowest cost"
-                        >
-                          Lowest Cost
-                        </span>
-                      )}
-                      {isFastest && (
-                        <span
-                          className="status-badge"
-                          style={{ backgroundColor: "#2563eb" }}
-                          title="Fastest timeline"
-                        >
-                          Fastest
-                        </span>
-                      )}
+                    <div className="record-side">
+                      {isLowest && <span className="chip">Lowest price</span>}
+                      {isFastest && <span className="chip">Shortest programme</span>}
                       <StatusBadge status={b.status} />
                     </div>
                   </div>
 
-                  <div
-                    style={{
-                      display: "flex",
-                      gap: "1.5rem",
-                      flexWrap: "wrap",
-                      margin: "0.85rem 0",
-                      fontSize: "0.88rem",
-                      color: "var(--muted)",
-                    }}
-                  >
-                    <span>
-                      <Banknote size={14} style={{ verticalAlign: "middle" }} /> Cost:{" "}
-                      <strong style={{ color: "var(--text)" }}>৳{b.cost?.toLocaleString()}</strong>
-                    </span>
-                    <span>
-                      <Clock size={14} style={{ verticalAlign: "middle" }} /> Timeline:{" "}
-                      <strong style={{ color: "var(--text)" }}>{b.timeline_days} days</strong>
-                    </span>
-                    <span>Submitted {new Date(b.submitted_at).toLocaleDateString()}</span>
-                    {b.team?.team_size != null && <span>{b.team.team_size} crew</span>}
-                  </div>
+                  <dl className="detail-list" style={{ margin: "1.1rem 0" }}>
+                    <div>
+                      <dt>
+                        <Banknote size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Bid price
+                      </dt>
+                      <dd className="num">৳{b.cost?.toLocaleString()}</dd>
+                    </div>
+                    <div>
+                      <dt>
+                        <Clock size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Programme
+                      </dt>
+                      <dd className="num">{b.timeline_days} days</dd>
+                    </div>
+                    <div>
+                      <dt>Lodged</dt>
+                      <dd className="num">{new Date(b.submitted_at).toLocaleDateString()}</dd>
+                    </div>
+                    {b.team?.team_size != null && (
+                      <div>
+                        <dt>Field crew</dt>
+                        <dd className="num">{b.team.team_size}</dd>
+                      </div>
+                    )}
+                  </dl>
 
-                  <p style={{ fontSize: "0.9rem" }}>{b.proposal}</p>
+                  <p style={{ fontSize: "0.9375rem" }}>{b.proposal}</p>
 
                   {isOpen && b.status === "Pending" && (
                     <div
-                      style={{
-                        display: "flex",
-                        gap: "0.5rem",
-                        flexWrap: "wrap",
-                        borderTop: "1px solid var(--border)",
-                        paddingTop: "0.9rem",
-                      }}
+                      className="actions"
+                      style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}
                     >
                       <button
                         className="btn-small btn-approve"
                         onClick={() => awardBid(b)}
                         disabled={busyId === b._id}
                       >
-                        <Trophy size={13} /> Assign This Team
+                        <Trophy size={13} aria-hidden="true" /> Award the contract
                       </button>
                       <button
                         className="btn-small btn-deny"
                         onClick={() => rejectBid(b)}
                         disabled={busyId === b._id}
                       >
-                        <XCircle size={13} /> Reject Bid
+                        <XCircle size={13} aria-hidden="true" /> Reject bid
                       </button>
                     </div>
                   )}
@@ -358,41 +345,47 @@ export default function TenderDetail() {
             })}
           </div>
         )}
+        </div>
       </div>
 
       {isOpen && (
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>Cancel Tender</h3>
-          {showCancel ? (
-            <div className="form">
-              <label>
-                Reason
-                <textarea
-                  rows={3}
-                  value={cancelReason}
-                  onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="Why is this tender being withdrawn?"
-                />
-              </label>
-              <div className="actions">
-                <button className="btn btn-deny" onClick={cancelTender}>
-                  Confirm Cancellation
-                </button>
-                <button className="btn-small" onClick={() => setShowCancel(false)}>
-                  Keep Tender Open
-                </button>
+        <div className="panel">
+          <div className="panel-head">
+            <h3>Withdraw this tender</h3>
+          </div>
+          <div className="panel-body">
+            {showCancel ? (
+              <div className="form">
+                <label>
+                  Reason for withdrawal
+                  <textarea
+                    rows={3}
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    placeholder="This reason is shown to every contractor that bid"
+                  />
+                </label>
+                <div className="actions">
+                  <button className="btn btn-deny" onClick={cancelTender}>
+                    Confirm withdrawal
+                  </button>
+                  <button className="btn btn-secondary" onClick={() => setShowCancel(false)}>
+                    Keep tender open
+                  </button>
+                </div>
               </div>
-            </div>
-          ) : (
-            <>
-              <p className="hint">
-                Cancelling closes the tender and rejects every pending bid. This cannot be undone.
-              </p>
-              <button className="btn-small btn-deny" onClick={() => setShowCancel(true)}>
-                <Ban size={13} /> Cancel This Tender
-              </button>
-            </>
-          )}
+            ) : (
+              <>
+                <p className="hint" style={{ marginTop: 0 }}>
+                  Withdrawing closes the tender and rejects every outstanding bid. This cannot be
+                  undone.
+                </p>
+                <button className="btn-small btn-deny" onClick={() => setShowCancel(true)}>
+                  <Ban size={13} aria-hidden="true" /> Withdraw tender
+                </button>
+              </>
+            )}
+          </div>
         </div>
       )}
     </div>

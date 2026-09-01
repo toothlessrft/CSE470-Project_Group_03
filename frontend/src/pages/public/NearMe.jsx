@@ -20,7 +20,7 @@ export default function NearMe() {
 
   function findNearMe(radiusKm = radius) {
     if (!navigator.geolocation) {
-      setError("Your browser doesn't support location services.");
+      setError("This browser does not support location services.");
       return;
     }
     setLocating(true);
@@ -35,13 +35,13 @@ export default function NearMe() {
           setExhibitions(data.exhibitions || []);
           setMuseums(data.museums || []);
         } catch (err) {
-          setError(err.message || "Could not load nearby places.");
+          setError(err.message || "Nearby records could not be loaded.");
         } finally {
           setLocating(false);
         }
       },
       () => {
-        setError("Location permission denied. Enable location access and try again.");
+        setError("Location access was declined. Enable it in your browser and try again.");
         setLocating(false);
       }
     );
@@ -49,15 +49,25 @@ export default function NearMe() {
 
   return (
     <div className="page">
-      <h1>Near Me</h1>
-      <p className="page-subtitle">
-        Find archaeological sites, exhibitions and events, and museums close to your current location.
-      </p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Location search</span>
+          <h1>Sites near you</h1>
+          <p className="page-subtitle">
+            Recorded excavation sites, museums, and public events within reach of your current
+            location.
+          </p>
+        </div>
+      </div>
 
-      <div className="card" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          Radius
-          <select value={radius} onChange={(e) => setRadius(Number(e.target.value))}>
+      <div className="toolbar">
+        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.8125rem", fontWeight: 600, color: "var(--primary-dark)" }}>
+          Search radius
+          <select
+            value={radius}
+            onChange={(e) => setRadius(Number(e.target.value))}
+            style={{ width: "auto" }}
+          >
             <option value={10}>10 km</option>
             <option value={25}>25 km</option>
             <option value={50}>50 km</option>
@@ -66,79 +76,145 @@ export default function NearMe() {
           </select>
         </label>
         <button className="btn" onClick={() => findNearMe(radius)} disabled={locating}>
-          <LocateFixed size={15} /> {locating ? "Locating..." : center ? "Refresh" : "Use my location"}
+          <LocateFixed size={16} aria-hidden="true" />{" "}
+          {locating ? "Locating" : center ? "Search again" : "Use my location"}
         </button>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
+      {!center && !error && (
+        <div className="empty-state">
+          <LocateFixed size={26} aria-hidden="true" />
+          <h3>Share your location to begin</h3>
+          <p>
+            Your location is used once, in your browser, to work out what is nearby. It is never
+            stored on the register.
+          </p>
+        </div>
+      )}
+
       {center && (
         <>
-          <div className="card">
-            <NearMeMap center={center} sites={sites} exhibitions={exhibitions} museums={museums} />
+          <div className="panel">
+            <div className="panel-body">
+              <NearMeMap center={center} sites={sites} exhibitions={exhibitions} museums={museums} />
+            </div>
           </div>
 
-          <h3><Landmark size={16} /> Archaeological sites ({sites.length})</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
-            {sites.map((s) => (
-              <div key={s._id} className="card" style={{ margin: 0 }}>
-                <h4 style={{ margin: 0 }}>{s.name}</h4>
-                <p className="hint" style={{ margin: "0.25rem 0" }}>{s.era}</p>
-                <p style={{ margin: 0, fontSize: "0.85rem" }}>
-                  {[s.thana, s.district].filter(Boolean).join(", ")}
-                </p>
-                <p style={{ margin: "0.35rem 0 0", fontSize: "0.85rem", color: "#777" }}>
-                  {s.artifact_count} artifact(s) &middot; {s.distance_km.toFixed(1)} km away
-                </p>
-              </div>
-            ))}
-            {sites.length === 0 && <p>No archaeological sites within {radius} km.</p>}
+          <div className="section-head">
+            <h2>
+              <Landmark size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--primary)" }} />
+              Excavation sites
+            </h2>
+            <span className="hint">{sites.length} within {radius} km</span>
           </div>
+          {sites.length === 0 ? (
+            <p className="hint">No recorded sites within {radius} km.</p>
+          ) : (
+            <ul className="record-list">
+              {sites.map((s) => (
+                <li className="record-row" key={s._id}>
+                  <div className="record-main">
+                    <h4>{s.name}</h4>
+                    <p className="meta-row">
+                      {s.era && <span>{s.era}</span>}
+                      <span>{[s.thana, s.district].filter(Boolean).join(", ")}</span>
+                    </p>
+                  </div>
+                  <div className="record-side">
+                    <span className="chip">{s.artifact_count} artifacts</span>
+                    <span className="hint">{s.distance_km.toFixed(1)} km away</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
 
-          <h3 style={{ marginTop: "1.5rem" }}><CalendarDays size={16} /> Exhibitions &amp; events ({exhibitions.length})</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
-            {exhibitions.map((e) => (
-              <div key={e._id} className="card" style={{ margin: 0 }}>
-                <h4 style={{ margin: 0 }}>{e.title}</h4>
-                {e.museum_name && <p className="hint" style={{ margin: "0.25rem 0" }}>{e.museum_name}</p>}
-                <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                  <CalendarDays size={13} /> {fmtDate(e.start_date)} - {fmtDate(e.end_date)}
-                </p>
-                {e.location?.address && (
-                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem", color: "#777" }}>
-                    <MapPin size={13} /> {e.location.address} &middot; {e.distance_km.toFixed(1)} km away
-                  </p>
-                )}
-              </div>
-            ))}
-            {exhibitions.length === 0 && <p>No upcoming exhibitions or events within {radius} km.</p>}
+          <div className="section-head">
+            <h2>
+              <CalendarDays size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--primary)" }} />
+              Exhibitions &amp; events
+            </h2>
+            <span className="hint">{exhibitions.length} within {radius} km</span>
           </div>
+          {exhibitions.length === 0 ? (
+            <p className="hint">No upcoming events within {radius} km.</p>
+          ) : (
+            <ul className="record-list">
+              {exhibitions.map((e) => (
+                <li className="record-row" key={e._id}>
+                  <div className="record-main">
+                    <h4>{e.title}</h4>
+                    <p className="meta-row">
+                      {e.museum_name && <span>{e.museum_name}</span>}
+                      <span>
+                        <CalendarDays size={13} aria-hidden="true" /> {fmtDate(e.start_date)} —{" "}
+                        {fmtDate(e.end_date)}
+                      </span>
+                      {e.location?.address && (
+                        <span>
+                          <MapPin size={13} aria-hidden="true" /> {e.location.address}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="record-side">
+                    <span className="hint">{e.distance_km.toFixed(1)} km away</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
 
-          <h3 style={{ marginTop: "1.5rem" }}><Landmark size={16} /> Museums ({museums.length})</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
-            {museums.map((m) => (
-              <div key={m.museum_name} className="card" style={{ margin: 0 }}>
-                <h4 style={{ margin: 0 }}>{m.museum_name}</h4>
-                {m.address && <p style={{ margin: "0.25rem 0", fontSize: "0.85rem" }}><MapPin size={13} /> {m.address}</p>}
-                {m.operating_hours && (
-                  <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                    <Clock size={13} /> {m.operating_hours}
-                  </p>
-                )}
-                {m.ticket_info && (
-                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                    <Ticket size={13} /> {m.ticket_info}
-                  </p>
-                )}
-                <p style={{ margin: "0.35rem 0 0", fontSize: "0.85rem", color: "#777" }}>
-                  {m.artifact_count} artifact(s) on record &middot; {m.distance_km.toFixed(1)} km away
-                </p>
-                <Link to={`/museums/${encodeURIComponent(m.museum_name)}`} className="btn-small btn-outline-light" style={{ marginTop: "0.5rem", display: "inline-block" }}>
-                </Link>
-              </div>
-            ))}
-            {museums.length === 0 && <p>No museums with a registered location within {radius} km.</p>}
+          <div className="section-head">
+            <h2>
+              <Landmark size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--primary)" }} />
+              Museums
+            </h2>
+            <span className="hint">{museums.length} within {radius} km</span>
           </div>
+          {museums.length === 0 ? (
+            <p className="hint">No museums with a registered location within {radius} km.</p>
+          ) : (
+            <ul className="record-list">
+              {museums.map((m) => (
+                <li className="record-row" key={m.museum_name}>
+                  <div className="record-main">
+                    <h4>{m.museum_name}</h4>
+                    <p className="meta-row">
+                      {m.address && (
+                        <span>
+                          <MapPin size={13} aria-hidden="true" /> {m.address}
+                        </span>
+                      )}
+                      {m.operating_hours && (
+                        <span>
+                          <Clock size={13} aria-hidden="true" /> {m.operating_hours}
+                        </span>
+                      )}
+                      {m.ticket_info && (
+                        <span>
+                          <Ticket size={13} aria-hidden="true" /> {m.ticket_info}
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                  <div className="record-side">
+                    <span className="hint">
+                      {m.artifact_count} on record · {m.distance_km.toFixed(1)} km away
+                    </span>
+                    <Link
+                      to={`/museums/${encodeURIComponent(m.museum_name)}`}
+                      className="btn-small btn-secondary"
+                    >
+                      View collection
+                    </Link>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
       )}
     </div>

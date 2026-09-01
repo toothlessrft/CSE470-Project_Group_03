@@ -90,23 +90,27 @@ export default function ChatBell() {
         onClick={toggle}
         aria-label={`Project team chats${unread ? ` (${unread} unread)` : ""}`}
       >
-        <MessageCircle size={21} />
+        <MessageCircle size={19} aria-hidden="true" />
         {unread > 0 && <span className="notif-count">{unread > 99 ? "99+" : unread}</span>}
       </button>
 
       {open && (
         <div className="notif-panel">
           <div className="notif-panel-head">
-            <strong>Project Team Chats</strong>
+            <strong>Project channels</strong>
           </div>
 
           <div className="notif-panel-body">
-            {loading && <p className="notif-empty">Loading...</p>}
+            {loading && (
+              <p className="notif-empty">
+                <span className="spinner" aria-hidden="true" /> Loading channels
+              </p>
+            )}
 
             {!loading && chats.length === 0 && (
               <p className="notif-empty">
-                <Users size={26} />
-                <span>No project chats yet. They open automatically once a team is assigned.</span>
+                <Users size={24} aria-hidden="true" />
+                <span>No project channels yet. One opens as soon as a field team is assigned.</span>
               </p>
             )}
 
@@ -121,12 +125,12 @@ export default function ChatBell() {
                     <small>
                       {c.lastMessage
                         ? c.lastMessage.text || (c.lastMessage.image ? "Sent a photo" : "")
-                        : "No messages yet."}
+                        : "No messages yet"}
                     </small>
                     <em>{c.lastMessage ? timeAgo(c.lastMessage.createdAt) : ""}</em>
                   </span>
                   {c.unread > 0 && <span className="notif-pill">{c.unread}</span>}
-                  <ChevronRight size={15} className="notif-chevron" />
+                  <ChevronRight size={15} className="notif-chevron" aria-hidden="true" />
                 </button>
               ))}
           </div>

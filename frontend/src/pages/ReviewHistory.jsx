@@ -1,8 +1,14 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { ArrowLeft, Star } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { api } from "../api";
 import StarRating from "../components/StarRating";
+
+const REVIEWER_LABELS = {
+  archaeologist: "Archaeologist",
+  excavation_team: "Excavation contractor",
+};
 
 export default function ReviewHistory() {
   const { userId: paramUserId } = useParams();
@@ -27,38 +33,76 @@ export default function ReviewHistory() {
       </div>
     );
   }
-  if (!data) return <div className="page">Loading...</div>;
+  if (!data) {
+    return (
+      <div className="page narrow">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading performance record
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page narrow">
-      <p>
-        <Link to="/">← Back</Link>
-      </p>
-      <h1>Reviews & Ratings</h1>
-      <p className="page-subtitle">Feedback left by past collaborators on completed excavation projects.</p>
+      <Link className="back-link" to="/">
+        <ArrowLeft size={14} aria-hidden="true" /> Back
+      </Link>
 
-      <div className="card">
-        <StarRating value={data.average} readOnly count={data.count} size={26} />
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Performance record</span>
+          <h1>Reviews & ratings</h1>
+          <p className="page-subtitle">
+            Assessments left by collaborators on completed excavation projects.
+          </p>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginTop: 0 }}>
+        <span className="stat-label">Overall rating</span>
+        <StarRating value={data.average} readOnly count={data.count} size={24} />
       </div>
 
       {data.reviews.length === 0 ? (
-        <p className="hint">No reviews yet.</p>
-      ) : (
-        <div style={{ display: "grid", gap: "1rem" }}>
-          {data.reviews.map((r) => (
-            <div key={r._id} className="card" style={{ margin: 0 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem" }}>
-                <StarRating value={r.rating} readOnly size={16} />
-                <span className="hint">{new Date(r.createdAt).toLocaleDateString()}</span>
-              </div>
-              <p style={{ margin: "0.5rem 0 0.25rem", fontWeight: 600 }}>
-                {r.reviewer_name} <span style={{ fontWeight: 400, color: "#8a7a68" }}>({r.reviewer_role === "archaeologist" ? "Researcher" : "Excavation Team"})</span>
-              </p>
-              <p className="hint" style={{ margin: "0 0 0.5rem" }}>Project: {r.project_name}</p>
-              {r.feedback && <p style={{ margin: 0 }}>{r.feedback}</p>}
-            </div>
-          ))}
+        <div className="empty-state">
+          <Star size={24} aria-hidden="true" />
+          <h3>No assessments yet</h3>
+          <p>Reviews appear here once a collaborator rates a completed project.</p>
         </div>
+      ) : (
+        <>
+          <div className="section-head">
+            <h2>Individual assessments</h2>
+            <span className="hint">{data.reviews.length} recorded</span>
+          </div>
+          <ul className="record-list">
+            {data.reviews.map((r) => (
+              <li className="record-row" key={r._id} style={{ flexDirection: "column", alignItems: "stretch" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                    gap: "0.5rem",
+                  }}
+                >
+                  <StarRating value={r.rating} readOnly size={15} />
+                  <span className="hint">{new Date(r.createdAt).toLocaleDateString()}</span>
+                </div>
+                <p style={{ margin: "0.55rem 0 0", fontWeight: 600 }}>
+                  {r.reviewer_name}{" "}
+                  <span style={{ fontWeight: 400, color: "var(--muted)" }}>
+                    ({REVIEWER_LABELS[r.reviewer_role] || r.reviewer_role})
+                  </span>
+                </p>
+                <p className="record-meta">Project: {r.project_name}</p>
+                {r.feedback && <p style={{ margin: "0.5rem 0 0" }}>{r.feedback}</p>}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );

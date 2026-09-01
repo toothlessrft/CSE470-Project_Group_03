@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { FileSignature } from "lucide-react"; // Ahad_23201016
+import { FileSignature, ArrowLeft, MapPin } from "lucide-react"; // Ahad_23201016
 import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
 import StatusBadge from "../../components/StatusBadge";
@@ -98,144 +98,228 @@ export default function AssignInspection() {
     }
   }
 
-  if (loading) return <div className="page">Loading...</div>;
-  if (!report) return <div className="page">Report not found.</div>;
+  if (loading)
+    return (
+      <div className="page">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading the report
+        </div>
+      </div>
+    );
+  if (!report)
+    return (
+      <div className="page">
+        <div className="alert alert-danger">This report could not be found.</div>
+      </div>
+    );
 
   return (
     <div className="page">
-      <p>
-        <Link to="/admin/reports">← Back to all reports</Link>
-      </p>
-      <div className="report-header">
-        <h1>{report.material}</h1>
+      <Link className="back-link" to="/admin/reports">
+        <ArrowLeft size={14} aria-hidden="true" /> Back to field reports
+      </Link>
+
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Discovery report</span>
+          <h1>{report.material}</h1>
+        </div>
         <StatusBadge status={report.status} />
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="card">
-        <h3>Discovery details</h3>
-        <GoogleMapPicker value={report.location} editable={false} height={260} />
-        <p className="hint">
-          📍 {report.location?.address || `${report.location.lat}, ${report.location.lng}`}
-        </p>
-        {report.notes && <p>{report.notes}</p>}
-        {report.images?.length > 0 && (
-          <div className="image-grid">
-            {report.images.map((src, i) => (
-              <div className="image-thumb" key={i}>
-                <img src={src} alt={`report-${i}`} />
-              </div>
-            ))}
-          </div>
-        )}
-        <h4>Reported by</h4>
-        <p>
-          {report.reporter?.name} ({report.reporter?.nid})<br />
-          ✉️ {report.reporter?.email || report.contact_email} &nbsp; 📞 {report.contact_phone}
-        </p>
+      <div className="panel">
+        <div className="panel-head">
+          <h3>Reported find</h3>
+        </div>
+        <div className="panel-body">
+          <GoogleMapPicker value={report.location} editable={false} height={260} />
+          <p className="meta-row">
+            <span>
+              <MapPin size={13} aria-hidden="true" />
+              {report.location?.address || `${report.location.lat}, ${report.location.lng}`}
+            </span>
+          </p>
+
+          {report.notes && <p style={{ marginTop: "0.85rem" }}>{report.notes}</p>}
+
+          {report.images?.length > 0 && (
+            <div className="image-grid">
+              {report.images.map((src, i) => (
+                <div className="image-thumb" key={i}>
+                  <img src={src} alt={`Photograph ${i + 1} of the reported find`} />
+                </div>
+              ))}
+            </div>
+          )}
+
+          <h4 className="section-title">Reported by</h4>
+          <dl className="detail-list">
+            <div>
+              <dt>Name</dt>
+              <dd>
+                {report.reporter?.name} ({report.reporter?.nid})
+              </dd>
+            </div>
+            <div>
+              <dt>Email</dt>
+              <dd>{report.reporter?.email || report.contact_email}</dd>
+            </div>
+            <div>
+              <dt>Phone</dt>
+              <dd>{report.contact_phone}</dd>
+            </div>
+          </dl>
+        </div>
       </div>
 
       {report.status === "Pending" ? (
-        <div className="card">
-          <h3>Assign field inspection</h3>
+        <div className="panel">
+          <div className="panel-head">
+            <h3>Assign a field inspection</h3>
+          </div>
+          <div className="panel-body">
           <form onSubmit={handleAssign} className="form">
             <label>
-              Researcher (nearest listed first)
+              Inspecting archaeologist
               <select value={researcherId} onChange={(e) => setResearcherId(e.target.value)} required>
-                <option value="">Select a researcher...</option>
+                <option value="">Choose an archaeologist</option>
                 {researchers.map((r) => {
                   const rating = ratings[r._id];
                   return (
                     <option key={r._id} value={r._id}>
                       {r.name} ({r.nid}){r.affiliation ? ` — ${r.affiliation}` : ""}
                       {r.distance_km != null ? ` — ${r.distance_km.toFixed(1)} km away` : ""}
-                      {rating ? ` — ★ ${rating.average}/5 (${rating.count})` : " — No ratings yet"}
+                      {rating ? ` — rated ${rating.average}/5 from ${rating.count}` : " — not yet rated"}
                     </option>
                   );
                 })}
               </select>
             </label>
             <label>
-              Notes for the researcher
-              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+              Instructions for the inspector
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={3}
+                placeholder="What to look for on site, and anything the reporter should be asked"
+              />
             </label>
             <label>
-              Report due by
+              Field report due by
               <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
             </label>
             <button type="submit" className="btn" disabled={submitting}>
-              {submitting ? "Assigning..." : "Assign Researcher"}
+              {submitting ? "Assigning" : "Assign inspection"}
             </button>
           </form>
+          </div>
         </div>
       ) : (
-        <div className="card">
-          <h3>Assignment</h3>
-          <p>
-            Assigned to <strong>{report.assignment?.researcher?.name}</strong>
-            {report.assignment?.budget ? ` — budget: ৳${report.assignment.budget}` : ""}
-          </p>
-          {report.assignment?.notes && <p className="hint">{report.assignment.notes}</p>}
-          {report.assignment?.due_date && (
-            <p className="hint">Due {new Date(report.assignment.due_date).toLocaleDateString()}</p>
-          )}
-          {report.verification?.result && (
-            <div className={`alert ${report.verification.result === "true" ? "alert-success" : "alert-danger"}`}>
-              Field verification: {report.verification.result === "true" ? "Confirmed genuine" : "Could not be verified"}
-              {report.verification.notes && ` — ${report.verification.notes}`}
-            </div>
-          )}
+        <div className="panel">
+          <div className="panel-head">
+            <h3>Assignment</h3>
+          </div>
+          <div className="panel-body">
+            <dl className="detail-list">
+              <div>
+                <dt>Assigned to</dt>
+                <dd>{report.assignment?.researcher?.name}</dd>
+              </div>
+              {report.assignment?.budget && (
+                <div>
+                  <dt>Budget</dt>
+                  <dd className="num">৳{Number(report.assignment.budget).toLocaleString()}</dd>
+                </div>
+              )}
+              {report.assignment?.due_date && (
+                <div>
+                  <dt>Report due</dt>
+                  <dd className="num">
+                    {new Date(report.assignment.due_date).toLocaleDateString()}
+                  </dd>
+                </div>
+              )}
+            </dl>
+            {report.assignment?.notes && (
+              <p className="subtle" style={{ marginTop: "1rem" }}>
+                {report.assignment.notes}
+              </p>
+            )}
+            {report.verification?.result && (
+              <div
+                className={`alert ${
+                  report.verification.result === "true" ? "alert-success" : "alert-danger"
+                }`}
+                style={{ marginTop: "1rem", marginBottom: 0 }}
+              >
+                <span>
+                  Field verification:{" "}
+                  {report.verification.result === "true"
+                    ? "confirmed as genuine"
+                    : "could not be verified"}
+                  {report.verification.notes && ` — ${report.verification.notes}`}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       {/* Field report review */}
       {report.verification?.result === "true" && (
-        <div className="card" style={{ border: "2px dashed #c98a4b", backgroundColor: "#fdf8f2" }}>
-          <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Researcher Field Report</h3>
+        <div className="panel">
+          <div className="panel-head">
+            <h3>Field report</h3>
+            {researcherReport?.status && <StatusBadge status={researcherReport.status} />}
+          </div>
+          <div className="panel-body">
 
           {rrLoading ? (
-            <p className="hint">Loading researcher report...</p>
+            <p className="loading-state" style={{ padding: 0 }}>
+              <span className="spinner" aria-hidden="true" /> Loading the field report
+            </p>
           ) : !researcherReport ? (
-            <p className="hint">The researcher hasn&apos;t started their report yet.</p>
+            <p className="hint" style={{ margin: 0 }}>
+              The inspecting archaeologist has not started their report yet.
+            </p>
           ) : researcherReport.status === "Draft" ? (
-            <p className="hint">The researcher is still working on this report as a draft.</p>
+            <p className="hint" style={{ margin: 0 }}>
+              The report is still an unsubmitted draft.
+            </p>
           ) : (
             <>
               {rrError && <div className="alert alert-danger">{rrError}</div>}
               {rrSuccess && <div className="alert alert-success">{rrSuccess}</div>}
 
-              <StatusBadge status={researcherReport.status} />
+              <dl className="detail-list" style={{ marginBottom: "1rem" }}>
+                <div>
+                  <dt>Excavation recommended</dt>
+                  <dd>{researcherReport.requestExcavationTeam ? "Yes" : "No"}</dd>
+                </div>
+                {researcherReport.budgetRequested != null && (
+                  <div>
+                    <dt>Budget requested</dt>
+                    <dd className="num">
+                      ৳{Number(researcherReport.budgetRequested).toLocaleString()}
+                    </dd>
+                  </div>
+                )}
+              </dl>
 
-              {researcherReport.requestExcavationTeam && (
-                <p style={{ marginTop: "0.75rem" }}>
-                  The researcher is requesting that an excavation team be assigned to this site.
-                </p>
-              )}
-              {researcherReport.budgetRequested != null && (
-                <p>Requested budget: ৳{researcherReport.budgetRequested}</p>
-              )}
-
-              {/* Field inspection notes written by the archaeologist */}
-              <h4>Field inspection notes</h4>
-              <p
-                style={{
-                  margin: "0 0 1rem",
-                  padding: "0.75rem 1rem",
-                  background: "#fff",
-                  border: "1px solid var(--border)",
-                  borderLeft: "4px solid var(--accent)",
-                  borderRadius: "6px",
-                  whiteSpace: "pre-wrap",
-                }}
-              >
-                {researcherReport.notes || report.verification?.notes || "The researcher did not leave any notes."}
+              {/* Findings written by the inspecting archaeologist */}
+              <span className="stat-label">Findings</span>
+              <p className="subtle" style={{ whiteSpace: "pre-wrap", margin: "0.25rem 0 1rem" }}>
+                {researcherReport.notes ||
+                  report.verification?.notes ||
+                  "No findings were recorded on this report."}
               </p>
 
               {researcherReport.status === "Pending" && (
                 <button className="btn btn-approve" onClick={handleApproveReport} disabled={approving}>
-                  {approving ? "Approving..." : "Approve Field Report"}
+                  {approving ? "Approving" : "Approve field report"}
                 </button>
               )}
 
@@ -243,40 +327,30 @@ export default function AssignInspection() {
                   Once the field report is approved and the archaeologist asked
                   for an excavation team, the Government opens it up to bidding. */}
               {researcherReport.status === "Approved" && researcherReport.requestExcavationTeam && (
-                <div
-                  className="card"
-                  style={{ margin: "1rem 0 0", background: "var(--surface)", borderLeft: "4px solid var(--accent)" }}
-                >
+                <div className="subtle" style={{ marginTop: "1.25rem", borderLeft: "3px solid var(--accent)" }}>
                   {tender ? (
                     <>
                       {/* Ahad_23201016 - the tender for this report already exists, so
                           show where it stands instead of offering to publish it again. */}
-                      <h4 style={{ marginTop: 0 }}>Excavation Tender Published</h4>
+                      <h4 style={{ marginTop: 0 }}>Tender published</h4>
                       <p className="hint" style={{ marginTop: 0 }}>
-                        &ldquo;{tender.title}&rdquo; &mdash; <StatusBadge status={tender.status} />
-                        {tender.deadline && ` Bidding closes ${new Date(tender.deadline).toLocaleDateString()}.`}
+                        {tender.title}
+                        {tender.deadline &&
+                          ` — bidding closes ${new Date(tender.deadline).toLocaleDateString()}.`}
                       </p>
-                      <Link
-                        className="btn"
-                        to={`/admin/tenders/${tender._id}`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
-                      >
-                        <FileSignature size={15} /> View Tender
+                      <Link className="btn btn-small" to={`/admin/tenders/${tender._id}`}>
+                        <FileSignature size={13} aria-hidden="true" /> Open tender
                       </Link>
                     </>
                   ) : (
                     <>
-                      <h4 style={{ marginTop: 0 }}>Excavation Team Requested</h4>
+                      <h4 style={{ marginTop: 0 }}>Excavation recommended</h4>
                       <p className="hint" style={{ marginTop: 0 }}>
-                        Publish an excavation tender so registered excavation teams can bid on this dig.
-                        Project details and the map location are carried over from this report automatically.
+                        Publish a tender so licensed contractors can bid on this excavation. The
+                        project details and map location carry over from this report automatically.
                       </p>
-                      <Link
-                        className="btn"
-                        to={`/admin/tenders/new?report=${researcherReport._id}`}
-                        style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
-                      >
-                        <FileSignature size={15} /> Publish Excavation Tender
+                      <Link className="btn btn-small" to={`/admin/tenders/new?report=${researcherReport._id}`}>
+                        <FileSignature size={13} aria-hidden="true" /> Publish tender
                       </Link>
                     </>
                   )}
@@ -284,6 +358,7 @@ export default function AssignInspection() {
               )}
             </>
           )}
+          </div>
         </div>
       )}
     </div>

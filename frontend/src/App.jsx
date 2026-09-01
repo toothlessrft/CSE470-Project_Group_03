@@ -1,6 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
+import Footer from "./components/Footer";
 import ArtifactIdentifier from "./components/ArtifactIdentifier"; // AI Artifact Identification
 
 import Home from "./pages/Home";
@@ -534,6 +535,8 @@ export default function App() {
 
         <Route path="*" element={<Home />} />
       </Routes>
+
+      <Footer />
 
       {/* AI Artifact Identification - floating launcher, every page */}
       <ArtifactIdentifier />

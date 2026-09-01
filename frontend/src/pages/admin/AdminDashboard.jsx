@@ -38,20 +38,27 @@ export default function AdminDashboard() {
     };
   }, [loadCounts]);
 
-  if (!admin) return <div className="page">Loading...</div>;
+  if (!admin)
+    return (
+      <div className="page">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading your workspace
+        </div>
+      </div>
+    );
 
   const actions = [
-    { key: "field_reports", to: "/admin/reports", icon: ScanSearch, title: "Field Reports", description: "Review artifact discoveries and assign inspections" },
+    { key: "field_reports", to: "/admin/reports", icon: ScanSearch, title: "Field reports", description: "Review reported discoveries and assign an inspecting archaeologist" },
     // Ahad_23201016 - Tender Publication & Management
-    { key: "tenders", to: "/admin/tenders", icon: FileSignature, title: "Excavation Tenders", description: "Publish tenders, review bids, and assign excavation teams" },
-    { key: "excavation_projects", to: "/admin/excavation-projects", icon: FolderKanban, title: "Excavation Projects", description: "Track awarded digs and allocate the artifacts they recover" },
-    { key: "item_requests", to: "/admin/item-requests", icon: ClipboardCheck, title: "Item Requests", description: "Approve or deny museum loan requests" },
-    { key: "tool_requests", to: "/admin/tool-requests", icon: Hammer, title: "Tool Requests", description: "Approve equipment rental requests" },
-    { key: "tool_inventory", to: "/admin/tool-inventory", icon: Boxes, title: "Equipment Inventory", description: "Manage and assign tools and equipment across active zones" },
-    { key: "excavation_requests", to: "/admin/excavation-requests", icon: MapPinned, title: "Excavation Requests", description: "Turn proposals into active projects" },
-    { key: "approved_requests", to: "/admin/approved-requests", icon: ListChecks, title: "Approved Requests", description: "See everything that's already been approved" },
-    { key: "pending_users", to: "/admin/pending-users", icon: Users, title: "Pending User Approvals", description: "Approve or reject user registrations."},
-    { key: "auctions", to: "/admin/auctions", icon: Gavel, title: "Manage Auctions", description: "Create auctions and track bidding through to close" },
+    { key: "tenders", to: "/admin/tenders", icon: FileSignature, title: "Excavation tenders", description: "Publish tenders, evaluate bids, and award contracts" },
+    { key: "excavation_projects", to: "/admin/excavation-projects", icon: FolderKanban, title: "Excavation projects", description: "Track awarded excavations and allocate recovered artifacts" },
+    { key: "item_requests", to: "/admin/item-requests", icon: ClipboardCheck, title: "Artifact requests", description: "Decide on museum requests to hold artifacts for exhibition" },
+    { key: "tool_requests", to: "/admin/tool-requests", icon: Hammer, title: "Equipment requests", description: "Decide on field equipment issued to active excavations" },
+    { key: "tool_inventory", to: "/admin/tool-inventory", icon: Boxes, title: "Equipment inventory", description: "Hold stock levels and track what is issued to each zone" },
+    { key: "excavation_requests", to: "/admin/excavation-requests", icon: MapPinned, title: "Excavation proposals", description: "Assess research proposals and open them as licensed projects" },
+    { key: "approved_requests", to: "/admin/approved-requests", icon: ListChecks, title: "Decision record", description: "Every request already approved, with dates and recipients" },
+    { key: "pending_users", to: "/admin/pending-users", icon: Users, title: "Account approvals", description: "Verify and admit new professional registrations" },
+    { key: "auctions", to: "/admin/auctions", icon: Gavel, title: "Artifact auctions", description: "List lots for lawful sale and follow bidding through to close" },
   ].map((action) => ({
     ...action,
     badge: counts[action.key] || 0,
@@ -61,23 +68,32 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
-      <h1>Admin Dashboard</h1>
-      <p className="page-subtitle">Government oversight for excavation tenders, discoveries, and heritage operations.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Heritage Authority</span>
+          <h1>Oversight workspace</h1>
+          <p className="page-subtitle">
+            Excavation licensing, artifact allocation, and public reporting for the national
+            register.
+          </p>
+        </div>
+      </div>
 
       <ProfileCard
         name={admin.name}
         nid={admin.nid}
         email={admin.email}
-        role="Government / Admin"
+        role="Heritage Authority"
         lines={[
           admin.administration && `Administration: ${admin.administration}`,
           admin.phone && `Phone: ${admin.phone}`,
         ]}
       />
 
-      <p className="hint" style={{ marginTop: "1.2rem" }}>
-        Red counts show items still waiting on you. They clear once the work is done, not when the page is opened.
-      </p>
+      <div className="section-head">
+        <h2>Outstanding work</h2>
+        <span className="hint">Counts clear when the work is completed, not when the page is opened</span>
+      </div>
 
       <ActionGrid items={actions} />
     </div>

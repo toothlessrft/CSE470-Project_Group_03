@@ -25,14 +25,14 @@ import {
 import { api } from "../api";
 
 const CATEGORY_LABELS = [
-  { key: "auction", label: "Auction Updates", icon: Gavel },
-  { key: "event", label: "Exhibitions & Events", icon: CalendarDays },
-  { key: "report", label: "Report Status", icon: FileText },
-  { key: "request", label: "Requests & Approvals", icon: ClipboardCheck },
-  { key: "assignment", label: "Assignments & Transfers", icon: MapPinned },
-  { key: "tender", label: "Tenders & Bids", icon: FileSignature },
-  { key: "reminder", label: "Deadline Reminders", icon: Clock },
-  { key: "account", label: "Account & System", icon: UserCheck },
+  { key: "auction", label: "Auction updates", icon: Gavel },
+  { key: "event", label: "Exhibitions & events", icon: CalendarDays },
+  { key: "report", label: "Report status", icon: FileText },
+  { key: "request", label: "Requests & approvals", icon: ClipboardCheck },
+  { key: "assignment", label: "Assignments & transfers", icon: MapPinned },
+  { key: "tender", label: "Tenders & bids", icon: FileSignature },
+  { key: "reminder", label: "Deadline reminders", icon: Clock },
+  { key: "account", label: "Account & system", icon: UserCheck },
 ];
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_LABELS.map((c) => [c.key, c]));
 
@@ -118,28 +118,32 @@ export default function NotificationList({ onChange }) {
       <div className="notif-inline-head">
         {selected ? (
           <button type="button" className="notif-back" onClick={() => setSelected(null)}>
-            <ChevronLeft size={15} /> Back
+            <ChevronLeft size={15} aria-hidden="true" /> Back
           </button>
         ) : activeCategory ? (
           <button type="button" className="notif-back" onClick={() => setActiveCategory(null)}>
-            <ChevronLeft size={15} /> All categories
+            <ChevronLeft size={15} aria-hidden="true" /> All categories
           </button>
         ) : (
           <strong>
-            All Notifications
+            Notification inbox
             {unreadTotal > 0 && <span className="notif-pill">{unreadTotal}</span>}
           </strong>
         )}
 
         {!selected && (
           <button type="button" className="notif-mark-all" onClick={markAllRead}>
-            <CheckCheck size={14} /> Mark read
+            <CheckCheck size={14} aria-hidden="true" /> Mark all read
           </button>
         )}
       </div>
 
       <div className="notif-inline-body">
-        {loading && <p className="notif-empty">Loading...</p>}
+        {loading && (
+          <p className="notif-empty">
+            <span className="spinner" aria-hidden="true" /> Loading notifications
+          </p>
+        )}
 
         {!loading && selected && (
           <div className="notif-detail">
@@ -151,7 +155,7 @@ export default function NotificationList({ onChange }) {
             <p className="notif-detail-msg">{selected.message}</p>
             {selected.deadline_at && (
               <p className="notif-detail-deadline">
-                <Clock size={13} /> Due {new Date(selected.deadline_at).toLocaleString()}
+                <Clock size={13} aria-hidden="true" /> Due {new Date(selected.deadline_at).toLocaleString()}
               </p>
             )}
             {selected.link && (
@@ -160,7 +164,7 @@ export default function NotificationList({ onChange }) {
                 className="btn-small notif-goto"
                 onClick={() => navigate(selected.link)}
               >
-                Go to page <ArrowUpRight size={14} />
+                Open record <ArrowUpRight size={14} aria-hidden="true" />
               </button>
             )}
           </div>
@@ -170,8 +174,8 @@ export default function NotificationList({ onChange }) {
           <>
             {categories.length === 0 && (
               <p className="notif-empty">
-                <Inbox size={26} />
-                <span>No notifications yet.</span>
+                <Inbox size={24} aria-hidden="true" />
+                <span>No notifications recorded yet.</span>
               </p>
             )}
             {categories.map(({ key, label, icon: Icon, total, unread }) => (
@@ -182,16 +186,16 @@ export default function NotificationList({ onChange }) {
                 onClick={() => setActiveCategory(key)}
               >
                 <span className="notif-cat-icon">
-                  <Icon size={16} />
+                  <Icon size={15} aria-hidden="true" />
                 </span>
                 <span className="notif-cat-text">
                   <strong>{label}</strong>
                   <small>
-                    {total} notification{total === 1 ? "" : "s"}
+                    {total} entr{total === 1 ? "y" : "ies"}
                   </small>
                 </span>
                 {unread > 0 && <span className="notif-pill">{unread}</span>}
-                <ChevronRight size={15} className="notif-chevron" />
+                <ChevronRight size={15} className="notif-chevron" aria-hidden="true" />
               </button>
             ))}
           </>

@@ -11,30 +11,47 @@ export default function SCaretakerDashboard() {
     api.get("/sc/dashboard").then((data) => setCaretaker(data.s_caretaker));
   }, []);
 
-  if (!caretaker) return <div className="page">Loading...</div>;
+  if (!caretaker)
+    return (
+      <div className="page">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading your workspace
+        </div>
+      </div>
+    );
 
   const actions = [
-    { to: "/sc/request-maintenance", icon: Wrench, title: "Request Maintenance", description: "Flag upkeep needed at your assigned site" },
-    { to: "/sc/tenders", icon: Gavel, title: "Browse Excavation Tenders", description: "Bid on excavation tenders published by the Government" },
-    { to: "/sc/my-bids", icon: ListChecks, title: "My Bids", description: "Track the status of tenders you've bid on" },
+    { to: "/sc/request-maintenance", icon: Wrench, title: "Request maintenance", description: "Report repair work needed at your assigned site" },
+    { to: "/sc/tenders", icon: Gavel, title: "Open tenders", description: "Review excavation contracts and submit a bid" },
+    { to: "/sc/my-bids", icon: ListChecks, title: "Submitted bids", description: "Track the outcome of every bid you have lodged" },
   ];
 
   return (
     <div className="page">
-      <h1>Site Caretaker Dashboard</h1>
-      <p className="page-subtitle">Keep your assigned excavation site in good condition.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Site Caretaker</span>
+          <h1>Custodian workspace</h1>
+          <p className="page-subtitle">
+            Keep your assigned site in good condition and bid for excavation work.
+          </p>
+        </div>
+      </div>
 
       <ProfileCard
         name={caretaker.name}
         nid={caretaker.nid}
         email={caretaker.email}
-        role="Excavation Team"
+        role="Site Caretaker"
         lines={[
           caretaker.site && `Assigned site: ${caretaker.site.name}`,
-          caretaker.budget != null && `Budget: ${caretaker.budget}`,
+          caretaker.budget != null && `Budget: ৳${Number(caretaker.budget).toLocaleString()}`,
         ]}
       />
 
+      <div className="section-head">
+        <h2>Site management</h2>
+      </div>
       <ActionGrid items={actions} />
     </div>
   );

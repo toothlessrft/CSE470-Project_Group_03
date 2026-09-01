@@ -10,7 +10,9 @@ function initials(name = "") {
 export default function ProfileCard({ name, nid, email, role, lines = [], extra = null }) {
   return (
     <div className="profile-card">
-      <div className="profile-avatar">{initials(name)}</div>
+      <div className="profile-avatar" aria-hidden="true">
+        {initials(name)}
+      </div>
       <div className="profile-body">
         <div className="profile-name-row">
           <h2>{name}</h2>

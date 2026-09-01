@@ -2,7 +2,7 @@ import { Star } from "lucide-react";
 
 /*
   <StarRating value={3} onChange={setValue} />          interactive picker
-  <StarRating value={4.3} readOnly count={12} />         "★ 4.3 (12)" display
+  <StarRating value={4.3} readOnly count={12} />         "4.3 - 12 reviews" display
 */
 export default function StarRating({ value = 0, onChange, readOnly = false, count, size = 20 }) {
   const stars = [1, 2, 3, 4, 5];
@@ -16,13 +16,16 @@ export default function StarRating({ value = 0, onChange, readOnly = false, coun
               key={n}
               size={size}
               fill={n <= Math.round(value) ? "#c98a4b" : "none"}
-              color="#c98a4b"
+              color="var(--accent)"
               strokeWidth={1.5}
+              aria-hidden="true"
             />
           ))}
         </span>
-        <span style={{ fontSize: "0.85rem", color: "#8a7a68" }}>
-          {value != null ? `${value.toFixed(1)}${count != null ? ` (${count})` : ""}` : "No ratings yet"}
+        <span style={{ fontSize: "0.8125rem", color: "var(--muted)" }}>
+          {value != null
+            ? `${value.toFixed(1)}${count != null ? ` · ${count} review${count === 1 ? "" : "s"}` : ""}`
+            : "Not yet rated"}
         </span>
       </span>
     );
@@ -35,10 +38,17 @@ export default function StarRating({ value = 0, onChange, readOnly = false, coun
           key={n}
           type="button"
           onClick={() => onChange?.(n)}
-          aria-label={`${n} star${n > 1 ? "s" : ""}`}
-          style={{ background: "none", border: "none", padding: 0, cursor: "pointer", lineHeight: 0 }}
+          aria-label={`Rate ${n} out of 5`}
+          aria-pressed={n <= value}
+          style={{ background: "none", border: "none", padding: "2px", cursor: "pointer", lineHeight: 0 }}
         >
-          <Star size={size} fill={n <= value ? "#c98a4b" : "none"} color="#c98a4b" strokeWidth={1.5} />
+          <Star
+            size={size}
+            fill={n <= value ? "var(--accent)" : "none"}
+            color="var(--accent)"
+            strokeWidth={1.5}
+            aria-hidden="true"
+          />
         </button>
       ))}
     </span>

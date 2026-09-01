@@ -27,25 +27,36 @@ export default function Login() {
         <div className="auth-icon">
           <LogIn size={22} strokeWidth={2} />
         </div>
-        <h1>Welcome back</h1>
-        <p className="page-subtitle">Log in to continue managing heritage sites and reports.</p>
+        <h1>Sign in</h1>
+        <p className="page-subtitle">Access your workspace on the national heritage register.</p>
 
         {error && <div className="alert alert-danger">{error}</div>}
 
         <form onSubmit={handleSubmit} className="form">
           <label>
-            Email or NID
-            <input value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
+            Email address or NID
+            <input
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              autoComplete="username"
+              required
+            />
           </label>
           <label>
             Password
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
           </label>
-          <button type="submit" className="btn">Log in</button>
+          <button type="submit" className="btn">Sign in</button>
         </form>
 
-        <p className="hint">
-          New here? <Link to="/register">Create an account</Link>
+        <p className="auth-footer">
+          No account yet? <Link to="/register">Register for access</Link>
         </p>
       </div>
     </div>

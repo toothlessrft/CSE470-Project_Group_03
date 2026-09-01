@@ -37,7 +37,7 @@ export default function RequestItems() {
         end_date: endDate,
         insurance_info: insuranceInfo,
       });
-      setSuccess("Item request submitted successfully!");
+      setSuccess("Request submitted to the heritage authority for assessment.");
       setPurpose("");
       setStartDate("");
       setEndDate("");
@@ -49,14 +49,23 @@ export default function RequestItems() {
 
   return (
     <div className="page narrow">
-      <h1>Request Items</h1>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Acquisition</span>
+          <h1>Request an artifact</h1>
+          <p className="page-subtitle">
+            Apply to the heritage authority to hold a catalogued artifact for exhibition at your
+            museum.
+          </p>
+        </div>
+      </div>
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
       <form onSubmit={handleSubmit} className="form">
         <label>
-          Site
+          Excavation site
           <select value={siteId} onChange={(e) => setSiteId(e.target.value)} required>
-            <option value="">-- choose a site --</option>
+            <option value="">Choose a site</option>
             {sites.map((s) => (
               <option key={s._id} value={s._id}>
                 {s.name} ({s.era})
@@ -67,9 +76,9 @@ export default function RequestItems() {
 
         {siteId && (
           <label>
-            Item
+            Artifact
             <select value={itemId} onChange={(e) => setItemId(e.target.value)} required>
-              <option value="">-- choose an item --</option>
+              <option value="">Choose an artifact</option>
               {items.map((i) => (
                 <option key={i._id} value={i._id}>
                   {i.name} ({i.Type})
@@ -80,23 +89,35 @@ export default function RequestItems() {
         )}
 
         <label>
-          Purpose
-          <textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
+          Purpose of the request
+          <textarea
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+            placeholder="The exhibition or programme the artifact is required for, and its intended display context"
+            required
+          />
         </label>
+        <div className="form-row">
+          <label>
+            Required from
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+          </label>
+          <label>
+            Return by
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+          </label>
+        </div>
         <label>
-          Start date
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
-        </label>
-        <label>
-          End date
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
-        </label>
-        <label>
-          Insurance info
-          <textarea value={insuranceInfo} onChange={(e) => setInsuranceInfo(e.target.value)} required />
+          Insurance and security arrangements
+          <textarea
+            value={insuranceInfo}
+            onChange={(e) => setInsuranceInfo(e.target.value)}
+            placeholder="Cover in place, transport arrangements, and environmental controls at the display location"
+            required
+          />
         </label>
         <button type="submit" className="btn">
-          Submit Request
+          Submit request
         </button>
       </form>
     </div>

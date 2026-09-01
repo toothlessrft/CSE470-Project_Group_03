@@ -11,9 +11,9 @@ export default function ActionGrid({ items }) {
       {items.map(({ to, icon: Icon, title, description, badge, onSelect }) => (
         <Link className="action-card" to={to} key={to} onClick={onSelect}>
           {badge > 0 && <span className="action-badge">{badge > 99 ? "99+" : badge}</span>}
-          <div className="action-icon">
-            <Icon size={22} strokeWidth={2} />
-          </div>
+          <span className="action-icon" aria-hidden="true">
+            <Icon size={19} strokeWidth={2} />
+          </span>
           <div>
             <h4>{title}</h4>
             {description && <p>{description}</p>}

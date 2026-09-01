@@ -56,7 +56,7 @@ export default function RequestLoan() {
     setSuccess("");
 
     if (!lendingMuseumId) {
-      setError("Please choose a museum that has an approved museum authority in the system.");
+      setError("Choose a museum with an approved authority account on the register.");
       return;
     }
 
@@ -69,7 +69,7 @@ export default function RequestLoan() {
         start_date: startDate,
         end_date: endDate,
       });
-      setSuccess("Loan request sent successfully!");
+      setSuccess("Loan request sent to the lending museum.");
       setSelectedMuseumName("");
       setLendingMuseumId("");
       setItemId("");
@@ -85,18 +85,25 @@ export default function RequestLoan() {
 
   return (
     <div className="page narrow">
-      <h1>Request Artifact Loan</h1>
-      <p className="page-subtitle">Ask another museum authority to loan an artifact for your exhibition.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Inter-museum loan</span>
+          <h1>Request a loan</h1>
+          <p className="page-subtitle">
+            Ask another museum to lend an artifact from its collection for one of your exhibitions.
+          </p>
+        </div>
+      </div>
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
       <form onSubmit={handleSubmit} className="form">
         <label>
-          Lend from (museum)
+          Lending museum
           <SearchableSelect
             options={MUSEUMS}
             value={selectedMuseumName}
             onChange={(value) => setSelectedMuseumName(value)}
-            placeholder="Search museum name"
+            placeholder="Search by museum name"
             required
           />
         </label>
@@ -111,7 +118,7 @@ export default function RequestLoan() {
               setSelectedItemLabel(value);
               setItemId(match?._id || "");
             }}
-            placeholder={selectedMuseumName ? "Search artifact" : "Choose a museum first"}
+            placeholder={selectedMuseumName ? "Search their holdings" : "Choose a lending museum first"}
             required={!!selectedMuseumName}
           />
         </label>
@@ -128,21 +135,28 @@ export default function RequestLoan() {
         </label>
 
         <label>
-          Purpose
-          <textarea value={purpose} onChange={(e) => setPurpose(e.target.value)} required />
+          Purpose of the loan
+          <textarea
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+            placeholder="How the artifact will be displayed, interpreted, and cared for"
+            required
+          />
         </label>
 
-        <label>
-          Loan start date
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
-        </label>
-        <label>
-          Loan end date
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
-        </label>
+        <div className="form-row">
+          <label>
+            Loan begins
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} required />
+          </label>
+          <label>
+            Return by
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} required />
+          </label>
+        </div>
 
         <button type="submit" className="btn">
-          Send Loan Request
+          Send loan request
         </button>
       </form>
     </div>

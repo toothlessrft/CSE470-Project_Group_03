@@ -1,4 +1,5 @@
-import { Landmark, MapPin, FileText, Images, Search, CalendarDays, Gavel, LocateFixed, HelpCircle } from "lucide-react";
+import { Landmark, MapPin, FileText, Search, CalendarDays, Gavel, LocateFixed, MessagesSquare } from "lucide-react";
+import { Link } from "react-router-dom";
 import ActionGrid from "../../components/ActionGrid";
 import ProfileCard from "../../components/ProfileCard";
 import { useAuth } from "../../context/AuthContext";
@@ -9,55 +10,62 @@ export default function PublicDashboard() {
     {
       to: "/exhibitions",
       icon: CalendarDays,
-      title: "Exhibitions & Events",
-      description: "Discover exhibitions, educational tours, and cultural events near you.",
+      title: "Exhibitions & events",
+      description: "Exhibitions, educational tours, and cultural programmes near you.",
     },
     {
       to: "/search",
       icon: Search,
-      title: "Smart Artifact Search",
-      description: "Search artifacts by civilization, era, region, material, usage, or location.",
+      title: "Artifact catalogue",
+      description: "Search the national record by civilization, era, region, material, or use.",
     },
     {
       to: "/museums",
       icon: Landmark,
-      title: "Museum Directory",
-      description: "Browse museums and see what's on display, in storage, or on loan.",
+      title: "Museum directory",
+      description: "Participating museums and what each holds on display, in storage, or on loan.",
     },
     {
       to: "/near-me",
       icon: LocateFixed,
-      title: "Near Me",
-      description: "Find archaeological sites, exhibitions, and museums close to you.",
+      title: "Sites near you",
+      description: "Recorded excavation sites, museums, and events within reach.",
     },
     {
       to: "/auctions",
       icon: Gavel,
-      title: "Auctions",
-      description: "Bid on artifacts released for auction, and build your wishlist.",
+      title: "Artifact auctions",
+      description: "Bid on lots released for lawful sale and follow the ones you are watching.",
     },
     {
       to: "/my-reports",
       icon: FileText,
-      title: "My Reports",
-      description: "Track the status of discoveries you have submitted to ArchiveEarth.",
+      title: "My submissions",
+      description: "Follow every discovery you have reported through inspection and verification.",
     },
     {
       to: "/qna",
-      icon: HelpCircle,
-      title: "Public Archaeology Q&A",
-      description: "Ask archaeologists a question, or browse answers from the community.",
+      icon: MessagesSquare,
+      title: "Ask an archaeologist",
+      description: "Put a question to working researchers, or read what they have answered before.",
     },
   ];
 
   return (
     <div className="page">
-      <h1>General Public Dashboard</h1>
-
-      <p className="page-subtitle">
-        Welcome to ArchiveEarth. Help preserve history by reporting newly
-        discovered artifacts and exploring Bangladesh's cultural heritage.
-      </p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Public Member</span>
+          <h1>Your workspace</h1>
+          <p className="page-subtitle">
+            Report newly surfaced artifacts, follow your submissions, and explore the public
+            record of Bangladesh&apos;s heritage.
+          </p>
+        </div>
+        <Link className="btn" to="/report-discovery">
+          <MapPin size={16} aria-hidden="true" /> Report a find
+        </Link>
+      </div>
 
       {user && (
         <ProfileCard
@@ -69,6 +77,9 @@ export default function PublicDashboard() {
         />
       )}
 
+      <div className="section-head">
+        <h2>Explore the register</h2>
+      </div>
       <ActionGrid items={actions} />
     </div>
   );

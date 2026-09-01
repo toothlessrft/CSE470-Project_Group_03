@@ -124,11 +124,18 @@ export default function TeamChatPage() {
     }
   }
 
-  if (loading && !data) return <div className="page"><p className="hint">Loading chat...</p></div>;
+  if (loading && !data)
+    return (
+      <div className="page">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading the channel
+        </div>
+      </div>
+    );
   if (!data)
     return (
       <div className="page">
-        <div className="alert alert-danger">{error || "Chat not found."}</div>
+        <div className="alert alert-danger">{error || "This channel could not be found."}</div>
       </div>
     );
 
@@ -136,24 +143,30 @@ export default function TeamChatPage() {
 
   return (
     <div className="page">
-      <p>
-        <Link to="/" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
-          <ArrowLeft size={14} /> Back
-        </Link>
-      </p>
+      <Link className="back-link" to="/">
+        <ArrowLeft size={14} aria-hidden="true" /> Back
+      </Link>
 
       <div className="chat-shell">
-        <div className="chat-main card" style={{ padding: 0 }}>
+        <div className="chat-main card">
           <div className="chat-header">
-            <div>
-              <h2 style={{ margin: 0 }}>{project.p_name}</h2>
+            <div style={{ minWidth: 0 }}>
+              <span className="eyebrow" style={{ marginBottom: "0.15rem" }}>
+                Project channel
+              </span>
+              <h2 style={{ margin: 0, fontSize: "1.05rem" }}>{project.p_name}</h2>
               <p className="hint" style={{ margin: 0 }}>
                 {chat.participants.length} member{chat.participants.length === 1 ? "" : "s"}
-                {chat.archived ? " · Archived" : ""}
+                {chat.archived ? " · archived" : ""}
               </p>
             </div>
-            <button type="button" className="btn-small btn-outline-light" onClick={() => setShowParticipants((s) => !s)}>
-              <Users size={14} /> Members
+            <button
+              type="button"
+              className="btn-small btn-secondary"
+              aria-expanded={showParticipants}
+              onClick={() => setShowParticipants((s) => !s)}
+            >
+              <Users size={14} aria-hidden="true" /> Members
             </button>
           </div>
 
@@ -163,14 +176,21 @@ export default function TeamChatPage() {
             </div>
           )}
           {chat.archived && (
-            <div className="alert alert-info" style={{ margin: "0 1.1rem" }}>
-              <Archive size={14} style={{ verticalAlign: "middle" }} /> This project is complete, so the chat is
-              archived (read-only) but stays in your chat history.
+            <div className="alert alert-info" style={{ margin: "0.9rem 1.1rem 0" }}>
+              <Archive size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+              <span>
+                This project has closed, so the channel is read-only. It stays on the record for
+                reference.
+              </span>
             </div>
           )}
 
           <div className="chat-messages">
-            {messages.length === 0 && <p className="hint">No messages yet. Say hello!</p>}
+            {messages.length === 0 && (
+              <p className="hint" style={{ margin: "auto", textAlign: "center" }}>
+                No messages yet. This channel is for the field team working this project.
+              </p>
+            )}
             {messages.map((m) =>
               m.system ? (
                 <div key={m._id} className="chat-msg-system">
@@ -186,7 +206,9 @@ export default function TeamChatPage() {
                       <strong>{m.sender?.name}</strong>
                       <span className="chat-bubble-role">{(m.sender?.role || "").replace("_", " ")}</span>
                     </div>
-                    {m.image && <img src={m.image} alt="attachment" className="chat-bubble-image" />}
+                    {m.image && (
+                      <img src={m.image} alt="Attachment" className="chat-bubble-image" loading="lazy" />
+                    )}
                     {m.text && <p>{m.text}</p>}
                     <span className="chat-bubble-time">{fmtTime(m.createdAt)}</span>
                   </div>
@@ -200,31 +222,36 @@ export default function TeamChatPage() {
             <form onSubmit={send} className="chat-composer">
               {image && (
                 <div className="chat-composer-preview">
-                  <img src={image} alt="preview" />
-                  <button type="button" onClick={() => setImage("")}>
-                    <X size={12} />
+                  <img src={image} alt="Attachment preview" />
+                  <button type="button" onClick={() => setImage("")} aria-label="Remove attachment">
+                    <X size={12} aria-hidden="true" />
                   </button>
                 </div>
               )}
               <button
                 type="button"
-                className="btn-small btn-outline-light"
+                className="icon-btn"
                 onClick={() => fileRef.current?.click()}
-                title="Attach image"
-                style={{ padding: "0.6rem", flexShrink: 0 }}
+                aria-label="Attach a photograph"
+                style={{ flexShrink: 0 }}
               >
-                <ImageIcon size={15} />
+                <ImageIcon size={15} aria-hidden="true" />
               </button>
               <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleImagePick} />
               <input
                 type="text"
-                placeholder="Write a project update..."
+                placeholder="Write a field update"
+                aria-label="Message"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 style={{ flex: 1 }}
               />
-              <button type="submit" className="btn-small" disabled={sending || (!text.trim() && !image)}>
-                <Send size={14} />
+              <button
+                type="submit"
+                className="btn btn-small"
+                disabled={sending || (!text.trim() && !image)}
+              >
+                <Send size={14} aria-hidden="true" /> Send
               </button>
             </form>
           )}
@@ -232,7 +259,7 @@ export default function TeamChatPage() {
 
         {showParticipants && (
           <div className="chat-side card">
-            <h4 style={{ marginTop: 0 }}>Members</h4>
+            <h4 style={{ marginTop: 0 }}>Channel members</h4>
             <ul className="chat-participant-list">
               {chat.participants.map((p) => (
                 <li key={p.user._id}>
@@ -246,11 +273,11 @@ export default function TeamChatPage() {
                   {permissions.canManageParticipants && !chat.archived && p.user._id !== user.id && (
                     <button
                       type="button"
-                      className="btn-link"
+                      className="icon-btn icon-btn-danger"
                       onClick={() => removeParticipant(p.user._id)}
-                      title="Remove"
+                      aria-label={`Remove ${p.user.name} from the channel`}
                     >
-                      <X size={14} />
+                      <X size={13} aria-hidden="true" />
                     </button>
                   )}
                 </li>
@@ -265,11 +292,11 @@ export default function TeamChatPage() {
                   </div>
                 )}
                 <label>
-                  Add member by NID
+                  Add a member by NID
                   <input value={nid} onChange={(e) => setNid(e.target.value)} placeholder="e.g. A004" required />
                 </label>
                 <button type="submit" className="btn-small" disabled={addBusy}>
-                  <UserPlus size={14} /> {addBusy ? "Adding..." : "Add"}
+                  <UserPlus size={14} aria-hidden="true" /> {addBusy ? "Adding" : "Add to channel"}
                 </button>
               </form>
             )}

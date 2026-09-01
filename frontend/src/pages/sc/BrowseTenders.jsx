@@ -91,89 +91,124 @@ export default function BrowseTenders() {
 
   return (
     <div className="page">
-      <h1>Browse Excavation Tenders</h1>
-      <p className="page-subtitle">Review open excavation tenders and submit a bid before the deadline.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Procurement</span>
+          <h1>Open tenders</h1>
+          <p className="page-subtitle">
+            Excavation contracts open for bidding. Bids may be revised until the closing date.
+          </p>
+        </div>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
       {loading ? (
-        <p>Loading...</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading open tenders
+        </div>
       ) : tenders.length === 0 ? (
-        <div className="card">No open tenders right now. Check back later.</div>
+        <div className="empty-state">
+          <h3>No tenders open</h3>
+          <p>Nothing is currently out to tender. New contracts appear here as they are published.</p>
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {tenders.map((t) => (
             <div className="card" key={t._id}>
               <div className="report-header">
-                <strong>{t.title}</strong>
+                <h3 style={{ margin: 0 }}>{t.title}</h3>
                 {t.myBid ? <StatusBadge status={t.myBid.status} /> : <StatusBadge status="Open" />}
               </div>
-              <p>{t.description}</p>
-              <p>
-                <strong>Location:</strong> {t.site?.name || t.location}
-              </p>
+
+              <p style={{ fontSize: "0.9375rem" }}>{t.description}</p>
+
               {t.requirements && (
-                <p>
-                  <strong>Requirements:</strong> {t.requirements}
-                </p>
+                <div className="subtle" style={{ marginBottom: "1rem" }}>
+                  <span className="stat-label">Requirements</span>
+                  <p style={{ margin: "0.2rem 0 0", fontSize: "0.875rem" }}>{t.requirements}</p>
+                </div>
               )}
-              <p>
-                <strong>Estimated budget:</strong> ৳{t.estimated_budget} &nbsp;
-                <strong>Deadline:</strong> {new Date(t.deadline).toLocaleDateString()}
-              </p>
+
+              <dl className="detail-list" style={{ margin: "1rem 0" }}>
+                <div>
+                  <dt>Location</dt>
+                  <dd>{t.site?.name || t.location}</dd>
+                </div>
+                <div>
+                  <dt>Estimated budget</dt>
+                  <dd className="num">৳{Number(t.estimated_budget || 0).toLocaleString()}</dd>
+                </div>
+                <div>
+                  <dt>Bids close</dt>
+                  <dd className="num">{new Date(t.deadline).toLocaleDateString()}</dd>
+                </div>
+              </dl>
 
               {t.myBid && (
-                <div className="alert alert-success" style={{ margin: "0.5rem 0" }}>
-                  You bid ৳{t.myBid.cost} — {t.myBid.timeline}. Status: {t.myBid.status}
+                <div className="alert alert-info">
+                  <span>
+                    Your bid: ৳{Number(t.myBid.cost || 0).toLocaleString()} over {t.myBid.timeline} ·
+                    status <strong>{t.myBid.status}</strong>.
+                  </span>
                 </div>
               )}
 
               {openFormId === t._id ? (
                 <div className="form">
+                  <div className="form-row">
+                    <label>
+                      Bid price (৳)
+                      <input
+                        type="number"
+                        min="0"
+                        value={forms[t._id]?.cost ?? ""}
+                        onChange={(e) => updateForm(t._id, { cost: e.target.value })}
+                      />
+                    </label>
+                    <label>
+                      Programme
+                      <input
+                        value={forms[t._id]?.timeline ?? ""}
+                        onChange={(e) => updateForm(t._id, { timeline: e.target.value })}
+                        placeholder="e.g. 5 weeks"
+                      />
+                    </label>
+                  </div>
                   <label>
-                    Your cost (BDT)
-                    <input
-                      type="number"
-                      min="0"
-                      value={forms[t._id]?.cost ?? ""}
-                      onChange={(e) => updateForm(t._id, { cost: e.target.value })}
-                    />
-                  </label>
-                  <label>
-                    Timeline
-                    <input
-                      value={forms[t._id]?.timeline ?? ""}
-                      onChange={(e) => updateForm(t._id, { timeline: e.target.value })}
-                      placeholder="e.g. 5 weeks"
-                    />
-                  </label>
-                  <label>
-                    Proposal
+                    Method statement
                     <textarea
                       rows={3}
                       value={forms[t._id]?.proposal ?? ""}
                       onChange={(e) => updateForm(t._id, { proposal: e.target.value })}
-                      placeholder="Describe your crew, experience, and approach."
+                      placeholder="Crew, relevant experience, and how you would approach the site"
                     />
                   </label>
                   <div className="actions">
                     <button className="btn-small" disabled={busyId === t._id} onClick={() => submitBid(t)}>
-                      {busyId === t._id ? "Saving..." : t.myBid ? "Update Bid" : "Submit Bid"}
+                      {busyId === t._id ? "Saving" : t.myBid ? "Save revision" : "Submit bid"}
                     </button>
-                    <button className="btn-small btn-deny" onClick={() => setOpenFormId(null)}>
+                    <button className="btn-small btn-secondary" onClick={() => setOpenFormId(null)}>
                       Cancel
                     </button>
                   </div>
                 </div>
               ) : (
-                <div className="actions">
+                <div
+                  className="actions"
+                  style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}
+                >
                   <button className="btn-small" onClick={() => startForm(t)}>
-                    {t.myBid ? "Edit Bid" : "Submit Bid"}
+                    {t.myBid ? "Revise bid" : "Submit a bid"}
                   </button>
                   {t.myBid && t.myBid.status === "Pending" && (
-                    <button className="btn-small btn-deny" disabled={busyId === t._id} onClick={() => withdrawBid(t)}>
-                      Withdraw Bid
+                    <button
+                      className="btn-small btn-danger"
+                      disabled={busyId === t._id}
+                      onClick={() => withdrawBid(t)}
+                    >
+                      Withdraw bid
                     </button>
                   )}
                 </div>
