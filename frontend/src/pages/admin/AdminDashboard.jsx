@@ -62,20 +62,14 @@ export default function AdminDashboard() {
   ].map((action) => ({
     ...action,
     badge: counts[action.key] || 0,
-    // No onSelect: opening a card must not clear its count. The badge stands
-    // for outstanding work, so only doing the work clears it.
-  }));
+      }));
 
   return (
     <div className="page">
-      <div className="page-head">
+            <div className="page-head">
         <div>
           <span className="eyebrow">Heritage Authority</span>
           <h1>Oversight workspace</h1>
-          <p className="page-subtitle">
-            Excavation licensing, artifact allocation, and public reporting for the national
-            register.
-          </p>
         </div>
       </div>
 

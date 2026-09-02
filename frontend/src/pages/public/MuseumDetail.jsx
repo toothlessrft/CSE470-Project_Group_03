@@ -121,6 +121,11 @@ export default function MuseumDetail() {
                 <p className="artifact-tile-class">
                   {item.Type} · accession {item.artifactId || "not assigned"}
                 </p>
+                {item.museumName && item.museumName !== museum.museum_name && (
+                  <p className="hint" style={{ margin: "0.25rem 0 0" }}>
+                    On loan from {item.museumName}
+                  </p>
+                )}
                 {item.description && <p className="artifact-card-desc">{item.description}</p>}
                 {item.location && (
                   <dl className="artifact-tile-facts">

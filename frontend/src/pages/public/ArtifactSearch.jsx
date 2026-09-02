@@ -324,7 +324,7 @@ export default function ArtifactSearch() {
             an object was found.
           </p>
         </div>
-        {user?.role === "archaeologist" && (
+        {user?.role === "admin" && (
           <button
             className="btn"
             onClick={() => {
@@ -643,7 +643,7 @@ export default function ArtifactSearch() {
                   </p>
                 )}
 
-                {(user?.role === "archaeologist" ||
+                {(user?.role === "admin" ||
                   (user?.role === "museum_manager" &&
                     item.allocation === "Museum" &&
                     (item.museumName === user?.museum_name || item.location === user?.museum_name))) && (
@@ -673,7 +673,7 @@ export default function ArtifactSearch() {
                     >
                       <Edit size={13} aria-hidden="true" /> Edit
                     </button>
-                    {user?.role === "archaeologist" && (
+                    {user?.role === "admin" && (
                       <button className="btn-small btn-danger" onClick={() => handleDeleteItem(item._id)}>
                         <Trash2 size={13} aria-hidden="true" /> Delete
                       </button>

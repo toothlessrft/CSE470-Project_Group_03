@@ -132,15 +132,18 @@ router.post("/:id/decision", async (req, res) => {
   // approving a loan automatically moves the artifact's status to "On Loan"
   // and logs it in the artifact's movement history. We remember the status
   // it had beforehand so returning it can restore the right one later.
-  if (action === "approve") {
+    if (action === "approve") {
     const artifact = await Item.findById(loan.item);
+    const borrower = await User.findById(loan.requesting_museum).select("roleProfile.museum_name name");
+    const borrowerMuseumName = borrower?.roleProfile?.museum_name || borrower?.name || "";
     if (artifact) {
       loan.previous_availability = artifact.availability;
       artifact.availability = "On Loan";
+      artifact.on_loan_to = borrowerMuseumName;
       artifact.movementHistory.push({
         action: "Loaned out",
         status: "On Loan",
-        note: `Approved loan to ${req.user.roleProfile?.museum_name || "another museum"} for "${loan.exhibition_name}"`,
+        note: `Approved loan to ${borrowerMuseumName || "another museum"} for "${loan.exhibition_name}"`,
         by: req.user._id,
       });
       await artifact.save();
@@ -180,6 +183,7 @@ router.post("/:id/return", async (req, res) => {
   if (returningItem) {
     const restoredStatus = loan.previous_availability || "In Storage";
     returningItem.availability = restoredStatus;
+    returningItem.on_loan_to = "";
     returningItem.movementHistory.push({
       action: "Returned",
       status: restoredStatus,

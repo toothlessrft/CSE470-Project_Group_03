@@ -87,8 +87,6 @@ router.post("/request_excavation", async (req, res) => {
 // GET /api/arc/projects  (was /arc/manage_project)
 router.get("/projects", async (req, res) => {
   const base = { lead_archaeologist: req.user._id };
-  // Ahad_23201016 - also surface the excavation team awarded through the
-  // tender process, plus the artifacts recovered so far.
   const populateAll = (q) =>
     q
       .populate("site")
