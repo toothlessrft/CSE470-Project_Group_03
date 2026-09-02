@@ -24,7 +24,7 @@ export function AuthProvider({ children }) {
   async function register(payload) {
   const data = await api.post("/auth/register", payload);
 
-  // General Public is logged in straight away
+  // General Public is logged in immediately
   if (data.user) {
     setUser(data.user);
     return {
@@ -33,7 +33,7 @@ export function AuthProvider({ children }) {
     };
   }
 
-  // Every other role waits for admin approval
+  // Other roles are waiting for admin approval
   return {
     user: null,
     pending: true,
@@ -57,7 +57,8 @@ export function useAuth() {
   return useContext(AuthContext);
 }
 
-// Where each role lands after logging in.
+// Maps role -> the dashboard route it should land on after login,
+// mirroring the if/elif chain at the end of app.py's login() view.
 export const ROLE_HOME = {
   public: "/public/dashboard",
   archaeologist: "/arc/dashboard",

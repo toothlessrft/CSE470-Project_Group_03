@@ -7,12 +7,10 @@ function initials(name = "") {
     .join("");
 }
 
-export default function ProfileCard({ name, nid, email, role, lines = [], extra = null }) {
+export default function ProfileCard({ name, nid, email, role, lines = [] }) {
   return (
     <div className="profile-card">
-      <div className="profile-avatar" aria-hidden="true">
-        {initials(name)}
-      </div>
+      <div className="profile-avatar">{initials(name)}</div>
       <div className="profile-body">
         <div className="profile-name-row">
           <h2>{name}</h2>
@@ -23,7 +21,6 @@ export default function ProfileCard({ name, nid, email, role, lines = [], extra 
         {lines.filter(Boolean).map((line, i) => (
           <p key={i} className="profile-line">{line}</p>
         ))}
-        {extra && <div className="profile-extra">{extra}</div>}
       </div>
     </div>
   );

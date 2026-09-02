@@ -1,5 +1,4 @@
 const express = require("express");
-const mongoose = require("mongoose");
 const Item = require("../models/Item");
 const Site = require("../models/Site");
 const { optionalAuth } = require("../middleware/auth");
@@ -76,23 +75,14 @@ router.get("/map", async (req, res) => {
 });
 
 // GET /api/search/artifacts -> the main search
-// query params: id, civilization, era, region, material, usage, q, site, lat, lng, radius_km
+// query params: civilization, era, region, material, usage, q, site, lat, lng, radius_km
 router.get("/artifacts", async (req, res) => {
-  const { id, civilization, era, region, material, usage, q, site, lat, lng, radius_km, museumName, location } = req.query;
+  const { civilization, era, region, material, usage, q, site, lat, lng, radius_km, museumName, location } = req.query;
 
-  // Ahad_23201016 - finds from an active dig stay out of the catalogue until
-  // the admin allocates them.
+  // Ahad_23201016 - artifacts still being recovered on an active excavation
+  // project stay out of the public catalogue until the Government allocates
+  // them. Everything already catalogued has pending_allocation unset/false.
   const filter = { pending_allocation: { $ne: true } };
-
-  // Single record, e.g. opening a match from the AI identifier. A bad id
-  // returns nothing rather than a cast error.
-  if (id) {
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res.json({ count: 0, limited: !req.user, results: [] });
-    }
-    filter._id = id;
-  }
-
   if (civilization) filter.civilization = toRegex(civilization);
   if (era) filter.era = toRegex(era);
   if (region) filter.region = toRegex(region);
@@ -179,11 +169,11 @@ router.get("/artifacts", async (req, res) => {
     };
 
     if (!isLoggedIn) {
-      // Guests get a teaser only, no exact provenance
+      // Knowledge hub: guests get a teaser only, no exact provenance data
       return { ...base, limited: true };
     }
 
-    // Logged-in users get the full record
+    // Logged-in users (any role) get the full record
     return {
       ...base,
       limited: false,

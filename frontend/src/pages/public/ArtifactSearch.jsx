@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, Link } from "react-router-dom";
-import { Search, MapPin, LayoutGrid, X, Plus, Edit, Trash2, Info, Lock, PackageSearch } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { Search, MapPin, LayoutGrid, X, Plus, Edit, Trash2 } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import ArtifactResultsMap from "../../components/ArtifactResultsMap";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
 import SearchableSelect from "../../components/SearchableSelect";
-import ArtifactImagePicker from "../../components/ArtifactImagePicker";
 import { MUSEUMS, DEFAULT_LOCATION } from "../../data/museums";
 
 const FIELD_LABELS = {
@@ -14,13 +13,13 @@ const FIELD_LABELS = {
   era: "Era",
   region: "Region",
   material: "Material",
-  usage: "Use",
-  location: "Held at",
+  usage: "Usage",
+  location: "Current location",
 };
 
 export default function ArtifactSearch() {
   const { user } = useAuth();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const [q, setQ] = useState("");
   const [searchMode, setSearchMode] = useState(null);
@@ -30,8 +29,8 @@ export default function ArtifactSearch() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Which panel is expanded. Separate from what drives the current results -
-  // opening a panel does not run a search on its own.
+  // Which panel (if any) is expanded. Independent of what's actually driving
+  // the current results - opening a panel does not run a search by itself.
   const [panelOpen, setPanelOpen] = useState(null); // null | "filters" | "map"
 
   const [sites, setSites] = useState([]);
@@ -57,8 +56,7 @@ export default function ArtifactSearch() {
   useEffect(() => {
     api.get("/search/filters").then(setOptions);
     api.get("/search/map").then((data) => setSites(data.sites));
-    // The searchParams effect below runs the opening query; a second one here
-    // would race it.
+    runQuery({}); // show everything on first load
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -67,7 +65,7 @@ export default function ArtifactSearch() {
     try {
       const usp = new URLSearchParams();
       const queryParams = { ...params };
-      if (activeMuseumFilter && !params.id) queryParams.museumName = activeMuseumFilter;
+      if (activeMuseumFilter) queryParams.museumName = activeMuseumFilter;
       Object.entries(queryParams).forEach(([k, v]) => v != null && v !== "" && usp.set(k, v));
       const data = await api.get(`/search/artifacts?${usp.toString()}`);
       setResults(data.results);
@@ -81,21 +79,6 @@ export default function ArtifactSearch() {
     const museumFilter = searchParams.get("museum") || "";
     setActiveMuseumFilter(museumFilter);
 
-    // One record opened directly, e.g. a match clicked in the AI identifier.
-    // Overrides every other search mode.
-    const artifactId = searchParams.get("id") || "";
-    if (artifactId) {
-      setQ("");
-      setSelectedSite(null);
-      setMapSearchLocation(null);
-      setMapSearchQuery("");
-      setFilters({ civilization: "", era: "", region: "", material: "", usage: "", location: "" });
-      setPanelOpen(null);
-      setSearchMode("artifact");
-      runQuery({ id: artifactId }, "artifact");
-      return;
-    }
-
     if (museumFilter) {
       setQ("");
       setSelectedSite(null);
@@ -106,34 +89,12 @@ export default function ArtifactSearch() {
       runQuery({ museumName: museumFilter }, "museum");
       return;
     }
-    // The AI identifier passes its tags as query params, so the filter panel
-    // opens already filled in.
-    const tagFields = ["civilization", "era", "region", "material", "usage"];
-    const prefill = {};
-    tagFields.forEach((field) => {
-      const value = searchParams.get(field);
-      if (value) prefill[field] = value;
-    });
-
-    if (Object.keys(prefill).length > 0) {
-      const nextFilters = { civilization: "", era: "", region: "", material: "", usage: "", location: "", ...prefill };
-      setQ("");
-      setSelectedSite(null);
-      setMapSearchLocation(null);
-      setMapSearchQuery("");
-      setFilters(nextFilters);
-      setSearchMode("filters");
-      runQuery(nextFilters, "filters");
-      return;
-    }
-
     setSearchMode(null);
     runQuery({});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // --- 1. Text bar: name, description, site, civilization. Ignores the
-  // filters and the map selection. ---
+  // --- 1. Text bar: searches name/description/site/civilization/etc, ignores filters + map selection ---
   function handleTextSearch(e) {
     e.preventDefault();
     setSelectedSite(null);
@@ -144,7 +105,7 @@ export default function ArtifactSearch() {
     runQuery({ q }, "text");
   }
 
-  // --- 2. Filter panel: dropdowns only, ignores the text bar and the map. ---
+  // --- 2. Filter panel: uses only the dropdown values, ignores the text bar + map selection ---
   function togglePanel(name) {
     setPanelOpen((current) => (current === name ? null : name));
   }
@@ -173,7 +134,7 @@ export default function ArtifactSearch() {
     runQuery({});
   }
 
-  // --- 3. Map panel: the selected site only, ignores the text bar and filters. ---
+  // --- 3. Map panel: uses only the selected site, ignores the text bar + filters ---
   function handleSelectSite(site) {
     setSelectedSite(site);
     setMapSearchLocation(null);
@@ -249,13 +210,13 @@ export default function ArtifactSearch() {
   }
 
   async function handleDeleteItem(id) {
-    if (!window.confirm("Delete this artifact record? This cannot be undone.")) return;
+    if (!window.confirm("Are you sure you want to delete this artifact? This cannot be undone.")) return;
     try {
       await api.del(`/items/${id}`);
       setResults((prev) => prev.filter((item) => item._id !== id));
       api.get("/search/map").then((data) => setSites(data.sites));
     } catch (err) {
-      alert(err.message || "This artifact could not be deleted.");
+      alert(err.message || "Could not delete artifact.");
     }
   }
 
@@ -264,15 +225,15 @@ export default function ArtifactSearch() {
     setModalError("");
 
     if (!itemForm.discovery_date || !itemForm.discovery_date.trim()) {
-      setModalError("Enter the date the artifact was recovered.");
+      setModalError("Please enter the discovered date.");
       return;
     }
     if (!itemForm.location || !itemForm.location.trim()) {
-      setModalError("Choose where the artifact is currently held.");
+      setModalError("Please choose a current location (museum or Govt. Repository).");
       return;
     }
     if (itemForm.latitude === "" || itemForm.longitude === "") {
-      setModalError("Set the find location by clicking on the map.");
+      setModalError("Please set the discovery location by clicking on the map.");
       return;
     }
 
@@ -285,10 +246,8 @@ export default function ArtifactSearch() {
       }
 
       setShowModal(false);
-      // Reload whichever search mode is active; never merge two of them.
-      if (searchMode === "artifact") {
-        runQuery({ id: searchParams.get("id") }, "artifact");
-      } else if (searchMode === "filters") {
+      // Reload the currently active search method only. Do not merge other unrelated modes.
+      if (searchMode === "filters") {
         runQuery({ ...filters }, "filters");
       } else if (searchMode === "map") {
         if (selectedSite) {
@@ -316,457 +275,297 @@ export default function ArtifactSearch() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Public record</span>
-          <h1>Artifact catalogue</h1>
-          <p className="page-subtitle">
-            Search the national record by name, civilization, era, region, material, use, or where
-            an object was found.
-          </p>
-        </div>
-        {user?.role === "admin" && (
-          <button
-            className="btn"
-            onClick={() => {
-              setEditingItem(null);
-              setItemForm({
-                name: "", picture: "", description: "", discovery_date: "", location: "",
-                civilization: "", era: "", region: "", material: "", usage: "",
-                latitude: "", longitude: "", site_name: "",
-              });
-              setShowModal(true);
-              setModalError("");
-            }}
-          >
-            <Plus size={16} aria-hidden="true" /> Add artifact
-          </button>
-        )}
-      </div>
+      <h1>Smart Artifact Search</h1>
+      <p className="page-subtitle">
+        Explore the artifact catalogue by civilization, era, region, material, usage, or discovery location.
+      </p>
 
       {!user && (
         <div className="alert alert-info">
-          <Info size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>
-            You are browsing as a guest, so descriptions are abridged and provenance details are
-            withheld. <Link to="/register">Register</Link> or <Link to="/login">sign in</Link> for
-            the full record.
-          </span>
+          You're browsing as a guest, so descriptions are shortened and provenance details are hidden.{" "}
+          <a href="/register">Register</a> or <a href="/login">log in</a> for full access to the knowledge hub.
         </div>
       )}
 
-      {/* 1. Always-visible keyword search */}
-      <form className="home-search-row" onSubmit={handleTextSearch}>
-        <label className="home-search-field">
-          <Search size={17} aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Search by name, description, site, civilization, or era"
-            aria-label="Search the artifact catalogue"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </label>
+      {/* 1. Always-visible text search bar */}
+      <form
+        className="card"
+        style={{ display: "flex", gap: "0.75rem", alignItems: "center", margin: "0 0 1.25rem" }}
+        onSubmit={handleTextSearch}
+      >
+        <Search size={18} style={{ flexShrink: 0, color: "#8a7a68" }} />
+        <input
+          type="text"
+          placeholder="Search any keyword - name, description, site, civilization, era..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          style={{
+            flex: 1,
+            padding: "0.65rem 0.8rem",
+            border: "1.5px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            fontSize: "0.98rem",
+            fontFamily: "inherit",
+          }}
+        />
         <button type="submit" className="btn">
           Search
         </button>
       </form>
 
-      {/* Panels are closed by default; opening one does not run a search. */}
-      <div className="toolbar">
-        <button
-          className={panelOpen === "filters" ? "btn" : "btn btn-secondary"}
-          aria-expanded={panelOpen === "filters"}
-          onClick={() => togglePanel("filters")}
-        >
-          <LayoutGrid size={15} aria-hidden="true" /> Refine by attribute
-        </button>
-        <button
-          className={panelOpen === "map" ? "btn" : "btn btn-secondary"}
-          aria-expanded={panelOpen === "map"}
-          onClick={() => togglePanel("map")}
-        >
-          <MapPin size={15} aria-hidden="true" /> Search by location
-        </button>
+      {/* Buttons that reveal the filter panel / map panel - closed by default */}
+      <div className="link-grid" style={{ marginBottom: "1rem", display: "flex", justifyContent: "space-between" }}>
+        <div style={{ display: "flex", gap: "0.75rem" }}>
+          <button className={panelOpen === "filters" ? "btn" : "btn-small"} onClick={() => togglePanel("filters")}>
+            <LayoutGrid size={15} /> Filter Search
+          </button>
+          <button className={panelOpen === "map" ? "btn" : "btn-small"} onClick={() => togglePanel("map")}>
+            <MapPin size={15} /> Search by Location
+          </button>
+        </div>
+
+        {user?.role === "archaeologist" && (
+          <button className="btn" onClick={() => { setEditingItem(null); setItemForm({ name: "", picture: "", description: "", discovery_date: "", location: "", civilization: "", era: "", region: "", material: "", usage: "", latitude: "", longitude: "", site_name: "" }); setShowModal(true); setModalError(""); }}>
+            <Plus size={15} /> Add Artifact
+          </button>
+        )}
       </div>
 
       {panelOpen === "filters" && (
-        <div className="panel">
-          <div className="panel-head">
-            <h3>Refine by attribute</h3>
-            <button className="icon-btn" onClick={() => togglePanel("filters")} aria-label="Close panel">
-              <X size={15} aria-hidden="true" />
+        <div className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+            <strong>Filter by tags</strong>
+            <button className="btn-link" onClick={() => togglePanel("filters")}>
+              <X size={14} /> Close
             </button>
           </div>
-          <div className="panel-body">
-            <div className="form">
-              <div className="form-row">
-                {Object.entries(FIELD_LABELS).map(([field, label]) => (
-                  <label key={field}>
-                    {label}
-                    {field === "location" ? (
-                      <SearchableSelect
-                        options={[DEFAULT_LOCATION, ...MUSEUMS]}
-                        value={filters.location}
-                        onChange={(value) => handleFilterChange("location", value)}
-                        placeholder="Search a museum or repository"
-                      />
-                    ) : (
-                      <select value={filters[field]} onChange={(e) => handleFilterChange(field, e.target.value)}>
-                        <option value="">Any</option>
-                        {options[`${field}s`]?.map((v) => (
-                          <option key={v} value={v}>
-                            {v}
-                          </option>
-                        ))}
-                      </select>
-                    )}
-                  </label>
-                ))}
-              </div>
-
-              <div className="actions">
-                <button className="btn" onClick={applyFilters}>
-                  <Search size={15} aria-hidden="true" /> Apply filters
-                </button>
-                <button className="btn btn-secondary" onClick={clearFilters}>
-                  Clear all
-                </button>
-              </div>
-            </div>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+              gap: "1rem",
+            }}
+          >
+            {Object.entries(FIELD_LABELS).map(([field, label]) => (
+              <label key={field} style={{ display: "flex", flexDirection: "column", gap: "0.4rem", fontWeight: 600, fontSize: "0.9rem" }}>
+                {label}
+                {field === "location" ? (
+                  <SearchableSelect
+                    options={[DEFAULT_LOCATION, ...MUSEUMS]}
+                    value={filters.location}
+                    onChange={(value) => handleFilterChange("location", value)}
+                    placeholder="Search a museum or repository"
+                  />
+                ) : (
+                  <select value={filters[field]} onChange={(e) => handleFilterChange(field, e.target.value)}>
+                    <option value="">Any</option>
+                    {options[`${field}s`]?.map((v) => (
+                      <option key={v} value={v}>
+                        {v}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </label>
+            ))}
+          </div>
+          <div className="actions" style={{ marginTop: "1.25rem" }}>
+            <button className="btn" onClick={applyFilters}>
+              <Search size={15} /> Search with these filters
+            </button>
+            <button className="btn-small" onClick={clearFilters}>
+              Reset
+            </button>
           </div>
         </div>
       )}
 
       {panelOpen === "map" && (
-        <div className="panel">
-          <div className="panel-head">
-            <h3>Search by find location</h3>
-            <button className="icon-btn" onClick={() => togglePanel("map")} aria-label="Close panel">
-              <X size={15} aria-hidden="true" />
+        <div className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
+            <strong>Search by discovery location</strong>
+            <button className="btn-link" onClick={() => togglePanel("map")}>
+              <X size={14} /> Close
             </button>
           </div>
-          <div className="panel-body">
-            <p className="hint" style={{ marginTop: 0 }}>
-              Search a place to centre the map, or select a recorded site directly. Results cover
-              roughly a 50 km radius.
-            </p>
-
-            <div className="home-search-row" style={{ marginBottom: "0.9rem" }}>
-              <label className="home-search-field">
-                <Search size={16} aria-hidden="true" />
-                <input
-                  type="search"
-                  value={mapSearchQuery}
-                  onChange={(e) => setMapSearchQuery(e.target.value)}
-                  placeholder="e.g. Mahasthangarh, Bogura"
-                  aria-label="Search for a place"
-                />
-              </label>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={handleMapLocationSearch}
-                disabled={mapSearchBusy}
-              >
-                {mapSearchBusy ? "Searching" : "Find place"}
-              </button>
-            </div>
-
-            {mapSearchResults.length > 0 && (
-              <ul className="map-results" style={{ margin: "0 0 0.9rem" }}>
-                {mapSearchResults.map((result) => (
-                  <li
-                    key={result.place_id || `${result.lat}-${result.lon}`}
-                    onClick={() => selectMapSearchResult(result)}
-                  >
-                    {result.display_name}
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {mapSearchError && <div className="alert alert-danger">{mapSearchError}</div>}
-
-            <ArtifactResultsMap
-              sites={sites}
-              selectedSiteId={selectedSite?._id}
-              onSelectSite={handleSelectSite}
-              searchLocation={mapSearchLocation}
+          <p className="page-subtitle" style={{ marginTop: 0 }}>
+            Search a place name to center the map and view artifacts within about 50 km of it.
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.75rem" }}>
+            <input
+              type="text"
+              value={mapSearchQuery}
+              onChange={(e) => setMapSearchQuery(e.target.value)}
+              placeholder="Search for a location like Dhaka"
+              style={{ flex: 1, padding: "0.6rem 0.7rem", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}
             />
-
-            {(selectedSite || mapSearchLocation) && (
-              <p className="hint" style={{ margin: "0.9rem 0 0" }}>
-                {selectedSite ? (
-                  <>
-                    Showing artifacts recovered from <strong>{selectedSite.name}</strong>.
-                  </>
-                ) : (
-                  <>
-                    Showing artifacts within 50 km of <strong>{mapSearchLocation.label}</strong>.
-                  </>
-                )}{" "}
-                <button
-                  className="btn-link"
-                  onClick={() => {
-                    clearSiteFilter();
-                    setMapSearchLocation(null);
-                    setMapSearchQuery("");
-                    setMapSearchError("");
-                    setMapSearchResults([]);
-                  }}
+            <button type="button" className="btn-small" onClick={handleMapLocationSearch} disabled={mapSearchBusy}>
+              {mapSearchBusy ? "Searching..." : "Search"}
+            </button>
+          </div>
+          {mapSearchResults.length > 0 && (
+            <ul style={{ listStyle: "none", padding: 0, margin: "0 0 0.75rem", display: "grid", gap: "0.35rem" }}>
+              {mapSearchResults.map((result) => (
+                <li
+                  key={result.place_id || `${result.lat}-${result.lon}`}
+                  onClick={() => selectMapSearchResult(result)}
+                  style={{ padding: "0.55rem 0.7rem", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", cursor: "pointer", background: "#fff" }}
                 >
-                  Clear
-                </button>
+                  {result.display_name}
+                </li>
+              ))}
+            </ul>
+          )}
+          {mapSearchError && <div className="alert alert-danger" style={{ marginBottom: "0.75rem" }}>{mapSearchError}</div>}
+          <ArtifactResultsMap
+            sites={sites}
+            selectedSiteId={selectedSite?._id}
+            onSelectSite={handleSelectSite}
+            searchLocation={mapSearchLocation}
+          />
+          {(selectedSite || mapSearchLocation) && (
+            <p style={{ marginTop: "0.75rem" }}>
+              {selectedSite ? (
+                <>Showing artifacts from <strong>{selectedSite.name}</strong>.</>
+              ) : (
+                <>Showing artifacts within 50 km of <strong>{mapSearchLocation.label}</strong>.</>
+              )}{" "}
+              <button className="btn-link" onClick={() => { clearSiteFilter(); setMapSearchLocation(null); setMapSearchQuery(""); setMapSearchError(""); setMapSearchResults([]); }}>
+                Clear
+              </button>
+            </p>
+          )}
+        </div>
+      )}
+
+      <h3>{loading ? "Searching..." : `${results.length} artifact(s) found`}</h3>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))",
+          gap: "1rem",
+        }}
+      >
+        {results.map((item) => (
+          <div key={item._id} className="card" style={{ margin: 0 }}>
+            <h4 style={{ marginTop: 0, marginBottom: "0.4rem" }}>{item.name}</h4>
+            <p style={{ margin: "0 0 0.5rem", fontSize: "0.85rem", color: "#8a7a68" }}>
+              {item.Type} {item.site_name ? `· ${item.site_name}` : ""}
+            </p>
+            <p style={{ fontSize: "0.9rem" }}>{item.description || "No description available."}</p>
+            <p style={{ fontSize: "0.85rem" }}>
+              {item.civilization && <>Civilization: {item.civilization}<br /></>}
+              {item.era && <>Era: {item.era}<br /></>}
+              {item.region && <>Region: {item.region}<br /></>}
+              {item.material && <>Material: {item.material}<br /></>}
+              {item.usage && <>Usage: {item.usage}</>}
+            </p>
+            {item.limited ? (
+              <p style={{ fontSize: "0.8rem", color: "#b5834d" }}>
+                Log in to see discovery date, exact location, and full details.
+              </p>
+            ) : (
+              <p style={{ fontSize: "0.8rem", color: "#777" }}>
+                {item.discovery_date && <>Discovered: {item.discovery_date.slice(0, 10)}<br /></>}
+                {item.location && <>Current Location: {item.location}<br /></>}
+                {item.district && <>Site Location: {item.thana ? `${item.thana}, ` : ""}{item.district}</>}
               </p>
             )}
+
+            {(user?.role === "archaeologist" ||
+              (user?.role === "museum_manager" &&
+                item.allocation === "Museum" &&
+                (item.museumName === user?.museum_name || item.location === user?.museum_name))) && (
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem", flexWrap: "wrap" }}>
+                <button
+                  className="btn-small btn-outline"
+                  style={{ color: "var(--primary)", borderColor: "var(--primary)" }}
+                  onClick={() => {
+                    setEditingItem(item);
+                    setItemForm({
+                      name: item.name || "",
+                      picture: item.picture || "",
+                      description: item.description || "",
+                      discovery_date: item.discovery_date ? new Date(item.discovery_date).toISOString().split("T")[0] : "",
+                      location: item.location || "",
+                      civilization: item.civilization || "",
+                      era: item.era || "",
+                      region: item.region || "",
+                      material: item.material || "",
+                      usage: item.usage || "",
+                      latitude: item.latitude ?? "",
+                      longitude: item.longitude ?? "",
+                      site_name: item.site_name || ""
+                    });
+                    setModalError("");
+                    setShowModal(true);
+                  }}
+                >
+                  <Edit size={14} /> Edit
+                </button>
+                {user?.role === "archaeologist" && (
+                  <button
+                    className="btn-small"
+                    style={{ color: "#fff", background: "var(--danger, #c0392b)", border: "none" }}
+                    onClick={() => handleDeleteItem(item._id)}
+                    title="Delete artifact"
+                  >
+                    <Trash2 size={14} /> Delete
+                  </button>
+                )}
+              </div>
+            )}
           </div>
-        </div>
-      )}
-
-      {searchMode === "artifact" && (
-        <div className="alert alert-info">
-          <Info size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>
-            Showing a single catalogue record.{" "}
-            <button className="btn-link" onClick={() => setSearchParams({})}>
-              Browse the whole catalogue
-            </button>
-          </span>
-        </div>
-      )}
-
-      <div className="section-head">
-        <h2>Results</h2>
-        <span className="hint">
-          {loading ? "Searching" : `${results.length} artifact${results.length === 1 ? "" : "s"}`}
-        </span>
+        ))}
+        {!loading && results.length === 0 && <p>No artifacts match this search yet.</p>}
       </div>
 
-      {loading && results.length === 0 ? (
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Searching the catalogue
-        </div>
-      ) : results.length === 0 ? (
-        <div className="empty-state">
-          <PackageSearch size={26} aria-hidden="true" />
-          <h3>No matching artifacts</h3>
-          <p>
-            Nothing in the catalogue matches this search. Try a broader keyword, or clear the
-            attribute filters.
-          </p>
-        </div>
-      ) : (
-        <div className="artifact-cards">
-          {results.map((item) => (
-            <article key={item._id} className="artifact-card">
-              {item.picture && (
-                <img
-                  className="artifact-card-image"
-                  src={item.picture}
-                  alt={item.name}
-                  loading="lazy"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
-              )}
-              <div className="artifact-card-body">
-                <h4>{item.name}</h4>
-                <p className="artifact-tile-class">
-                  {item.Type}
-                  {item.site_name ? ` · ${item.site_name}` : ""}
-                </p>
-                <p className="artifact-card-desc">{item.description || "No description recorded."}</p>
-
-                <dl className="artifact-tile-facts">
-                  {item.civilization && (
-                    <div>
-                      <dt>Civilization</dt>
-                      <dd>{item.civilization}</dd>
-                    </div>
-                  )}
-                  {item.era && (
-                    <div>
-                      <dt>Era</dt>
-                      <dd>{item.era}</dd>
-                    </div>
-                  )}
-                  {item.region && (
-                    <div>
-                      <dt>Region</dt>
-                      <dd>{item.region}</dd>
-                    </div>
-                  )}
-                  {item.material && (
-                    <div>
-                      <dt>Material</dt>
-                      <dd>{item.material}</dd>
-                    </div>
-                  )}
-                  {item.usage && (
-                    <div>
-                      <dt>Use</dt>
-                      <dd>{item.usage}</dd>
-                    </div>
-                  )}
-                  {!item.limited && (
-                    <>
-                      {item.discovery_date && (
-                        <div>
-                          <dt>Recovered</dt>
-                          <dd>{item.discovery_date.slice(0, 10)}</dd>
-                        </div>
-                      )}
-                      {item.location && (
-                        <div>
-                          <dt>Held at</dt>
-                          <dd>{item.location}</dd>
-                        </div>
-                      )}
-                      {item.district && (
-                        <div>
-                          <dt>Find spot</dt>
-                          <dd>
-                            {item.thana ? `${item.thana}, ` : ""}
-                            {item.district}
-                          </dd>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </dl>
-
-                {item.limited && (
-                  <p className="artifact-card-locked">
-                    <Lock size={12} aria-hidden="true" /> Sign in for the recovery date, find spot,
-                    and full description.
-                  </p>
-                )}
-
-                {(user?.role === "admin" ||
-                  (user?.role === "museum_manager" &&
-                    item.allocation === "Museum" &&
-                    (item.museumName === user?.museum_name || item.location === user?.museum_name))) && (
-                  <div className="actions" style={{ marginTop: "0.9rem" }}>
-                    <button
-                      className="btn-small btn-secondary"
-                      onClick={() => {
-                        setEditingItem(item);
-                        setItemForm({
-                          name: item.name || "",
-                          picture: item.picture || "",
-                          description: item.description || "",
-                          discovery_date: item.discovery_date ? new Date(item.discovery_date).toISOString().split("T")[0] : "",
-                          location: item.location || "",
-                          civilization: item.civilization || "",
-                          era: item.era || "",
-                          region: item.region || "",
-                          material: item.material || "",
-                          usage: item.usage || "",
-                          latitude: item.latitude ?? "",
-                          longitude: item.longitude ?? "",
-                          site_name: item.site_name || "",
-                        });
-                        setModalError("");
-                        setShowModal(true);
-                      }}
-                    >
-                      <Edit size={13} aria-hidden="true" /> Edit
-                    </button>
-                    {user?.role === "admin" && (
-                      <button className="btn-small btn-danger" onClick={() => handleDeleteItem(item._id)}>
-                        <Trash2 size={13} aria-hidden="true" /> Delete
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
-
       {showModal && (
-        <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: 620 }}>
-            <div className="modal-head">
-              <div>
-                <span className="eyebrow">Catalogue record</span>
-                <h2>{editingItem ? "Edit artifact record" : "Add an artifact"}</h2>
-              </div>
-              <button className="modal-close" onClick={() => setShowModal(false)} aria-label="Close">
-                <X size={18} aria-hidden="true" />
-              </button>
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 2000, display: "flex", alignItems: "center", justifyContent: "center", padding: "1rem" }}>
+          <div className="card" style={{ width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto", margin: 0 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h2>{editingItem ? "Edit Artifact" : "Add New Artifact"}</h2>
+              <button className="btn-link" onClick={() => setShowModal(false)}><X size={20} /></button>
             </div>
 
             {modalError && <div className="alert alert-danger">{modalError}</div>}
 
             <form onSubmit={handleModalSubmit} className="form">
+              <label>Artifact Name (required) <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} required /></label>
+              <label>Description <textarea rows={3} value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} /></label>
               <label>
-                Artifact name
-                <input
-                  value={itemForm.name}
-                  onChange={(e) => setItemForm((f) => ({ ...f, name: e.target.value }))}
-                  placeholder="e.g. Terracotta votive plaque"
-                  required
-                />
-              </label>
-              <label>
-                Description
-                <textarea
-                  rows={3}
-                  value={itemForm.description}
-                  onChange={(e) => setItemForm((f) => ({ ...f, description: e.target.value }))}
-                  placeholder="Condition, dimensions, decoration, and context"
-                />
-              </label>
-              <label>
-                Date recovered
-                <input
-                  type="date"
-                  value={itemForm.discovery_date}
-                  onChange={(e) => setItemForm((f) => ({ ...f, discovery_date: e.target.value }))}
-                  required
-                />
+                Discovered Date (required)
+                <input type="date" value={itemForm.discovery_date} onChange={e => setItemForm(f => ({ ...f, discovery_date: e.target.value }))} required />
               </label>
 
-              <ArtifactImagePicker
-                value={itemForm.picture}
-                onChange={(v) => setItemForm((f) => ({ ...f, picture: v }))}
-              />
-
-              <div className="form-row">
-                <label>Civilization <input value={itemForm.civilization} onChange={(e) => setItemForm((f) => ({ ...f, civilization: e.target.value }))} /></label>
-                <label>Era <input value={itemForm.era} onChange={(e) => setItemForm((f) => ({ ...f, era: e.target.value }))} /></label>
-                <label>Region <input value={itemForm.region} onChange={(e) => setItemForm((f) => ({ ...f, region: e.target.value }))} /></label>
-                <label>Material <input value={itemForm.material} onChange={(e) => setItemForm((f) => ({ ...f, material: e.target.value }))} /></label>
-                <label>Use <input value={itemForm.usage} onChange={(e) => setItemForm((f) => ({ ...f, usage: e.target.value }))} /></label>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                <label>Civilization <input value={itemForm.civilization} onChange={e => setItemForm(f => ({ ...f, civilization: e.target.value }))} /></label>
+                <label>Era <input value={itemForm.era} onChange={e => setItemForm(f => ({ ...f, era: e.target.value }))} /></label>
+                <label>Region <input value={itemForm.region} onChange={e => setItemForm(f => ({ ...f, region: e.target.value }))} /></label>
+                <label>Material <input value={itemForm.material} onChange={e => setItemForm(f => ({ ...f, material: e.target.value }))} /></label>
+                <label>Usage <input value={itemForm.usage} onChange={e => setItemForm(f => ({ ...f, usage: e.target.value }))} /></label>
                 <label>
-                  Currently held at
+                  Current Location (required)
                   <SearchableSelect
                     options={[DEFAULT_LOCATION, ...MUSEUMS]}
                     value={itemForm.location}
                     onChange={(v) => setItemForm((f) => ({ ...f, location: v }))}
-                    placeholder="Museum or government repository"
+                    placeholder="Type to search, or click to pick from the list"
                     required
                   />
                 </label>
               </div>
 
               <fieldset>
-                <legend>Find location</legend>
-                <p className="hint" style={{ margin: 0 }}>
+                <legend>Discovery Location on Map (required)</legend>
+                <p className="hint">
                   {editingItem
-                    ? "Click the map or drag the marker to correct where this artifact was recovered."
-                    : "Click the map or drag the marker to set where this artifact was recovered."}
+                    ? "Click anywhere on the map, or drag the pin, to update where this artifact was discovered."
+                    : "Click anywhere on the map, or drag the pin, to set where this artifact was discovered."}
                 </p>
                 <GoogleMapPicker
-                  value={
-                    itemForm.latitude !== "" && itemForm.longitude !== ""
-                      ? { lat: parseFloat(itemForm.latitude), lng: parseFloat(itemForm.longitude) }
-                      : null
-                  }
+                  value={itemForm.latitude !== "" && itemForm.longitude !== "" ? { lat: parseFloat(itemForm.latitude), lng: parseFloat(itemForm.longitude) } : null}
                   onChange={({ lat, lng, address }) =>
                     setItemForm((f) => ({ ...f, latitude: lat, longitude: lng, site_name: address || f.site_name }))
                   }
@@ -774,14 +573,9 @@ export default function ArtifactSearch() {
                 />
               </fieldset>
 
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setShowModal(false)} disabled={modalBusy}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn" disabled={modalBusy}>
-                  {modalBusy ? "Saving" : editingItem ? "Save changes" : "Add to catalogue"}
-                </button>
-              </div>
+              <button type="submit" className="btn" disabled={modalBusy}>
+                {modalBusy ? "Saving..." : (editingItem ? "Save Changes" : "Create Artifact")}
+              </button>
             </form>
           </div>
         </div>

@@ -93,24 +93,12 @@ export default function NearMeMap({ center, sites = [], exhibitions = [], museum
   return (
     <div>
       <div ref={containerRef} className="map-canvas" style={{ height }} />
-      <ul className="map-legend">
-        <li>
-          <span className="map-legend-dot" style={{ background: "#1a73e8" }} aria-hidden="true" /> Your
-          location
-        </li>
-        <li>
-          <span className="map-legend-dot" style={{ background: "#2e7d32" }} aria-hidden="true" />{" "}
-          Excavation sites
-        </li>
-        <li>
-          <span className="map-legend-dot" style={{ background: "#8e44ad" }} aria-hidden="true" />{" "}
-          Exhibitions &amp; events
-        </li>
-        <li>
-          <span className="map-legend-dot" style={{ background: "#b5834d" }} aria-hidden="true" />{" "}
-          Museums
-        </li>
-      </ul>
+      <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", fontSize: "0.8rem", marginTop: "0.5rem", color: "#555" }}>
+        <span><span style={{ color: "#1a73e8" }}>●</span> You</span>
+        <span><span style={{ color: "#2e7d32" }}>●</span> Archaeological sites</span>
+        <span><span style={{ color: "#8e44ad" }}>●</span> Exhibitions &amp; events</span>
+        <span><span style={{ color: "#b5834d" }}>●</span> Museums</span>
+      </div>
     </div>
   );
 }

@@ -1,9 +1,10 @@
-// Researcher Report - Ahad
+//Researcher Report: Ahad
 const mongoose = require("mongoose");
 const { Schema } = mongoose;
 
-// Artifacts the researcher lists as found on site. Draft entries only - they
-// become real catalogue Items when the admin approves the report.
+// Report Approval & Artifact Allocation feature: artifacts the researcher
+// lists as found on site. These are just draft entries on the report itself -
+// they only become real catalogue Items once the admin approves the report.
 const foundArtifactSchema = new Schema(
     {
         name: { type: String, required: true, trim: true },
@@ -37,7 +38,7 @@ const researcherReportSchema = new Schema(
             required: true,
         },
 
-        // Notifies if there is a possible artifact
+        // Will notify if there indeed is possible artifact
         possibleArtifact: {
             type: Boolean,
             default: false,
@@ -55,13 +56,14 @@ const researcherReportSchema = new Schema(
             default: null,
         },
 
-        // Asks for an excavation team to be assigned
+        // Request for excavation team (which we mentioned as engineers) to be assigned
         requestExcavationTeam: {
             type: Boolean,
             default: false,
         },
 
-        // Artifacts added by the archaeologist while the report is a Draft.
+        // Report Approval & Artifact Allocation: artifacts found on site, added
+        // by the archaeologist while the report is still a Draft.
         artifacts: [foundArtifactSchema],
 
         // Workflow state: draft -> pending admin approval -> approved
@@ -71,14 +73,15 @@ const researcherReportSchema = new Schema(
             default: "Draft",
         },
 
-        // Filled in once the admin approves the final report
+        // Filled in once the Government/Admin approves the final report
         adminReview: {
             reviewedBy: { type: Schema.Types.ObjectId, ref: "User", default: null },
             reviewedAt: { type: Date, default: null },
             notes: { type: String, default: "" },
         },
 
-        // Catalogue items created from `artifacts` on approval.
+        // Catalogue items created (in Smart Artifact Search) from `artifacts`
+        // once this report is approved by the admin.
         allocatedItems: [{ type: Schema.Types.ObjectId, ref: "Item" }],
     },
     { timestamps: true }

@@ -1,10 +1,13 @@
-// Write side of the notification system. Every route raises notifications
-// through here instead of touching the model, which centralises three rules:
-// sending never throws (a failed notification must not 500 the user's actual
-// action), the actor is dropped via `exclude`, and role-restricted categories
-// are filtered against CATEGORY_ROLES.
+// Role-Based Notification & Reminder System - write side.
+//
+// Every route that wants to raise a notification goes through here rather than
+// touching the model directly. Two rules are enforced centrally:
+//
+//   1. Sending never throws. A notification failing is not a reason for the
+//      user's actual action (placing a bid, approving a report) to 500, so
+//      every helper swallows and logs its own errors.
+//   2. Nobody is notified about their own action - `exclude` drops the actor.
 const Notification = require("../models/Notification");
-const { CATEGORY_ROLES } = require("../models/Notification");
 const User = require("../models/User");
 
 function idOf(value) {
@@ -12,14 +15,21 @@ function idOf(value) {
   return String(value._id || value);
 }
 
-// dedupe_key is uniquely indexed, so a fan-out reusing one key would only
-// reach the first recipient. Scoping it per user gives "once per person".
+/*
+  dedupe_key is uniquely indexed, so a fan-out that reuses one key would only
+  ever reach the first recipient - everyone else would be rejected as a
+  duplicate. Scoping the key per user keeps the "send this reminder once per
+  person" guarantee that callers actually want.
+*/
 function scopedPayload(payload, userId) {
   if (!payload.dedupeKey) return { ...payload, user: userId };
   return { ...payload, user: userId, dedupeKey: `${payload.dedupeKey}:${userId}` };
 }
 
-// Send one notification. Returns the document, or null if skipped or deduped.
+/**
+ * Send one notification.
+ * @returns the created document, or null if it was skipped/deduped/failed.
+ */
 async function notify({
   user,
   category,
@@ -43,16 +53,6 @@ async function notify({
       resolvedRole = user?.role || (await User.findById(userId).select("role"))?.role || "";
     }
 
-    // Role gate for restricted categories, checked once here instead of at
-    // every call site.
-    const allowedRoles = CATEGORY_ROLES[category];
-    if (allowedRoles && !allowedRoles.includes(resolvedRole)) {
-      console.warn(
-        `[notify] skipped "${category}" notification for role "${resolvedRole || "unknown"}" - restricted to ${allowedRoles.join(", ")}.`
-      );
-      return null;
-    }
-
     return await Notification.create({
       user: userId,
       role: resolvedRole,
@@ -68,7 +68,8 @@ async function notify({
       meta,
     });
   } catch (err) {
-    // 11000 = duplicate dedupe_key: the reminder sweeper working as intended.
+    // 11000 = duplicate dedupe_key, which is the reminder sweeper working as
+    // intended rather than an error worth logging.
     if (err?.code !== 11000) {
       console.error("[notify] could not create notification:", err.message);
     }
@@ -76,7 +77,10 @@ async function notify({
   }
 }
 
-// Same notification to several users, skipping duplicates and the actor.
+/**
+ * Send the same notification to several users, skipping duplicates and anyone
+ * listed in `exclude` (normally the person who triggered the event).
+ */
 async function notifyMany(users, payload = {}, exclude = []) {
   const excluded = new Set(exclude.map(idOf).filter(Boolean));
   const seen = new Set();
@@ -89,13 +93,13 @@ async function notifyMany(users, payload = {}, exclude = []) {
   return results.filter(Boolean);
 }
 
-// Fan out to every approved account holding one of the given roles.
+/** Send to every approved account holding one of the given roles. */
 async function notifyRole(roles, payload = {}, exclude = []) {
   try {
     const roleList = Array.isArray(roles) ? roles : [roles];
     const users = await User.find({
       role: { $in: roleList },
-      // Admins skip the approval gate, as everywhere else.
+      // Admins are exempt from the approval gate everywhere else in the app.
       $or: [{ status: "approved" }, { role: "admin" }],
     }).select("_id role");
 
@@ -112,7 +116,7 @@ async function notifyRole(roles, payload = {}, exclude = []) {
   }
 }
 
-// Admin inbox - this is what drives the red badges on the admin dashboard.
+/** Shorthand for the Government/Admin inbox, which drives the dashboard badges. */
 async function notifyAdmins(payload = {}, exclude = []) {
   return notifyRole("admin", payload, exclude);
 }

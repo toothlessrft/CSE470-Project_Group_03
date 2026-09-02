@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { FileSearch } from "lucide-react";
 import { api } from "../../api";
 import StatusBadge from "../../components/StatusBadge";
 
@@ -24,16 +23,8 @@ export default function FieldReports() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Public reporting</span>
-          <h1>Field reports</h1>
-          <p className="page-subtitle">
-            Discoveries reported by the public. Assign an archaeologist to inspect and verify each
-            one.
-          </p>
-        </div>
-      </div>
+      <h1>Artifact Discovery Reports</h1>
+      <p className="hint">Review reports submitted by the public and assign field inspections.</p>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
@@ -50,28 +41,19 @@ export default function FieldReports() {
       </div>
 
       {loading ? (
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading reports
-        </div>
+        <p>Loading...</p>
       ) : reports.length === 0 ? (
-        <div className="empty-state">
-          <FileSearch size={24} aria-hidden="true" />
-          <h3>No reports here</h3>
-          <p>
-            There are no {tab !== "All" ? tab.toLowerCase() : ""} discovery reports at the moment.
-          </p>
-        </div>
+        <div className="card">No {tab !== "All" ? tab.toLowerCase() : ""} reports.</div>
       ) : (
-        <div className="table-wrap">
         <table className="table">
           <thead>
             <tr>
               <th>Material</th>
-              <th>Find location</th>
+              <th>Location</th>
               <th>Reported by</th>
               <th>Status</th>
               <th>Submitted</th>
-              <th>Action</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -89,18 +71,14 @@ export default function FieldReports() {
                 </td>
                 <td>{new Date(r.createdAt).toLocaleDateString()}</td>
                 <td>
-                  <Link
-                    className={r.status === "Pending" ? "btn-small" : "btn-small btn-secondary"}
-                    to={`/admin/reports/${r._id}`}
-                  >
-                    {r.status === "Pending" ? "Assign inspection" : "Open record"}
+                  <Link className="btn-small" to={`/admin/reports/${r._id}`}>
+                    {r.status === "Pending" ? "Assign" : "View"}
                   </Link>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
-        </div>
       )}
     </div>
   );

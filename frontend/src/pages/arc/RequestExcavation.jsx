@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { Inbox } from "lucide-react";
 import { api } from "../../api";
 import StatusBadge from "../../components/StatusBadge";
 
@@ -52,7 +51,7 @@ export default function RequestExcavation() {
         proposal,
         budget,
       });
-      setSuccess("Proposal submitted to the heritage authority for assessment.");
+      setSuccess("Excavation request submitted!");
       setExistingSite("");
       setNewSiteName("");
       setEra("");
@@ -73,59 +72,40 @@ export default function RequestExcavation() {
     return (
       <div className="card" key={r._id}>
         <div className="report-header">
-          <h3 style={{ margin: 0 }}>{r.site?.name || "Proposed new site"}</h3>
+          <strong>{r.site?.name || "New Site Proposal"}</strong>
           <StatusBadge status={r.approval_status} />
         </div>
-        <p className="meta-row">
-          <span>Submitted {new Date(r.createdAt).toLocaleDateString()}</span>
-          <span className="num">Budget requested: ৳{Number(r.budget || 0).toLocaleString()}</span>
-        </p>
-        <p style={{ marginTop: "0.85rem", marginBottom: 0 }}>{r.proposal}</p>
-        {r.admin_notes && (
-          <div className="alert alert-info" style={{ marginTop: "1rem", marginBottom: 0 }}>
-            <span>
-              <strong style={{ display: "block", marginBottom: "0.15rem" }}>
-                Response from the heritage authority
-              </strong>
-              {r.admin_notes}
-            </span>
-          </div>
-        )}
+        <p className="hint">Submitted on {new Date(r.createdAt).toLocaleDateString()}</p>
+        <p><strong>Proposal:</strong> {r.proposal}</p>
+        <p><strong>Requested Budget:</strong> ৳{r.budget}</p>
+        {r.admin_notes && <p className="hint"><strong>Admin Notes:</strong> {r.admin_notes}</p>}
       </div>
     );
   }
 
   return (
     <div className="page narrow">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Licensing</span>
-          <h1>Excavation proposals</h1>
-          <p className="page-subtitle">
-            Apply to excavate a recorded or newly identified site, and follow your applications
-            through assessment.
-          </p>
-        </div>
-      </div>
+      <h1>Excavation Requests</h1>
+      <p className="page-subtitle">Submit proposals for new site excavations or track existing ones.</p>
 
       <div className="tabs">
         <button
           className={`tab ${activeTab === "New Request" ? "tab-active" : ""}`}
           onClick={() => setActiveTab("New Request")}
         >
-          New proposal
+          New Request
         </button>
         <button
           className={`tab ${activeTab === "Pending Requests" ? "tab-active" : ""}`}
           onClick={() => setActiveTab("Pending Requests")}
         >
-          Under assessment <span className="tab-count">{pendingRequests.length}</span>
+          Pending ({pendingRequests.length})
         </button>
         <button
           className={`tab ${activeTab === "Previous Requests" ? "tab-active" : ""}`}
           onClick={() => setActiveTab("Previous Requests")}
         >
-          Decided <span className="tab-count">{previousRequests.length}</span>
+          Previous
         </button>
       </div>
 
@@ -135,9 +115,9 @@ export default function RequestExcavation() {
       {activeTab === "New Request" && (
         <form onSubmit={handleSubmit} className="form">
           <label>
-            Recorded site
+            Existing site
             <select value={existingSite} onChange={(e) => setExistingSite(e.target.value)}>
-              <option value="">Propose a new site instead</option>
+              <option value="">-- Propose a new site instead --</option>
               {sites.map((s) => (
                 <option key={s._id} value={s._id}>
                   {s.name}
@@ -151,100 +131,47 @@ export default function RequestExcavation() {
               <legend>New site details</legend>
               <label>
                 Site name
-                <input
-                  value={newSiteName}
-                  onChange={(e) => setNewSiteName(e.target.value)}
-                  placeholder="e.g. Wari-Bateshwar north mound"
-                />
+                <input value={newSiteName} onChange={(e) => setNewSiteName(e.target.value)} />
               </label>
               <label>
-                Period
-                <input
-                  value={era}
-                  onChange={(e) => setEra(e.target.value)}
-                  placeholder="e.g. Early historic, c. 400 BCE"
-                />
+                Era
+                <input value={era} onChange={(e) => setEra(e.target.value)} />
               </label>
               <label>
                 Description
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Topography, surface finds, present condition, and threats to the site"
-                />
+                <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
               </label>
               <label>
-                Structural evidence
-                <textarea
-                  value={architecture}
-                  onChange={(e) => setArchitecture(e.target.value)}
-                  placeholder="Visible walls, mounds, brickwork, or other built remains"
-                />
+                Architecture
+                <textarea value={architecture} onChange={(e) => setArchitecture(e.target.value)} />
               </label>
             </fieldset>
           )}
 
           <label>
-            Research proposal
-            <textarea
-              value={proposal}
-              onChange={(e) => setProposal(e.target.value)}
-              rows={5}
-              placeholder="Research questions, proposed methodology, duration, and expected outcomes"
-              required
-            />
+            Proposal
+            <textarea value={proposal} onChange={(e) => setProposal(e.target.value)} required />
           </label>
           <label>
-            Budget requested (৳)
-            <input
-              type="number"
-              min="0"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-              placeholder="e.g. 250000"
-              required
-            />
+            Budget Suggested
+            <input type="number" value={budget} onChange={(e) => setBudget(e.target.value)} required />
           </label>
 
           <button type="submit" className="btn">
-            Submit proposal
+            Submit Request
           </button>
         </form>
       )}
 
       {activeTab === "Pending Requests" && (
         <div className="list">
-          {loading ? (
-            <div className="loading-state">
-              <span className="spinner" aria-hidden="true" /> Loading proposals
-            </div>
-          ) : pendingRequests.length === 0 ? (
-            <div className="empty-state">
-              <Inbox size={24} aria-hidden="true" />
-              <h3>Nothing under assessment</h3>
-              <p>Proposals awaiting a decision from the heritage authority appear here.</p>
-            </div>
-          ) : (
-            pendingRequests.map(renderRequestCard)
-          )}
+          {loading ? <p>Loading...</p> : pendingRequests.length === 0 ? <p className="hint">No pending requests.</p> : pendingRequests.map(renderRequestCard)}
         </div>
       )}
 
       {activeTab === "Previous Requests" && (
         <div className="list">
-          {loading ? (
-            <div className="loading-state">
-              <span className="spinner" aria-hidden="true" /> Loading proposals
-            </div>
-          ) : previousRequests.length === 0 ? (
-            <div className="empty-state">
-              <Inbox size={24} aria-hidden="true" />
-              <h3>No decisions yet</h3>
-              <p>Approved and declined proposals are archived here.</p>
-            </div>
-          ) : (
-            previousRequests.map(renderRequestCard)
-          )}
+          {loading ? <p>Loading...</p> : previousRequests.length === 0 ? <p className="hint">No previous requests.</p> : previousRequests.map(renderRequestCard)}
         </div>
       )}
     </div>

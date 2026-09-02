@@ -57,150 +57,113 @@ export default function ManageAuctions() {
 
   return (
     <div className="page">
-      <div className="page-head">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
         <div>
-          <span className="eyebrow">Lawful disposal</span>
-          <h1>Artifact auctions</h1>
-          <p className="page-subtitle">
-            List artifacts released for lawful sale and follow bidding through to close.
-          </p>
+          <h1>Manage Auctions</h1>
+          <p className="page-subtitle">Put artifacts up for auction and track bidding through to close.</p>
         </div>
         <Link className="btn" to="/admin/auctions/new">
-          <Plus size={16} aria-hidden="true" /> Create lot
+          <Plus size={16} /> Create New Auction
         </Link>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="section-head">
-        <h2>
-          <Gavel size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--primary)" }} />
-          Bidding open
-        </h2>
-        <span className="hint">{live.length} live</span>
-      </div>
-      <div className="table-wrap">
+      <h3>
+        <Gavel size={16} style={{ verticalAlign: "text-bottom" }} /> Live Auctions
+      </h3>
       <table className="table">
         <thead>
           <tr>
-            <th>Lot</th>
-            <th>Standing bid</th>
+            <th>Artifact</th>
+            <th>Current Bid</th>
             <th>Bids</th>
-            <th>Closes in</th>
-            <th>Action</th>
+            <th>Time Left</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {live.map((a) => (
             <tr key={a._id}>
               <td>{a.item?.name}</td>
-              <td className="num">
-                {a.current_bid != null
-                  ? `৳${Number(a.current_bid).toLocaleString()}`
-                  : `Reserve ৳${Number(a.starting_bid).toLocaleString()}`}
-              </td>
-              <td className="num">{a.bid_count}</td>
+              <td>{a.current_bid != null ? `৳${a.current_bid}` : `Starting: ৳${a.starting_bid}`}</td>
+              <td>{a.bid_count}</td>
               <td>{timeLeft(a.deadline)}</td>
               <td className="actions">
-                <Link className="btn-small btn-secondary" to={`/admin/auctions/${a._id}/edit`}>
+                <Link className="btn-small" to={`/admin/auctions/${a._id}/edit`}>
                   Edit
                 </Link>
                 <button className="btn-small btn-deny" onClick={() => setCancelTarget(a._id)}>
-                  Withdraw
+                  Cancel
                 </button>
               </td>
             </tr>
           ))}
           {live.length === 0 && (
             <tr>
-              <td colSpan={5} className="hint">
-                No lots are currently open for bidding.
-              </td>
+              <td colSpan={5}>No live auctions right now.</td>
             </tr>
           )}
         </tbody>
       </table>
-      </div>
 
       {cancelTarget && (
-        <div className="modal-overlay">
-          <form onSubmit={handleCancel} className="modal form" style={{ maxWidth: 440 }}>
-            <div className="modal-head">
-              <div>
-                <span className="eyebrow">Auction</span>
-                <h2>Withdraw this lot?</h2>
-              </div>
-            </div>
-            <p className="page-subtitle" style={{ marginTop: 0 }}>
-              Bidding stops immediately and the reason is shown to everyone who bid.
-            </p>
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.4)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 2000 }}>
+          <form onSubmit={handleCancel} className="card form" style={{ maxWidth: 420, width: "90%" }}>
+            <h3 style={{ marginTop: 0 }}>Cancel this auction?</h3>
+            <p className="page-subtitle">This stops bidding immediately. Please explain why.</p>
             <label>
-              Reason for withdrawal
-              <textarea
-                required
-                rows={3}
-                value={cancelReason}
-                onChange={(e) => setCancelReason(e.target.value)}
-              />
+              Reason
+              <textarea required value={cancelReason} onChange={(e) => setCancelReason(e.target.value)} />
             </label>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-secondary" onClick={() => setCancelTarget(null)}>
-                Keep the lot open
+            <div className="actions">
+              <button type="submit" className="btn-small btn-deny">
+                Confirm Cancel
               </button>
-              <button type="submit" className="btn btn-deny">
-                Withdraw lot
+              <button type="button" className="btn-small" onClick={() => setCancelTarget(null)}>
+                Never mind
               </button>
             </div>
           </form>
         </div>
       )}
 
-      <div className="section-head">
-        <h2>Closed lots</h2>
-        <span className="hint">{history.length} on record</span>
-      </div>
-      <form className="home-search-row" onSubmit={(e) => e.preventDefault()}>
-        <label className="home-search-field">
-          <Search size={16} aria-hidden="true" />
-          <input
-            type="search"
-            placeholder="Search by artifact, civilization, or era"
-            aria-label="Search closed lots"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </label>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          aria-label="Filter by outcome"
-          style={{ width: "auto" }}
-        >
-          <option value="">All outcomes</option>
+      <h3>Auction History</h3>
+      <form
+        style={{ display: "flex", gap: "0.75rem", marginBottom: "1rem", flexWrap: "wrap" }}
+        onSubmit={(e) => e.preventDefault()}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: "0.4rem", flex: 1, minWidth: 220 }}>
+          <Search size={16} style={{ color: "#8a7a68" }} />
+          <input type="text" placeholder="Search by artifact, civilization, era..." value={q} onChange={(e) => setQ(e.target.value)} style={{ flex: 1 }} />
+        </div>
+        <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
+          <option value="">All statuses</option>
           <option value="Closed-Sold">Sold</option>
           <option value="Closed-Unsold">Unsold</option>
-          <option value="Cancelled">Withdrawn</option>
+          <option value="Cancelled">Cancelled</option>
         </select>
       </form>
-      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Lot</th>
-            <th>Hammer price</th>
-            <th>Successful bidder</th>
-            <th>Outcome</th>
+            <th>Artifact</th>
+            <th>Final Price</th>
+            <th>Winner</th>
+            <th>Payout to Source</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           {history.map((a) => (
             <tr key={a._id}>
               <td>{a.item?.name}</td>
-              <td className="num">
-                {a.final_price != null ? `৳${Number(a.final_price).toLocaleString()}` : "—"}
-              </td>
+              <td>{a.final_price != null ? `৳${a.final_price}` : "-"}</td>
+              <td>{a.status === "Closed-Sold" && a.winner ? `${a.winner.name} (${a.winner.nid})` : "-"}</td>
               <td>
-                {a.status === "Closed-Sold" && a.winner ? `${a.winner.name} (${a.winner.nid})` : "—"}
+                {a.final_price != null && a.source_percentage > 0
+                  ? `৳${Math.round((a.final_price * a.source_percentage) / 100)} (${a.source_percentage}% to ${a.source_name || "source"})`
+                  : "-"}
               </td>
               <td>
                 <StatusBadge status={a.status.replace("Closed-", "")} />
@@ -209,14 +172,11 @@ export default function ManageAuctions() {
           ))}
           {history.length === 0 && (
             <tr>
-              <td colSpan={5} className="hint">
-                No lots have closed yet.
-              </td>
+              <td colSpan={5}>No auction history yet.</td>
             </tr>
           )}
         </tbody>
       </table>
-      </div>
     </div>
   );
 }

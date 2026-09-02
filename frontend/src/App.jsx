@@ -1,8 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Footer from "./components/Footer";
-import ArtifactIdentifier from "./components/ArtifactIdentifier"; // AI Artifact Identification
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -25,7 +23,6 @@ import MyAssignments from "./pages/arc/MyAssignments";
 
 import MManagerDashboard from "./pages/mm/MManagerDashboard";
 import RequestItems from "./pages/mm/RequestItems";
-import LoansHub from "./pages/mm/LoansHub";
 import ExhibitionManagement from "./pages/mm/ExhibitionManagement";
 import Exhibitions from "./pages/public/Exhibitions";
 import MuseumProfile from "./pages/mm/MuseumProfile";
@@ -33,7 +30,7 @@ import MuseumDirectory from "./pages/public/MuseumDirectory";
 import MuseumDetail from "./pages/public/MuseumDetail";
 import NearMe from "./pages/public/NearMe";
 
-// Ahad_23201016 - Excavation Team
+// Ahad_23201016 - Excavation Team (replaces Site Caretaker)
 import ETeamDashboard from "./pages/et/ETeamDashboard";
 import BrowseTenders from "./pages/et/BrowseTenders";
 import MyBids from "./pages/et/MyBids";
@@ -66,17 +63,6 @@ import ExcavationProjects from "./pages/admin/ExcavationProjects";
 // Tool & Field Equipment Requests + Inventory Tracking
 import RequestEquipment from "./pages/tools/RequestEquipment";
 import ToolInventory from "./pages/admin/ToolInventory";
-// Cross Feedback & Performance Review System
-import SubmitReview from "./pages/SubmitReview";
-import ReviewHistory from "./pages/ReviewHistory";
-// Project Team Group Chat
-import TeamChatPage from "./pages/chat/TeamChatPage";
-// Public Archaeology Q&A
-import QnAList from "./pages/qna/QnAList";
-import QuestionDetail from "./pages/qna/QuestionDetail";
-import AskQuestion from "./pages/qna/AskQuestion";
-import MyQuestions from "./pages/qna/MyQuestions";
-import MyAnswers from "./pages/qna/MyAnswers";
 
 
 export default function App() {
@@ -103,32 +89,6 @@ export default function App() {
           element={
             <ProtectedRoute>
               <MyReports />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Cross Feedback & Performance Review System - open to any logged-in user */}
-        <Route
-          path="/reviews/history/:userId"
-          element={
-            <ProtectedRoute>
-              <ReviewHistory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reviews/history"
-          element={
-            <ProtectedRoute>
-              <ReviewHistory />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/reviews/:projectId"
-          element={
-            <ProtectedRoute>
-              <SubmitReview />
             </ProtectedRoute>
           }
         />
@@ -208,7 +168,7 @@ export default function App() {
           }
         />
 
-        {/* Tools and field equipment - archaeologists and excavation teams.
+        {/* Tools & Field Equipment - archaeologists and excavation teams.
             The API rejects anyone who isn't leading or assigned to an active
             project, so a single shared route is enough here. */}
         <Route
@@ -234,14 +194,6 @@ export default function App() {
           element={
             <ProtectedRoute role="museum_manager">
               <RequestItems />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/mm/loans"
-          element={
-            <ProtectedRoute role="museum_manager">
-              <LoansHub />
             </ProtectedRoute>
           }
         />
@@ -357,8 +309,7 @@ export default function App() {
         <Route path="/museums/:museumName" element={<MuseumDetail />} />
         <Route path="/near-me" element={<NearMe />} />
 
-        {/* Auctions - anyone can browse; bidding and wishlist need a login,
-            enforced in the page and the API. */}
+        {/* Auctions - browsing is open to everyone, bidding/wishlist require login (enforced in the page/API) */}
         <Route path="/auctions" element={<Auctions />} />
         <Route path="/auctions/:id" element={<AuctionDetail />} />
 
@@ -505,51 +456,8 @@ export default function App() {
           }
         />
 
-        {/* Project Team Group Chat - open to any assigned/authorized member */}
-        <Route
-          path="/chats/:projectId"
-          element={
-            <ProtectedRoute>
-              <TeamChatPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Public Archaeology Q&A - browsing is open to everyone, guests included */}
-        <Route path="/qna" element={<QnAList />} />
-        <Route path="/qna/:id" element={<QuestionDetail />} />
-        <Route
-          path="/qna/ask"
-          element={
-            <ProtectedRoute role="public">
-              <AskQuestion />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/qna/my-questions"
-          element={
-            <ProtectedRoute role="public">
-              <MyQuestions />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/qna/my-answers"
-          element={
-            <ProtectedRoute role="archaeologist">
-              <MyAnswers />
-            </ProtectedRoute>
-          }
-        />
-
         <Route path="*" element={<Home />} />
       </Routes>
-
-      <Footer />
-
-      {/* AI Artifact Identification - floating launcher, every page */}
-      <ArtifactIdentifier />
     </>
   );
 }

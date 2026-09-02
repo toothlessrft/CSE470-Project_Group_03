@@ -4,12 +4,13 @@ import { UserPlus } from "lucide-react";
 import { useAuth, ROLE_HOME } from "../context/AuthContext";
 import SearchableSelect from "../components/SearchableSelect";
 import { MUSEUMS } from "../data/museums";
+//import { api } from "../api";
 
 const ROLES = [
-  { value: "public", label: "Member of the public" },
-  { value: "archaeologist", label: "Archaeologist / researcher" },
-  { value: "excavation_team", label: "Excavation contractor" }, // Ahad_23201016
-  { value: "museum_manager", label: "Museum authority" },
+  { value: "public", label: "General Public" },
+  { value: "archaeologist", label: "Archaeologist / Researcher" },
+  { value: "excavation_team", label: "Excavation Team" }, // Ahad_23201016
+  { value: "museum_manager", label: "Museum Manager" },
 ];
 
 export default function Register() {
@@ -103,16 +104,13 @@ const [teamSize, setTeamSize] = useState("");
         <div className="auth-icon">
           <UserPlus size={22} strokeWidth={2} />
         </div>
-        <h1>Register for access</h1>
-        <p className="page-subtitle">
-          Accounts other than public membership are reviewed by the heritage authority before they
-          are activated.
-        </p>
+        <h1>Create an account</h1>
+        <p className="page-subtitle">Register as General Public, Archaeologist/Researcher, Excavation Team, or Museum Manager.</p>
 
         {error && <div className="alert alert-danger">{error}</div>}
         <form onSubmit={handleSubmit} className="form">
         <label>
-          National ID number
+          NID
           <input value={nid} onChange={(e) => setNid(e.target.value)} required />
         </label>
         <label>
@@ -121,31 +119,19 @@ const [teamSize, setTeamSize] = useState("");
           <input value={name} onChange={(e) => setName(e.target.value)} required />
         </label>
         <label>
-          Email address
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            autoComplete="email"
-            required
-          />
+          Email
+          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
         </label>
         <label>
-          Phone number
-          <input value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+          Phone
+          <input value={phone} onChange={(e) => setPhone(e.target.value)} />
         </label>
         <label>
           Password
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="new-password"
-            required
-          />
+          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
         </label>
         <label>
-          Register as
+          Role
           <select value={role} onChange={(e) => setRole(e.target.value)}>
             {ROLES.map((r) => (
               <option key={r.value} value={r.value}>
@@ -157,10 +143,10 @@ const [teamSize, setTeamSize] = useState("");
 
         {role === "archaeologist" && (
           <fieldset>
-            <legend>Researcher details</legend>
+            <legend>Researcher Details</legend>
             <label>
-              Institution or university
-              <input value={affiliation} onChange={(e) => setAffiliation(e.target.value)} placeholder="e.g. Department of Archaeology, University of Dhaka" />
+              Institution / University
+              <input value={affiliation} onChange={(e) => setAffiliation(e.target.value)} />
             </label>
             <label>
               Specialization
@@ -171,14 +157,14 @@ const [teamSize, setTeamSize] = useState("");
 
         {role === "museum_manager" && (
           <fieldset>
-            <legend>Museum details</legend>
+            <legend>Museum Details</legend>
             <label>
-              Museum you represent
+              Which museum do you work in?
               <SearchableSelect
                 options={MUSEUMS}
                 value={museumName}
                 onChange={setMuseumName}
-                placeholder="Start typing to find your museum"
+                placeholder="Type to search your museum..."
                 required
               />
             </label>
@@ -188,9 +174,9 @@ const [teamSize, setTeamSize] = useState("");
         {/* Ahad_23201016 - Excavation Team registers as a company */}
         {role === "excavation_team" && (
           <fieldset>
-            <legend>Contractor details</legend>
+            <legend>Excavation Company Details</legend>
             <label>
-              Registered company name
+              Company Name
               <input
                 value={companyName}
                 onChange={(e) => setCompanyName(e.target.value)}
@@ -199,7 +185,7 @@ const [teamSize, setTeamSize] = useState("");
               />
             </label>
             <label>
-              Representative designation
+              Representative Designation
               <input
                 value={repDesignation}
                 onChange={(e) => setRepDesignation(e.target.value)}
@@ -207,7 +193,7 @@ const [teamSize, setTeamSize] = useState("");
               />
             </label>
             <label>
-              Field crew size
+              Crew Size
               <input
                 type="number"
                 min="1"
@@ -223,11 +209,11 @@ const [teamSize, setTeamSize] = useState("");
         )}
 
         <button type="submit" className="btn">
-          Submit registration
+          Create account
         </button>
       </form>
-      <p className="auth-footer">
-        Already registered? <Link to="/login">Sign in</Link>
+      <p className="hint">
+        Already have an account? <Link to="/login">Log in</Link>
       </p>
       </div>
     </div>

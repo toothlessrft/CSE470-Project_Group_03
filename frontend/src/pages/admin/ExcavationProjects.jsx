@@ -1,7 +1,8 @@
-// Ahad_23201016 - admin view of every project created through the tender
-// process. Once a dig is handed over, each recovered artifact is allocated
-// here: a museum, or auction (which lists it in Manage Auctions). Allocating
-// is also what releases the artifact into the public catalogue.
+// Ahad_23201016 - Government view of every excavation project created through
+// the tender process. Once a dig is completed and handed over, the admin
+// allocates each recovered artifact here (museum storage or auction) using the
+// existing allocation endpoint. Anything sent to Auction becomes a candidate in
+// Manage Auctions, and allocating releases it into Smart Artifact Search.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -76,33 +77,23 @@ export default function ExcavationProjects() {
   const visible = projects.filter((p) => {
     if (tab === "All") return true;
     if (tab === "Active") return !p.end_date;
-    // Mirrors the backend's excavation_projects badge query: a dig only counts
-    // as awaiting allocation if it finished, recovered something, and is not
-    // fully allocated yet.
-    return Boolean(p.end_date) && !p.allocation_done && (p.artifacts?.length || 0) > 0;
+    return Boolean(p.end_date) && !p.allocation_done;
   });
 
   if (loading)
     return (
       <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading excavation projects
-        </div>
+        <p className="hint">Loading excavation projects...</p>
       </div>
     );
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Custody</span>
-          <h1>Excavation projects</h1>
-          <p className="page-subtitle">
-            Projects opened from awarded tenders. Once an excavation is handed over, allocate every
-            recovered artifact to a museum or release it to auction.
-          </p>
-        </div>
-      </div>
+      <h1>Excavation Projects</h1>
+      <p className="page-subtitle">
+        Projects created from awarded tenders. When a dig is handed over, allocate each recovered
+        artifact to a museum or send it to auction.
+      </p>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
@@ -116,13 +107,12 @@ export default function ExcavationProjects() {
       </div>
 
       {visible.length === 0 ? (
-        <div className="empty-state">
-          <FolderKanban size={26} aria-hidden="true" />
-          <h3>No projects here</h3>
-          <p>Projects open automatically once a tender is awarded to a contractor.</p>
-          <Link className="btn" to="/admin/tenders">
-            Go to tenders
-          </Link>
+        <div className="card" style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
+          <FolderKanban size={28} style={{ marginBottom: "0.5rem" }} />
+          <p style={{ margin: 0 }}>
+            Nothing here yet. <Link to="/admin/tenders">Publish a tender</Link> to start an
+            excavation.
+          </p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -135,22 +125,25 @@ export default function ExcavationProjects() {
                 className="card"
                 style={{
                   margin: 0,
-                  borderLeft: `3px solid ${
-                    complete ? (p.allocation_done ? "var(--success)" : "var(--accent)") : "#1d4ed8"
+                  borderLeft: `4px solid ${
+                    complete ? (p.allocation_done ? "var(--success)" : "#c98a4b") : "#2980b9"
                   }`,
                 }}
               >
-                <div className="report-header">
-                  <div style={{ minWidth: 0 }}>
-                    <h3 style={{ margin: "0 0 0.2rem" }}>{p.p_name}</h3>
-                    <p className="meta-row">
-                      <span>
-                        <MapPin size={13} aria-hidden="true" />{" "}
-                        {p.site?.name || p.location?.address || "No site recorded"}
-                      </span>
-                      {p.lead_archaeologist && (
-                        <span>Lead: {p.lead_archaeologist.name}</span>
-                      )}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "flex-start",
+                    gap: "0.75rem",
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <div>
+                    <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.1rem" }}>{p.p_name}</h3>
+                    <p className="hint" style={{ margin: 0 }}>
+                      <MapPin size={13} style={{ verticalAlign: "middle" }} />{" "}
+                      {p.site?.name || p.location?.address || "No site"}
                     </p>
                   </div>
                   <StatusBadge
@@ -158,132 +151,134 @@ export default function ExcavationProjects() {
                   />
                 </div>
 
-                <dl className="detail-list" style={{ margin: "1.1rem 0" }}>
-                  <div>
-                    <dt>
-                      <Users size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Contractor
-                    </dt>
-                    <dd>{p.excavation_team?.company_name || "Not recorded"}</dd>
-                  </div>
+                <div
+                  style={{
+                    display: "flex",
+                    gap: "1.5rem",
+                    flexWrap: "wrap",
+                    margin: "1rem 0",
+                    fontSize: "0.88rem",
+                    color: "var(--muted)",
+                  }}
+                >
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                    <Users size={15} /> {p.excavation_team?.company_name || "—"}
+                  </span>
                   {p.budget != null && (
-                    <div>
-                      <dt>
-                        <Banknote size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Contract value
-                      </dt>
-                      <dd className="num">৳{p.budget.toLocaleString()}</dd>
-                    </div>
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <Banknote size={15} /> ৳{p.budget.toLocaleString()}
+                    </span>
                   )}
                   {p.start_date && (
-                    <div>
-                      <dt>
-                        <CalendarDays size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Period
-                      </dt>
-                      <dd className="num">
-                        {p.start_date.slice(0, 10)}
-                        {p.end_date ? ` to ${p.end_date.slice(0, 10)}` : " — ongoing"}
-                      </dd>
-                    </div>
+                    <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <CalendarDays size={15} /> {p.start_date.slice(0, 10)}
+                      {p.end_date ? ` → ${p.end_date.slice(0, 10)}` : ""}
+                    </span>
                   )}
-                  <div>
-                    <dt>
-                      <Package size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Artifacts
-                    </dt>
-                    <dd className="num">{p.artifacts?.length || 0}</dd>
-                  </div>
-                </dl>
+                  <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                    <Package size={15} /> {p.artifacts?.length || 0} artifact
+                    {(p.artifacts?.length || 0) === 1 ? "" : "s"}
+                  </span>
+                  <Link
+                    to={`/admin/excavation-projects/${p._id}`}
+                    style={{ display: "flex", alignItems: "center", gap: "0.3rem", fontWeight: 600 }}
+                  >
+                    Open project <ArrowRight size={13} />
+                  </Link>
+                </div>
 
-                <Link
-                  className="btn-small btn-secondary"
-                  to={`/admin/excavation-projects/${p._id}`}
-                  style={{ marginBottom: "1rem" }}
-                >
-                  Open project <ArrowRight size={13} aria-hidden="true" />
-                </Link>
+                {p.lead_archaeologist && (
+                  <p className="hint" style={{ marginTop: 0 }}>
+                    Lead archaeologist: {p.lead_archaeologist.name} ({p.lead_archaeologist.nid})
+                  </p>
+                )}
 
                 {!complete ? (
                   <div className="alert alert-info" style={{ marginBottom: 0 }}>
-                    Excavation in progress. Recovered artifacts become available for allocation once
-                    the contractor closes the project.
+                    Excavation in progress — artifacts will be available for allocation once the team
+                    submits the completed project.
                   </div>
                 ) : p.artifacts?.length === 0 ? (
                   <div className="alert alert-info" style={{ marginBottom: 0 }}>
-                    This excavation closed with no artifacts recovered.
+                    This excavation was completed with no artifacts recovered.
                   </div>
                 ) : (
                   <>
                     {p.completion_notes && (
-                      <div className="subtle" style={{ marginBottom: "1rem" }}>
-                        <span className="stat-label">Handover notes</span>
-                        <p style={{ margin: "0.2rem 0 0", fontSize: "0.875rem" }}>
-                          {p.completion_notes}
-                        </p>
-                      </div>
+                      <p style={{ fontSize: "0.9rem" }}>
+                        <strong>Handover notes:</strong> {p.completion_notes}
+                      </p>
                     )}
-                    <h4 className="section-title">
-                      Artifact allocation
+                    <h4>
+                      Artifact Allocation{" "}
                       {pending.length === 0 && (
                         <CheckCircle2
                           size={15}
-                          aria-hidden="true"
-                          style={{ verticalAlign: "-2px", marginLeft: "0.4rem", color: "var(--success)" }}
+                          style={{ verticalAlign: "middle", color: "var(--success)" }}
                         />
                       )}
                     </h4>
-                    <div className="artifact-grid">
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(270px, 1fr))",
+                        gap: "0.9rem",
+                      }}
+                    >
                       {p.artifacts.map((item) => {
                         const form = forms[item._id] || {
                           destination: "Museum",
                           museumName: item.museumName || "",
                         };
                         return (
-                          <div key={item._id} className="artifact-tile">
-                            <div className="artifact-tile-head">
-                              <strong>{item.name}</strong>
-                            </div>
-                            <p className="artifact-tile-class">
+                          <div
+                            key={item._id}
+                            className="card"
+                            style={{ margin: 0, padding: "0.9rem 1.1rem" }}
+                          >
+                            <strong>{item.name}</strong>
+                            <p className="hint" style={{ margin: "0.2rem 0" }}>
                               {item.Type}
                               {item.material ? ` · ${item.material}` : ""}
                             </p>
                             {item.description && (
-                              <p className="artifact-tile-desc">{item.description}</p>
+                              <p style={{ fontSize: "0.85rem" }}>{item.description}</p>
                             )}
 
                             {!item.pending_allocation ? (
                               <div className="alert alert-success" style={{ margin: "0.5rem 0 0" }}>
-                                <span>
-                                  {item.allocation === "Museum" ? (
-                                    <>Allocated to {item.museumName}</>
-                                  ) : (
-                                    <>
-                                      <Gavel size={13} aria-hidden="true" style={{ verticalAlign: "-1px" }} />{" "}
-                                      Released to auction — create the lot in{" "}
-                                      <Link to="/admin/auctions/new">artifact auctions</Link>
-                                    </>
-                                  )}
-                                </span>
+                                {item.allocation === "Museum" ? (
+                                  <>Allocated to {item.museumName}</>
+                                ) : (
+                                  <>
+                                    <Gavel size={13} style={{ verticalAlign: "middle" }} /> Sent to
+                                    auction — create the listing in{" "}
+                                    <Link to="/admin/auctions/new">Manage Auctions</Link>
+                                  </>
+                                )}
                               </div>
                             ) : (
-                              <div className="form" style={{ gap: "0.75rem", marginTop: "0.75rem" }}>
+                              <div className="form" style={{ gap: "0.75rem", marginTop: "0.5rem" }}>
                                 <label>
-                                  Allocate to
+                                  Send to
                                   <select
                                     value={form.destination}
                                     onChange={(e) =>
                                       updateForm(item._id, { destination: e.target.value })
                                     }
                                   >
-                                    <option value="Museum">A museum collection</option>
-                                    <option value="Auction">Public auction</option>
+                                    <option value="Museum">Museum Storage</option>
+                                    <option value="Auction">Auction</option>
                                   </select>
                                 </label>
                                 {form.destination === "Museum" && (
                                   <label>
-                                    Receiving museum
+                                    Museum name
                                     <SearchableSelect
                                       options={MUSEUMS}
                                       value={form.museumName}
                                       onChange={(value) => updateForm(item._id, { museumName: value })}
-                                      placeholder="Search for the receiving museum"
+                                      placeholder="Search the museum to store this artifact..."
                                       required
                                     />
                                   </label>
@@ -294,7 +289,7 @@ export default function ExcavationProjects() {
                                   disabled={busyId === item._id}
                                   onClick={() => allocate(item._id)}
                                 >
-                                  {busyId === item._id ? "Saving" : "Confirm allocation"}
+                                  {busyId === item._id ? "Saving..." : "Save Allocation"}
                                 </button>
                               </div>
                             )}

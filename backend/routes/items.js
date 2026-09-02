@@ -8,14 +8,13 @@ const router = express.Router();
 router.use(requireAuth);
 
 // POST /api/items -> Create a new artifact directly
-// POST /api/items -> Create a new artifact directly
-router.post("/", requireRole("admin"), async (req, res) => {
+router.post("/", requireRole("archaeologist"), async (req, res) => {
     try {
         const { name, picture, description, discovery_date, location, Type, civilization, era, region, material, usage, latitude, longitude, site_name } = req.body;
 
         let siteId = req.body.site;
 
-        // No site but coordinates given: make a hidden one so it maps.
+        // If site is not provided, and coords are provided, create a hidden virtual site for the map coords
         if (!siteId && latitude && longitude) {
             const dummySite = await Site.create({
                 name: site_name || `Discovered location for ${name}`,
@@ -68,7 +67,7 @@ router.put("/:id", async (req, res) => {
             if (!managerMuseum || !isOwnedMuseumArtifact) {
                 return res.status(403).json({ error: "You can only edit artifacts stored in your own museum." });
             }
-        } else if (req.user.role !== "admin") {
+        } else if (req.user.role !== "archaeologist") {
             return res.status(403).json({ error: "You are not allowed to edit artifacts." });
         }
 
@@ -115,7 +114,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/items/:id -> Delete an artifact
-router.delete("/:id", requireRole("admin"), async (req, res) => {
+router.delete("/:id", requireRole("archaeologist"), async (req, res) => {
     try {
         const item = await Item.findByIdAndDelete(req.params.id);
         if (!item) return res.status(404).json({ error: "Item not found." });

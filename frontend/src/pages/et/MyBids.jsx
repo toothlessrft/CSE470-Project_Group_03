@@ -7,10 +7,10 @@ import { api } from "../../api";
 import StatusBadge from "../../components/StatusBadge";
 
 const STATUS_COLORS = {
-  Pending: "#8a5a12",
-  Accepted: "#1f6b2e",
-  Rejected: "#b02020",
-  Withdrawn: "#9b8e7d",
+  Pending: "#b5834d",
+  Accepted: "#2e7d32",
+  Rejected: "#c62828",
+  Withdrawn: "#6b6258",
 };
 
 export default function MyBids() {
@@ -55,7 +55,7 @@ export default function MyBids() {
     try {
       await api.patch(`/tenders/bids/${editing._id}`, form);
       setEditing(null);
-      setSuccess("Bid revised.");
+      setSuccess("Bid updated.");
       load();
     } catch (err) {
       setModalError(err.message);
@@ -65,8 +65,7 @@ export default function MyBids() {
   }
 
   async function withdraw(bid) {
-    if (!window.confirm("Withdraw this bid? You may submit again while the tender remains open."))
-      return;
+    if (!window.confirm("Withdraw this bid? You can re-submit while the tender is still open.")) return;
     setError("");
     try {
       await api.del(`/tenders/bids/${bid._id}`);
@@ -80,39 +79,27 @@ export default function MyBids() {
   if (loading)
     return (
       <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading your bids
-        </div>
+        <p className="hint">Loading bids...</p>
       </div>
     );
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Procurement</span>
-          <h1>Submitted bids</h1>
-          <p className="page-subtitle">
-            Every bid your company has lodged and where it stands. Bids may be revised or withdrawn
-            until the tender closes.
-          </p>
-        </div>
-        <Link className="btn btn-secondary" to="/et/tenders">
-          Browse open tenders
-        </Link>
-      </div>
+      <h1>My Bids</h1>
+      <p className="page-subtitle">
+        Every bid your company has placed, with its current status. Bids can be edited or withdrawn
+        right up until the tender deadline.
+      </p>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
       {bids.length === 0 ? (
-        <div className="empty-state">
-          <ClipboardList size={26} aria-hidden="true" />
-          <h3>No bids lodged</h3>
-          <p>Bids you submit against published tenders are tracked here.</p>
-          <Link className="btn" to="/et/tenders">
-            Browse open tenders
-          </Link>
+        <div className="card" style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
+          <ClipboardList size={28} style={{ marginBottom: "0.5rem" }} />
+          <p style={{ margin: 0 }}>
+            You haven't bid on anything yet. <Link to="/et/tenders">Browse open tenders</Link>.
+          </p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -122,55 +109,62 @@ export default function MyBids() {
               className="card"
               style={{
                 margin: 0,
-                borderLeft: `3px solid ${STATUS_COLORS[b.status] || "var(--border-strong)"}`,
+                borderLeft: `4px solid ${STATUS_COLORS[b.status] || "var(--border)"}`,
               }}
             >
-              <div className="report-header">
-                <div style={{ minWidth: 0 }}>
-                  <h3 style={{ margin: "0 0 0.2rem" }}>{b.tender?.title || "Tender withdrawn"}</h3>
-                  <p className="meta-row">
-                    <span>Lodged {new Date(b.submitted_at).toLocaleDateString()}</span>
-                    {b.tender?.location?.address && <span>{b.tender.location.address}</span>}
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: "0.75rem",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div>
+                  <h3 style={{ margin: "0 0 0.2rem", fontSize: "1.05rem" }}>
+                    {b.tender?.title || "Tender removed"}
+                  </h3>
+                  <p className="hint" style={{ margin: 0 }}>
+                    Submitted {new Date(b.submitted_at).toLocaleDateString()}
+                    {b.tender?.location?.address ? ` · ${b.tender.location.address}` : ""}
                   </p>
                 </div>
                 <StatusBadge status={b.status} />
               </div>
 
-              <dl className="detail-list" style={{ margin: "1.1rem 0" }}>
-                <div>
-                  <dt>
-                    <Banknote size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Your price
-                  </dt>
-                  <dd className="num">৳{b.cost?.toLocaleString()}</dd>
-                </div>
-                <div>
-                  <dt>
-                    <CalendarClock size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Programme
-                  </dt>
-                  <dd className="num">{b.timeline_days} days</dd>
-                </div>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "1.5rem",
+                  flexWrap: "wrap",
+                  margin: "1rem 0",
+                  fontSize: "0.88rem",
+                  color: "var(--muted)",
+                }}
+              >
+                <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <Banknote size={15} /> My bid:{" "}
+                  <strong style={{ color: "var(--text)" }}>৳{b.cost?.toLocaleString()}</strong>
+                </span>
+                <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                  <CalendarClock size={15} /> Timeline:{" "}
+                  <strong style={{ color: "var(--text)" }}>{b.timeline_days} days</strong>
+                </span>
                 {b.tender?.estimated_budget != null && (
-                  <div>
-                    <dt>Authority estimate</dt>
-                    <dd className="num">৳{b.tender.estimated_budget.toLocaleString()}</dd>
-                  </div>
+                  <span>Govt. estimate: ৳{b.tender.estimated_budget.toLocaleString()}</span>
                 )}
                 {b.tender?.deadline && (
-                  <div>
-                    <dt>Closes</dt>
-                    <dd className="num">{new Date(b.tender.deadline).toLocaleDateString()}</dd>
-                  </div>
+                  <span>Closes {new Date(b.tender.deadline).toLocaleDateString()}</span>
                 )}
-              </dl>
+              </div>
 
-              <p style={{ fontSize: "0.9375rem" }}>{b.proposal}</p>
+              <p style={{ fontSize: "0.9rem" }}>{b.proposal}</p>
 
               {b.status === "Accepted" && (
                 <div className="alert alert-success">
-                  <span>
-                    Your bid was accepted. The excavation is now live under{" "}
-                    <Link to="/et/projects">your project register</Link>.
-                  </span>
+                  Your team won this tender. The excavation is now live under{" "}
+                  <Link to="/et/projects">Manage Projects</Link>.
                 </div>
               )}
               {b.status === "Rejected" && b.review_notes && (
@@ -179,14 +173,23 @@ export default function MyBids() {
 
               {canModify(b) && (
                 <div
-                  className="actions"
-                  style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}
+                  style={{
+                    display: "flex",
+                    gap: "0.5rem",
+                    flexWrap: "wrap",
+                    borderTop: "1px solid var(--border)",
+                    paddingTop: "1rem",
+                  }}
                 >
-                  <button className="btn-small btn-secondary" onClick={() => openEdit(b)}>
-                    <Edit size={13} aria-hidden="true" /> Revise bid
+                  <button className="btn-small" onClick={() => openEdit(b)}>
+                    <Edit size={13} /> Edit Bid
                   </button>
-                  <button className="btn-small btn-danger" onClick={() => withdraw(b)}>
-                    <XCircle size={13} aria-hidden="true" /> Withdraw bid
+                  <button
+                    className="btn-small"
+                    style={{ background: "var(--danger)", border: "none", color: "white" }}
+                    onClick={() => withdraw(b)}
+                  >
+                    <XCircle size={13} /> Withdraw
                   </button>
                 </div>
               )}
@@ -196,15 +199,36 @@ export default function MyBids() {
       )}
 
       {editing && (
-        <div className="modal-overlay">
-          <div className="modal" style={{ maxWidth: 600 }}>
-            <div className="modal-head">
-              <div>
-                <span className="eyebrow">Tender bid</span>
-                <h2>Revise your bid</h2>
-              </div>
-              <button className="modal-close" onClick={() => setEditing(null)} aria-label="Close">
-                <X size={18} aria-hidden="true" />
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            zIndex: 2000,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "1rem",
+          }}
+        >
+          <div
+            className="card"
+            style={{ width: "100%", maxWidth: "600px", maxHeight: "90vh", overflowY: "auto", margin: 0 }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginBottom: "1rem",
+              }}
+            >
+              <h2 style={{ margin: 0 }}>Edit Bid</h2>
+              <button className="btn-link" onClick={() => setEditing(null)}>
+                <X size={20} />
               </button>
             </div>
 
@@ -212,30 +236,29 @@ export default function MyBids() {
             {modalError && <div className="alert alert-danger">{modalError}</div>}
 
             <form onSubmit={saveEdit} className="form">
-              <div className="form-row">
-                <label>
-                  Bid price (৳)
-                  <input
-                    type="number"
-                    min="0"
-                    value={form.cost}
-                    onChange={(e) => setForm({ ...form, cost: e.target.value })}
-                    required
-                  />
-                </label>
-                <label>
-                  Programme (days)
-                  <input
-                    type="number"
-                    min="1"
-                    value={form.timeline_days}
-                    onChange={(e) => setForm({ ...form, timeline_days: e.target.value })}
-                    required
-                  />
-                </label>
-              </div>
               <label>
-                Method statement
+                Bid Cost (৳)
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={form.cost}
+                  onChange={(e) => setForm({ ...form, cost: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                Timeline (days)
+                <input
+                  type="number"
+                  min="1"
+                  value={form.timeline_days}
+                  onChange={(e) => setForm({ ...form, timeline_days: e.target.value })}
+                  required
+                />
+              </label>
+              <label>
+                Proposal
                 <textarea
                   rows={5}
                   value={form.proposal}
@@ -243,14 +266,9 @@ export default function MyBids() {
                   required
                 />
               </label>
-              <div className="modal-footer">
-                <button type="button" className="btn btn-secondary" onClick={() => setEditing(null)} disabled={busy}>
-                  Cancel
-                </button>
-                <button type="submit" className="btn" disabled={busy}>
-                  {busy ? "Saving" : "Save changes"}
-                </button>
-              </div>
+              <button type="submit" className="btn" disabled={busy}>
+                {busy ? "Saving..." : "Save Changes"}
+              </button>
             </form>
           </div>
         </div>

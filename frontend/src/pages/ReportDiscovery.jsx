@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin } from "lucide-react";
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 import GoogleMapPicker from "../components/GoogleMapPicker";
@@ -25,11 +24,11 @@ export default function ReportDiscovery() {
     setError("");
 
     if (!location) {
-      setError("Mark the find location on the map before submitting.");
+      setError("Please select the discovery location on the map.");
       return;
     }
     if (!contactEmail || !contactPhone) {
-      setError("A contact email address and phone number are both required.");
+      setError("Contact email and phone number are both required.");
       return;
     }
 
@@ -55,34 +54,20 @@ export default function ReportDiscovery() {
 
   return (
     <div className="page narrow">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Discovery report</span>
-          <h1>Report a find</h1>
-          <p className="page-subtitle">
-            Mark the exact spot and describe what you saw. The heritage authority will assign an
-            archaeologist to inspect it.
-          </p>
-        </div>
-      </div>
-
-      <div className="alert alert-info">
-        Leave the object where it lies. Its surrounding context carries most of its archaeological
-        value, and removing it can make a site unreadable.
-      </div>
+      <h1>Report a Discovery</h1>
+      <p className="hint">
+        Found a possible artifact? Pin the exact spot on the map and share what you saw — a Government/Admin
+        reviewer will assign a researcher to inspect it.
+      </p>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
       <form onSubmit={handleSubmit} className="form">
         <label>
-          Find location
+          Location
           <GoogleMapPicker value={location} onChange={setLocation} />
         </label>
-        {location?.address && (
-          <p className="hint" style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-            <MapPin size={13} aria-hidden="true" /> {location.address}
-          </p>
-        )}
+        {location?.address && <p className="hint">📍 {location.address}</p>}
 
         <label>
           Material
@@ -95,29 +80,28 @@ export default function ReportDiscovery() {
         </label>
 
         <label>
-          Photographs
+          Photos
           <ImageUploader images={images} onChange={setImages} />
         </label>
 
         <label>
-          Observations
+          Notes
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            placeholder="Depth, surrounding soil, what exposed it, and anything else nearby"
+            placeholder="Anything else worth mentioning: depth, surrounding context, how it was found..."
             rows={4}
           />
         </label>
 
         <fieldset>
-          <legend>Contact details</legend>
+          <legend>Contact info</legend>
           <label>
-            Email address
+            Email
             <input
               type="email"
               value={contactEmail}
               onChange={(e) => setContactEmail(e.target.value)}
-              autoComplete="email"
               required
             />
           </label>
@@ -127,17 +111,13 @@ export default function ReportDiscovery() {
               type="tel"
               value={contactPhone}
               onChange={(e) => setContactPhone(e.target.value)}
-              autoComplete="tel"
               required
             />
           </label>
-          <p className="hint" style={{ margin: 0 }}>
-            The inspecting archaeologist may contact you to arrange a site visit.
-          </p>
         </fieldset>
 
         <button type="submit" className="btn" disabled={submitting}>
-          {submitting ? "Submitting report" : "Submit report"}
+          {submitting ? "Submitting..." : "Submit Report"}
         </button>
       </form>
     </div>

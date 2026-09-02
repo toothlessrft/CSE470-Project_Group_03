@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const crypto = require("crypto");
 const { Schema } = mongoose;
 
 
@@ -54,25 +53,27 @@ const itemSchema = new Schema(
     },
     specialization: specializationSchema,
 
-    // Searchable tags. Optional, so the AddItem form still works if left blank.
+    // Smart Artifact Search Engine - searchable tags, optional so existing
+    // AddItem flow keeps working even if these are left blank.
     civilization: { type: String, trim: true },
     era: { type: String, trim: true },
     region: { type: String, trim: true },
     material: { type: String, trim: true },
     usage: { type: String, trim: true },
 
-    // Where the admin sent a newly discovered artifact. Defaults to
-    // Unallocated, so items already in the catalogue are unaffected.
+    // Report Approval & Artifact Allocation: where the admin decided a newly
+    // discovered artifact should go. Defaults to Unallocated for every other
+    // existing/legacy item, so nothing already in the catalogue is affected.
     allocation: {
       type: String,
       enum: ["Unallocated", "Museum", "Auction"],
       default: "Unallocated",
     },
     museumName: { type: String, trim: true, default: "" },
-    on_loan_to: { type: String, trim: true, default: "" },
 
-    // Human-readable ID shown to visitors and curators, separate from the
-    // Mongo _id. Generated on first save if not supplied.
+    // Museum Collection & Artifact Inventory Management (Feature 12) ---------
+    // Human-readable unique ID shown to visitors/curators, separate from the
+    // internal Mongo _id. Auto-generated on first save if not provided.
     artifactId: { type: String, unique: true, sparse: true },
 
     availability: {
@@ -85,30 +86,35 @@ const itemSchema = new Schema(
       enum: ["Excellent", "Good", "Fair", "Poor"],
       default: "Good",
     },
-    // Free-text ownership, e.g. "On loan from National Museum".
+    // Free-text ownership record (e.g. "Government of Bangladesh",
+    // "On loan from National Museum").
     ownership: { type: String, trim: true, default: "Government of Bangladesh" },
 
-    // Movement history, appended whenever the artifact moves, changes status,
-    // or is loaned, returned or allocated.
+    // Full movement/status history — appended to automatically whenever the
+    // artifact is moved, its status changes, it's loaned, returned, or
+    // allocated/transferred.
     movementHistory: { type: [movementEntrySchema], default: [] },
 
-    // True only for artifacts a manager added through their own inventory
-    // tools. Decides whether DELETE really removes the record.
+    // true only for artifacts a museum manager added directly through their
+    // own inventory tools (not ones that came via the Admin allocation
+    // pipeline) — controls whether DELETE actually removes the record.
     addedByManager: { type: Boolean, default: false },
 
-    // Ahad_23201016 - finds from an active dig stay out of public search until
-    // the admin allocates them. Defaults false, so existing items are unaffected.
+    // Ahad_23201016 - Tender Publication & Bidding.
+    // Artifacts recovered during an active excavation project stay hidden from
+    // Smart Artifact Search until the Government/Admin allocates them. Defaults
+    // to false so every artifact already in the catalogue is unaffected.
     pending_allocation: { type: Boolean, default: false },
     excavationProject: { type: Schema.Types.ObjectId, ref: "ExcavationProject", default: null },
   },
   { timestamps: true }
 );
 
-// Generate the readable artifact ID on first save.
+// Auto-generate a short, human-readable unique ID the first time an artifact is saved.
 itemSchema.pre("save", function (next) {
   if (!this.artifactId) {
     const stamp = Date.now().toString(36).toUpperCase();
-    const rand = crypto.randomBytes(4).toString("hex").toUpperCase();
+    const rand = Math.floor(100 + Math.random() * 900);
     this.artifactId = `AE-${stamp}-${rand}`;
   }
   next();

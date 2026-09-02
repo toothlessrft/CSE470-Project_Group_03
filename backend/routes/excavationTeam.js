@@ -1,4 +1,4 @@
-// Ahad_23201016 - Excavation Team: tenders, bids and awarded projects.
+// Ahad_23201016 - Excavation Team (replaces the old Site Caretaker role)
 const express = require("express");
 const Tender = require("../models/Tender");
 const TenderBid = require("../models/TenderBid");

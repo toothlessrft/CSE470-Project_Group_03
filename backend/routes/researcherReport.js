@@ -1,4 +1,4 @@
-// Researcher Report - Ahad
+//Researcher Report: Ahad
 const express = require("express");
 const ResearcherReport = require("../models/ResearcherReport");
 const DiscoveryReport = require("../models/DiscoveryReport");
@@ -9,13 +9,13 @@ const router = express.Router();
 
 router.use(requireAuth, requireRole("archaeologist"));
 
-// GET /api/researcher-report/:discoveryId -> the report for this discovery,
-// creating an empty draft if there is none yet.
+// GET /api/researcher-report/:discoveryId
+// Fetch the report for the given discovery. If it doesn't exist, create an initial draft.
 router.get("/:discoveryId", async (req, res) => {
     try {
         const { discoveryId } = req.params;
 
-        // The researcher must actually be assigned to this discovery.
+        // Verify researcher is assigned to this discovery and it's valid
         const discovery = await DiscoveryReport.findOne({
             _id: discoveryId,
             "assignment.researcher": req.user._id,
@@ -64,7 +64,8 @@ router.post("/:discoveryId/save", async (req, res) => {
         report.budgetRequested = budgetRequested ? Number(budgetRequested) : null;
         report.requestExcavationTeam = Boolean(requestExcavationTeam);
 
-        // Artifacts found on site, same shape as the "Add Artifact" form.
+        // Report Approval & Artifact Allocation: persist the list of artifacts
+        // found on site, same shape as the Smart Artifact Search "Add Artifact" form.
         if (Array.isArray(artifacts)) {
             report.artifacts = artifacts.map((a) => ({
                 name: a.name,
@@ -93,7 +94,6 @@ router.post("/:discoveryId/save", async (req, res) => {
 router.post("/:discoveryId/submit", async (req, res) => {
     try {
         const { discoveryId } = req.params;
-        const { possibleArtifact, notes, budgetRequested, requestExcavationTeam } = req.body || {};
 
         const report = await ResearcherReport.findOne({
             discoveryReport: discoveryId,
@@ -105,17 +105,10 @@ router.post("/:discoveryId/submit", async (req, res) => {
             return res.status(400).json({ error: "This report has already been submitted." });
         }
 
-        // Submitting without saving a draft first still has to persist what is
-        // on screen, or the notes and team request are lost.
-        if (possibleArtifact !== undefined) report.possibleArtifact = Boolean(possibleArtifact);
-        if (notes !== undefined) report.notes = notes || "";
-        if (budgetRequested !== undefined) report.budgetRequested = budgetRequested ? Number(budgetRequested) : null;
-        if (requestExcavationTeam !== undefined) report.requestExcavationTeam = Boolean(requestExcavationTeam);
-
         report.status = "Pending";
         await report.save();
 
-        // The report, and any budget or team request in it, now needs a decision.
+        // Notification: report + any budget/excavation-team ask now needs a decision.
         await notifyAdmins({
             category: "report",
             type: "researcher.report.submitted",

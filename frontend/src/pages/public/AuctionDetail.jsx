@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { Heart, HeartOff, AlertTriangle, ArrowLeft, Clock } from "lucide-react";
+import { Heart, HeartOff, AlertTriangle } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import StatusBadge from "../../components/StatusBadge";
@@ -48,7 +48,7 @@ export default function AuctionDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, auction?.item?._id]);
 
-  // Countdown, and poll for new bids while the auction is close to ending.
+  // Live-ish countdown + poll for updates while the auction is close to ending
   useEffect(() => {
     const tick = setInterval(() => forceTick((n) => n + 1), 1000);
     let poll;
@@ -92,14 +92,7 @@ export default function AuctionDetail() {
     }
   }
 
-  if (!auction)
-    return (
-      <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading the lot
-        </div>
-      </div>
-    );
+  if (!auction) return <div className="page">Loading...</div>;
 
   const item = auction.item;
   const isActive = auction.status === "Active";
@@ -107,218 +100,144 @@ export default function AuctionDetail() {
 
   return (
     <div className="page narrow">
-      <Link className="back-link" to="/auctions">
-        <ArrowLeft size={14} aria-hidden="true" /> Back to auctions
+      <Link to="/auctions" className="btn-link">
+        ← Back to Auctions
       </Link>
 
-      <div className="page-head">
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
         <div>
-          <span className="eyebrow">Auction lot</span>
-          <h1>{item?.name}</h1>
-          <p className="page-subtitle">
-            {[item?.Type, item?.civilization, item?.era].filter(Boolean).join(" · ")}
+          <h1 style={{ marginBottom: "0.3rem" }}>{item?.name}</h1>
+          <p className="page-subtitle" style={{ marginTop: 0 }}>
+            {item?.Type} {item?.civilization ? `· ${item.civilization}` : ""} {item?.era ? `· ${item.era}` : ""}
           </p>
         </div>
         {user && (
-          <button className="btn btn-secondary" onClick={toggleWishlist}>
-            {onWishlist ? <HeartOff size={15} aria-hidden="true" /> : <Heart size={15} aria-hidden="true" />}{" "}
-            {onWishlist ? "Stop watching" : "Watch this lot"}
+          <button className="btn-small" onClick={toggleWishlist}>
+            {onWishlist ? <HeartOff size={14} /> : <Heart size={14} />} {onWishlist ? "Remove from Wishlist" : "Add to Wishlist"}
           </button>
         )}
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Catalogue entry</h3>
-        </div>
-        <div className="panel-body">
-          <p>{item?.description || "No description is recorded for this artifact."}</p>
-          <dl className="detail-list">
-            {item?.region && (
-              <div>
-                <dt>Region</dt>
-                <dd>{item.region}</dd>
-              </div>
-            )}
-            {item?.material && (
-              <div>
-                <dt>Material</dt>
-                <dd>{item.material}</dd>
-              </div>
-            )}
-            {item?.usage && (
-              <div>
-                <dt>Use</dt>
-                <dd>{item.usage}</dd>
-              </div>
-            )}
-          </dl>
-        </div>
+      <div className="card">
+        <p>{item?.description || "No description available."}</p>
+        <p style={{ fontSize: "0.9rem" }}>
+          {item?.region && <>Region: {item.region}<br /></>}
+          {item?.material && <>Material: {item.material}<br /></>}
+          {item?.usage && <>Usage: {item.usage}</>}
+        </p>
       </div>
 
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Bidding</h3>
+      <div className="card">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
           <StatusBadge status={isActive ? "Active" : auction.status.replace("Closed-", "")} />
+          <strong>{isActive ? timeLeft(auction.deadline) : "Bidding closed"}</strong>
         </div>
-        <div className="panel-body">
-          <div className="stat-row" style={{ marginTop: 0 }}>
-            <div className="stat">
-              <span className="stat-label">Standing bid</span>
-              <span className="stat-value">
-                ৳{Number(auction.current_bid ?? auction.starting_bid).toLocaleString()}
-              </span>
-              {auction.current_bid == null && (
-                <span className="hint">Reserve price — no bids yet</span>
-              )}
-            </div>
-            <div className="stat">
-              <span className="stat-label">Bids placed</span>
-              <span className="stat-value">{auction.bid_count}</span>
-            </div>
-            <div className="stat">
-              <span className="stat-label">{isActive ? "Closes in" : "Status"}</span>
-              <span className="stat-value" style={{ fontSize: "1.05rem" }}>
-                {isActive ? timeLeft(auction.deadline) : "Bidding closed"}
-              </span>
-            </div>
-          </div>
 
-          <p className="hint">
-            Minimum increment ৳{Number(auction.min_increment).toLocaleString()}.
+        {auction.extension_count > 0 && (
+          <p style={{ fontSize: "0.85rem", color: "#b5834d" }}>
+            ⏱ This auction's deadline has been extended {auction.extension_count} time(s) due to last-minute bids.
           </p>
+        )}
 
-          {auction.extension_count > 0 && (
-            <div className="alert alert-warning">
-              <Clock size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-              <span>
-                Closing time has been extended {auction.extension_count} time
-                {auction.extension_count === 1 ? "" : "s"} because bids arrived near the deadline.
-              </span>
-            </div>
-          )}
+        <p style={{ fontSize: "1.1rem", margin: "0.5rem 0" }}>
+          Current bid: <strong>৳{auction.current_bid ?? auction.starting_bid}</strong>
+          {auction.current_bid == null && <span style={{ color: "#8a7a68" }}> (starting price, no bids yet)</span>}
+        </p>
+        <p style={{ fontSize: "0.9rem", color: "#8a7a68" }}>Minimum increment: ৳{auction.min_increment} · {auction.bid_count} bid(s) placed</p>
 
-          {message && <div className="alert alert-success">{message}</div>}
-          {error && <div className="alert alert-danger">{error}</div>}
+        {message && <div className="alert alert-success">{message}</div>}
+        {error && <div className="alert alert-danger">{error}</div>}
 
-          {isActive && !user && (
-            <div className="alert alert-info" style={{ marginBottom: 0 }}>
-              <span>
-                <Link to="/login">Sign in</Link> to place a bid on this lot.
-              </span>
-            </div>
-          )}
+        {isActive && !user && (
+          <p>
+            <a href="/login">Log in</a> to place a bid.
+          </p>
+        )}
 
-          {isActive && user && isCreator && (
-            <p className="hint" style={{ marginBottom: 0 }}>
-              You listed this lot, so you cannot bid on it.
-            </p>
-          )}
+        {isActive && user && isCreator && <p className="page-subtitle">You created this auction, so you can't bid on it.</p>}
 
-          {isActive && user && !isCreator && (
-            <div className="form" style={{ marginTop: "1rem" }}>
-              <label>
-                Your bid (minimum ৳{Number(auction.minimum_next_bid).toLocaleString()})
-                <input
-                  type="number"
-                  min={auction.minimum_next_bid}
-                  value={bidAmount}
-                  onChange={(e) => setBidAmount(e.target.value)}
-                />
-              </label>
-              {!confirming ? (
-                <button
-                  className="btn"
-                  style={{ alignSelf: "flex-start" }}
-                  onClick={() => setConfirming(true)}
-                  disabled={!bidAmount || Number(bidAmount) < auction.minimum_next_bid}
-                >
-                  Place bid
-                </button>
-              ) : (
-                <div className="alert alert-warning" style={{ marginBottom: 0 }}>
-                  <AlertTriangle size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-                  <span>
-                    <strong style={{ display: "block", marginBottom: "0.25rem" }}>
-                      A bid cannot be withdrawn or lowered
-                    </strong>
-                    You are about to bid ৳{Number(bidAmount).toLocaleString()} on {item?.name}.
-                    <span className="actions" style={{ marginTop: "0.75rem" }}>
-                      <button className="btn-small btn-danger" onClick={confirmBid} disabled={busy}>
-                        {busy ? "Placing" : "Confirm bid"}
-                      </button>
-                      <button
-                        className="btn-small btn-secondary"
-                        onClick={() => setConfirming(false)}
-                        disabled={busy}
-                      >
-                        Cancel
-                      </button>
-                    </span>
-                  </span>
+        {isActive && user && !isCreator && (
+          <div style={{ marginTop: "1rem" }}>
+            <label>
+              Your bid (minimum ৳{auction.minimum_next_bid})
+              <input
+                type="number"
+                min={auction.minimum_next_bid}
+                value={bidAmount}
+                onChange={(e) => setBidAmount(e.target.value)}
+              />
+            </label>
+            {!confirming ? (
+              <button
+                className="btn"
+                style={{ background: "var(--danger)", borderColor: "var(--danger)", marginTop: "0.75rem" }}
+                onClick={() => setConfirming(true)}
+                disabled={!bidAmount || Number(bidAmount) < auction.minimum_next_bid}
+              >
+                Place Bid
+              </button>
+            ) : (
+              <div className="alert alert-danger" style={{ marginTop: "0.75rem" }}>
+                <p style={{ display: "flex", alignItems: "center", gap: "0.4rem", fontWeight: 600, margin: "0 0 0.5rem" }}>
+                  <AlertTriangle size={16} /> This cannot be undone.
+                </p>
+                <p style={{ margin: "0 0 0.75rem" }}>
+                  You're about to bid ৳{bidAmount} on {item?.name}. Once placed, this bid cannot be withdrawn or lowered.
+                </p>
+                <div className="actions">
+                  <button className="btn-small" style={{ background: "var(--danger)", borderColor: "var(--danger)", color: "#fff" }} onClick={confirmBid} disabled={busy}>
+                    {busy ? "Placing..." : "Yes, place this bid"}
+                  </button>
+                  <button className="btn-small" onClick={() => setConfirming(false)} disabled={busy}>
+                    Cancel
+                  </button>
                 </div>
-              )}
-            </div>
-          )}
+              </div>
+            )}
+          </div>
+        )}
 
-          {!isActive && auction.status === "Closed-Sold" && (
-            <p style={{ marginBottom: 0 }}>
-              Sold for <strong>৳{Number(auction.final_price).toLocaleString()}</strong>
-              {auction.winner && (
-                <>
-                  {" "}
-                  to{" "}
-                  <strong>
-                    {auction.winner.name} ({auction.winner.nid})
-                  </strong>
-                  {user && String(auction.winner._id) === String(user._id) &&
-                    " — this lot is yours."}
-                </>
-              )}
-            </p>
-          )}
-          {!isActive && auction.status === "Closed-Unsold" && (
-            <p style={{ marginBottom: 0 }}>This lot closed without meeting its reserve.</p>
-          )}
-          {!isActive && auction.status === "Cancelled" && (
-            <p style={{ marginBottom: 0 }}>This lot was withdrawn by the heritage authority.</p>
-          )}
-        </div>
+        {!isActive && auction.status === "Closed-Sold" && (
+          <p>
+            Sold for <strong>৳{auction.final_price}</strong>
+            {auction.winner && (
+              <>
+                {" "}to <strong>{auction.winner.name} ({auction.winner.nid})</strong>
+                {user && String(auction.winner._id) === String(user._id) && " - you won this auction!"}
+              </>
+            )}
+          </p>
+        )}
+        {!isActive && auction.status === "Closed-Unsold" && <p>This auction closed without a winning bid.</p>}
+        {!isActive && auction.status === "Cancelled" && <p>This auction was cancelled by an administrator.</p>}
       </div>
 
       {user?.role === "admin" && (
         <>
-          <div className="section-head">
-            <h2>Bid history</h2>
-            <span className="hint">Visible to the heritage authority</span>
-          </div>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>Bidder</th>
-                  <th>Amount</th>
-                  <th>Placed</th>
+          <h3>Bid History</h3>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Bidder</th>
+                <th>Amount</th>
+                <th>Placed</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bids.map((b) => (
+                <tr key={b._id}>
+                  <td>{b.bidder_name}</td>
+                  <td>৳{b.amount}</td>
+                  <td>{new Date(b.placed_at).toLocaleString()}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {bids.map((b) => (
-                  <tr key={b._id}>
-                    <td>{b.bidder_name}</td>
-                    <td className="num">৳{Number(b.amount).toLocaleString()}</td>
-                    <td className="num">{new Date(b.placed_at).toLocaleString()}</td>
-                  </tr>
-                ))}
-                {bids.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="hint">
-                      No bids have been placed on this lot.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))}
+              {bids.length === 0 && (
+                <tr>
+                  <td colSpan={3}>No bids yet - be the first!</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </>
       )}
     </div>

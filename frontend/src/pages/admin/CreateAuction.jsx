@@ -27,6 +27,8 @@ export default function CreateAuction() {
   const [startingBid, setStartingBid] = useState("");
   const [minIncrement, setMinIncrement] = useState("");
   const [deadline, setDeadline] = useState("");
+  const [sourcePercentage, setSourcePercentage] = useState("");
+  const [sourceName, setSourceName] = useState("");
   const [extendTrigger, setExtendTrigger] = useState(2);
   const [extendBy, setExtendBy] = useState(2);
   const [bidCount, setBidCount] = useState(0);
@@ -46,6 +48,8 @@ export default function CreateAuction() {
       setStartingBid(a.starting_bid);
       setMinIncrement(a.min_increment);
       setDeadline(toLocalDatetimeInput(a.deadline));
+      setSourcePercentage(a.source_percentage ?? "");
+      setSourceName(a.source_name || "");
       setExtendTrigger(a.extend_trigger_minutes);
       setExtendBy(a.extend_by_minutes);
       setBidCount(a.bid_count);
@@ -82,6 +86,8 @@ export default function CreateAuction() {
         starting_bid: startingBid,
         min_increment: minIncrement,
         deadline: new Date(deadline).toISOString(),
+        source_percentage: sourcePercentage,
+        source_name: sourceName,
         extend_trigger_minutes: extendTrigger,
         extend_by_minutes: extendBy,
       };
@@ -98,33 +104,25 @@ export default function CreateAuction() {
     }
   }
 
+  const gridTwo = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1.25rem" };
+
   return (
     <div className="page narrow">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Lawful disposal</span>
-          <h1>{isEdit ? "Edit auction lot" : "Create an auction lot"}</h1>
-          <p className="page-subtitle">
-            {isEdit
-              ? "Adjust the terms under which this lot is offered."
-              : "Only artifacts the heritage authority has released to auction can be listed here."}
-          </p>
-        </div>
-      </div>
+      <h1>{isEdit ? "Edit Auction" : "Create New Auction"}</h1>
+      <p className="page-subtitle">
+        {isEdit ? "Update this auction's rules." : "Only artifacts marked for auction during report approval can be listed here."}
+      </p>
       {error && <div className="alert alert-danger">{error}</div>}
       {isEdit && bidCount > 0 && (
-        <div className="alert alert-warning">
-          <span>
-            This lot has already attracted {bidCount} bid{bidCount === 1 ? "" : "s"}. For fairness the
-            artifact, reserve, and minimum increment are locked; you may still extend the closing
-            time or adjust the share paid to the source.
-          </span>
+        <div className="alert alert-success">
+          This auction already has {bidCount} bid(s). To keep things fair, the artifact, starting bid, and minimum
+          increment are locked - you can still extend the deadline or change the source payout.
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="form">
         <label>
-          Artifact
+          Select Artifact
           {isEdit ? (
             <input value={itemLabel} disabled />
           ) : (
@@ -132,15 +130,15 @@ export default function CreateAuction() {
               options={itemOptions}
               value={itemLabel}
               onChange={setItemLabel}
-              placeholder="Search artifacts released to auction"
+              placeholder="Type to search artifacts..."
               required
             />
           )}
         </label>
 
-        <div className="form-row">
+        <div style={gridTwo}>
           <label>
-            Reserve price (৳)
+            Starting Bid Price (৳)
             <input
               type="number"
               min="0"
@@ -152,7 +150,7 @@ export default function CreateAuction() {
           </label>
 
           <label>
-            Minimum increment (৳)
+            Minimum Bid Increment (৳)
             <input
               type="number"
               min="1"
@@ -165,15 +163,10 @@ export default function CreateAuction() {
         </div>
 
         <label>
-          Bidding closes
-          <div className="actions" style={{ margin: "0.15rem 0 0.6rem" }}>
+          Auction Deadline
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", margin: "0.15rem 0 0.6rem" }}>
             {DURATION_PRESETS.map((p) => (
-              <button
-                key={p.label}
-                type="button"
-                className="btn-small btn-secondary"
-                onClick={() => pickDuration(p.ms)}
-              >
+              <button key={p.label} type="button" className="btn-small" onClick={() => pickDuration(p.ms)}>
                 {p.label}
               </button>
             ))}
@@ -182,12 +175,11 @@ export default function CreateAuction() {
         </label>
 
         <fieldset>
-          <legend>Anti-sniping extension</legend>
+          <legend>Auto-deadline Extension</legend>
           <p className="hint" style={{ margin: "0 0 0.9rem" }}>
-            A bid landing inside the trigger window pushes the closing time back automatically, so a
-            late bid cannot end the lot unchallenged.
+            If a bid lands within the trigger window before the deadline, the deadline pushes back automatically.
           </p>
-          <div className="form-row">
+          <div style={gridTwo}>
             <label>
               Trigger window (minutes)
               <input type="number" min="0" value={extendTrigger} onChange={(e) => setExtendTrigger(e.target.value)} />
@@ -199,8 +191,22 @@ export default function CreateAuction() {
           </div>
         </fieldset>
 
+        <fieldset>
+          <legend>Optional</legend>
+          <div style={gridTwo}>
+            <label>
+              Source Payout (%)
+              <input type="number" min="0" max="100" value={sourcePercentage} onChange={(e) => setSourcePercentage(e.target.value)} placeholder="e.g. 10" />
+            </label>
+            <label>
+              Source Name
+              <input value={sourceName} onChange={(e) => setSourceName(e.target.value)} placeholder="e.g. Rahim Khan (reporter)" />
+            </label>
+          </div>
+        </fieldset>
+
         <button type="submit" className="btn" disabled={busy}>
-          {busy ? "Saving" : isEdit ? "Save changes" : "Open the lot for bidding"}
+          {busy ? "Saving..." : isEdit ? "Save Changes" : "Create Auction"}
         </button>
       </form>
     </div>

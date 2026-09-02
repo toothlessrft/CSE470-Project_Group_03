@@ -1,9 +1,8 @@
-// Read side of the notification system - the bell panel and its counts.
+// Role-Based Notification & Reminder System - read side.
 const express = require("express");
 const Notification = require("../models/Notification");
 const { requireAuth } = require("../middleware/auth");
 const { ensureDemoNotifications } = require("../services/sampleNotifications");
-const { ensureReviewRequestNotifications } = require("../services/reviewNotifications");
 
 const router = express.Router();
 router.use(requireAuth);
@@ -11,8 +10,9 @@ router.use(requireAuth);
 // Nothing older than this is worth keeping in the panel.
 const MAX_RETURNED = 200;
 
-// GET /api/notifications?category=auction&unread=true&limit=50 -> the inbox.
-// Action-required items float to the top of each page, then newest first.
+// GET /api/notifications?category=auction&unread=true&limit=50
+// The whole inbox for the logged-in user. Action-required items float to the
+// top of each page, then newest first.
 router.get("/", async (req, res) => {
   try {
     const { category, unread, limit } = req.query;
@@ -22,7 +22,6 @@ router.get("/", async (req, res) => {
     if (unread === "true") filter.read = false;
 
     await ensureDemoNotifications(req.user);
-    await ensureReviewRequestNotifications(req.user);
 
     const notifications = await Notification.find(filter)
       .sort({ action_required: -1, read: 1, createdAt: -1 })
@@ -35,11 +34,12 @@ router.get("/", async (req, res) => {
   }
 });
 
-// GET /api/notifications/summary -> the bell count and the admin card badges.
+// GET /api/notifications/summary
+// Drives both the red count on the navbar bell and the red circles on the
+// Admin Dashboard cards.
 router.get("/summary", async (req, res) => {
   try {
     await ensureDemoNotifications(req.user);
-    await ensureReviewRequestNotifications(req.user);
 
     const rows = await Notification.aggregate([
       { $match: { user: req.user._id, read: false } },
@@ -56,7 +56,8 @@ router.get("/summary", async (req, res) => {
     const byDashboardKey = {};
     let unread = 0;
     let actionRequired = 0;
-    // Unread items filed under no dashboard card, so they still get counted.
+    // Unread items filed under no dashboard card - the admin would otherwise
+    // never see these, since that role has no navbar bell.
     let unkeyed = 0;
 
     for (const row of rows) {
@@ -106,8 +107,9 @@ router.post("/read-all", async (req, res) => {
   res.json({ message: "Marked as read.", modified: result.modifiedCount });
 });
 
-// POST /api/notifications/read-by-key  { key } -> opening an admin dashboard
-// card clears its badge by marking everything under that key as read.
+// POST /api/notifications/read-by-key  { key }
+// Government/Admin has no bell; opening an Admin Dashboard card clears the red
+// circle for that card by marking everything filed under its key as read.
 router.post("/read-by-key", async (req, res) => {
   const { key } = req.body || {};
   if (!key) return res.status(400).json({ error: "A dashboard key is required." });

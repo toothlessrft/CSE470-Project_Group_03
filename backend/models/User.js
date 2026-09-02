@@ -10,7 +10,7 @@ const userSchema = new Schema(
         "public",
         "archaeologist",
         "museum_manager",
-        "excavation_team", // Ahad_23201016
+        "excavation_team", // Ahad_23201016 - was "site_caretaker"
         "admin",
         "manager"
       ],

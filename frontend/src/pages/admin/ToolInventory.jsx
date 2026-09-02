@@ -129,27 +129,14 @@ export default function ToolInventory() {
     return edits[tool._id]?.[field] ?? tool[field];
   }
 
-  if (loading)
-    return (
-      <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading the equipment store
-        </div>
-      </div>
-    );
+  if (loading) return <div className="page">Loading...</div>;
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Field logistics</span>
-          <h1>Equipment inventory</h1>
-          <p className="page-subtitle">
-            Decide on equipment requests, track what is issued to each excavation zone, and hold
-            stock levels for the national store.
-          </p>
-        </div>
-      </div>
+      <h1>Equipment Inventory</h1>
+      <p className="page-subtitle">
+        Approve equipment requests, and manage and assign tools across active excavation zones.
+      </p>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {message && <div className="alert alert-success">{message}</div>}
@@ -159,7 +146,7 @@ export default function ToolInventory() {
           className={`tab${tab === "requests" ? " tab-active" : ""}`}
           onClick={() => setTab("requests")}
         >
-          Requests <span className="tab-count">{pending.length}</span>
+          Requests ({pending.length})
         </button>
         <button
           className={`tab${tab === "zones" ? " tab-active" : ""}`}
@@ -168,7 +155,7 @@ export default function ToolInventory() {
           Assigned across zones
         </button>
         <button className={`tab${tab === "store" ? " tab-active" : ""}`} onClick={() => setTab("store")}>
-          Equipment store <span className="tab-count">{tools.length}</span>
+          Equipment store ({tools.length})
         </button>
       </div>
 
@@ -176,17 +163,16 @@ export default function ToolInventory() {
       {tab === "requests" && (
         <>
           <h2 className="section-title">Awaiting decision</h2>
-          <div className="table-wrap">
           <table className="table">
             <thead>
               <tr>
-                <th>Requested by</th>
+                <th>Requester</th>
                 <th>Equipment</th>
                 <th>Zone</th>
                 <th>Units</th>
-                <th>Period</th>
-                <th>Intended use</th>
-                <th>Decision</th>
+                <th>Dates</th>
+                <th>Purpose</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -215,33 +201,31 @@ export default function ToolInventory() {
                       Approve
                     </button>
                     <button className="btn-small btn-deny" onClick={() => decide(r._id, "deny")}>
-                      Decline
+                      Deny
                     </button>
                   </td>
                 </tr>
               ))}
               {pending.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="hint">
-                    Nothing awaiting a decision.
-                  </td>
+                  <td colSpan={7}>No requests waiting on a decision.</td>
                 </tr>
               )}
             </tbody>
           </table>
-          </div>
 
-          <h2 className="section-title">Decision record</h2>
-          <div className="table-wrap">
+          <h2 className="section-title" style={{ marginTop: "2rem" }}>
+            Decision history
+          </h2>
           <table className="table">
             <thead>
               <tr>
-                <th>Requested by</th>
+                <th>Requester</th>
                 <th>Equipment</th>
                 <th>Units</th>
-                <th>Outcome</th>
+                <th>Status</th>
                 <th>Returned</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -255,7 +239,7 @@ export default function ToolInventory() {
                   <td>
                     <StatusBadge status={r.approval_status} />
                   </td>
-                  <td className="num">{r.returned_at ? r.returned_at.slice(0, 10) : "—"}</td>
+                  <td>{r.returned_at ? r.returned_at.slice(0, 10) : "-"}</td>
                   <td className="actions">
                     {r.approval_status === "Approved" && !r.returned_at && (
                       <button
@@ -267,7 +251,7 @@ export default function ToolInventory() {
                           )
                         }
                       >
-                        <PackageCheck size={13} aria-hidden="true" /> Record return
+                        <PackageCheck size={13} /> Check in
                       </button>
                     )}
                   </td>
@@ -275,31 +259,22 @@ export default function ToolInventory() {
               ))}
               {decided.length === 0 && (
                 <tr>
-                  <td colSpan={6} className="hint">
-                    No decisions on record yet.
-                  </td>
+                  <td colSpan={6}>Nothing decided yet.</td>
                 </tr>
               )}
             </tbody>
           </table>
-          </div>
         </>
       )}
 
       {/* ---------------- Zones ---------------- */}
       {tab === "zones" && (
         <div style={{ marginTop: "1.4rem" }}>
-          {zones.length === 0 && (
-            <div className="empty-state">
-              <MapPinned size={24} aria-hidden="true" />
-              <h3>Nothing on issue</h3>
-              <p>No equipment is currently out with an excavation zone.</p>
-            </div>
-          )}
+          {zones.length === 0 && <p className="hint">No equipment is currently out on assignment.</p>}
           {zones.map((zone) => (
             <div className="inv-zone" key={zone.project_id || zone.zone}>
               <h4>
-                <MapPinned size={15} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.35rem" }} />
+                <MapPinned size={15} style={{ verticalAlign: "-2px", marginRight: "0.35rem" }} />
                 {zone.zone}
                 {!zone.active && <span className="hint"> (closed project)</span>}
               </h4>
@@ -339,18 +314,13 @@ export default function ToolInventory() {
       {tab === "store" && (
         <>
           <div className="inv-toolbar">
-            <button
-              className={showAdd ? "btn-small btn-secondary" : "btn-small"}
-              onClick={() => setShowAdd((v) => !v)}
-            >
-              <Plus size={13} aria-hidden="true" /> {showAdd ? "Cancel" : "Add equipment"}
+            <button className="btn-small" onClick={() => setShowAdd((v) => !v)}>
+              <Plus size={13} /> {showAdd ? "Cancel" : "Add equipment"}
             </button>
           </div>
 
           {showAdd && (
-            <form className="form card" onSubmit={addTool}>
-              <h3 style={{ margin: 0 }}>Add to the equipment store</h3>
-              <div className="form-row">
+            <form className="form" onSubmit={addTool}>
               <label>
                 Model number
                 <input
@@ -368,7 +338,7 @@ export default function ToolInventory() {
                 />
               </label>
               <label>
-                Owning body
+                Owner
                 <input
                   value={newTool.owner}
                   onChange={(e) => setNewTool({ ...newTool, owner: e.target.value })}
@@ -427,24 +397,22 @@ export default function ToolInventory() {
                   onChange={(e) => setNewTool({ ...newTool, insurance_info: e.target.value })}
                 />
               </label>
-              </div>
               <button type="submit" className="btn">
-                <Plus size={15} aria-hidden="true" /> Add to the store
+                <Plus size={15} /> Add to inventory
               </button>
             </form>
           )}
 
-          <div className="table-wrap" style={{ marginTop: "1.2rem" }}>
-          <table className="table">
+          <table className="table" style={{ marginTop: "1.2rem" }}>
             <thead>
               <tr>
                 <th>Equipment</th>
                 <th>Category</th>
-                <th>Held</th>
-                <th>On issue</th>
+                <th>Total</th>
+                <th>Out</th>
                 <th>Available</th>
                 <th>Status</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -485,7 +453,7 @@ export default function ToolInventory() {
                   <td className="actions">
                     {edits[t._id] && (
                       <button className="btn-small btn-approve" onClick={() => saveTool(t)}>
-                        <Save size={13} aria-hidden="true" /> Save
+                        <Save size={13} /> Save
                       </button>
                     )}
                     <button
@@ -494,21 +462,18 @@ export default function ToolInventory() {
                         run(() => api.del(`/inventory/tools/${t._id}`), "Equipment removed.")
                       }
                     >
-                      <Trash2 size={13} aria-hidden="true" /> Remove
+                      <Trash2 size={13} /> Delete
                     </button>
                   </td>
                 </tr>
               ))}
               {tools.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="hint">
-                    The equipment store is empty.
-                  </td>
+                  <td colSpan={7}>The equipment store is empty.</td>
                 </tr>
               )}
             </tbody>
           </table>
-          </div>
         </>
       )}
     </div>

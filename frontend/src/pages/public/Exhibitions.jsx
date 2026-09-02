@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
-import { CalendarDays, MapPin, LocateFixed, Ticket, Phone, CalendarX } from "lucide-react";
+import { CalendarDays, MapPin, LocateFixed, Ticket, Phone } from "lucide-react";
 import { api } from "../../api";
 
 const TYPE_LABELS = {
   exhibition: "Exhibition",
-  educational_tour: "Educational tour",
-  cultural_event: "Cultural event",
+  educational_tour: "Educational Tour",
+  cultural_event: "Cultural Event",
 };
 
 function fmtDate(d) {
@@ -34,7 +34,7 @@ export default function Exhibitions() {
       const data = await api.get("/exhibitions?upcoming=true");
       setExhibitions(data.exhibitions);
     } catch (err) {
-      setError(err.message || "Listings could not be loaded.");
+      setError(err.message || "Could not load exhibitions.");
     } finally {
       setLoading(false);
     }
@@ -42,7 +42,7 @@ export default function Exhibitions() {
 
   function useNearMe() {
     if (!navigator.geolocation) {
-      setLocationError("This browser does not support location services.");
+      setLocationError("Your browser doesn't support location services.");
       return;
     }
     setLocating(true);
@@ -55,13 +55,13 @@ export default function Exhibitions() {
           setExhibitions(data.exhibitions);
           setNearMeActive(true);
         } catch (err) {
-          setLocationError(err.message || "Nearby listings could not be loaded.");
+          setLocationError(err.message || "Could not load nearby exhibitions.");
         } finally {
           setLocating(false);
         }
       },
       () => {
-        setLocationError("Location access was declined, so all upcoming listings are shown instead.");
+        setLocationError("Location permission denied. Showing all upcoming listings instead.");
         setLocating(false);
       }
     );
@@ -77,118 +77,85 @@ export default function Exhibitions() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Public programme</span>
-          <h1>Exhibitions & events</h1>
-          <p className="page-subtitle">
-            Exhibitions, educational tours, and cultural events published by museums across the
-            register.
-          </p>
-        </div>
-        {nearMeActive ? (
-          <button className="btn btn-secondary" onClick={clearNearMe}>
-            Show all listings
-          </button>
-        ) : (
-          <button className="btn" onClick={useNearMe} disabled={locating}>
-            <LocateFixed size={16} aria-hidden="true" /> {locating ? "Locating" : "Find near me"}
-          </button>
-        )}
-      </div>
+      <h1>Exhibitions, Tours & Events</h1>
+      <p className="page-subtitle">
+        Discover museum exhibitions, educational tours, and cultural events published by museums near you.
+      </p>
 
-      <div className="toolbar">
-        <button
-          className={typeFilter === "" ? "btn btn-small" : "btn btn-small btn-secondary"}
-          aria-pressed={typeFilter === ""}
-          onClick={() => setTypeFilter("")}
-        >
-          All listings
-        </button>
-        {Object.entries(TYPE_LABELS).map(([value, label]) => (
-          <button
-            key={value}
-            className={typeFilter === value ? "btn btn-small" : "btn btn-small btn-secondary"}
-            aria-pressed={typeFilter === value}
-            onClick={() => setTypeFilter(value)}
-          >
-            {label}
+      <div className="card" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <button className={typeFilter === "" ? "btn" : "btn-small"} onClick={() => setTypeFilter("")}>
+            All
           </button>
-        ))}
+          {Object.entries(TYPE_LABELS).map(([value, label]) => (
+            <button
+              key={value}
+              className={typeFilter === value ? "btn" : "btn-small"}
+              onClick={() => setTypeFilter(value)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          {nearMeActive ? (
+            <button className="btn-small btn-outline" onClick={clearNearMe}>
+              Clear "Near Me"
+            </button>
+          ) : (
+            <button className="btn" onClick={useNearMe} disabled={locating}>
+              <LocateFixed size={15} /> {locating ? "Locating..." : "Near Me"}
+            </button>
+          )}
+        </div>
       </div>
 
       {locationError && <div className="alert alert-info">{locationError}</div>}
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="section-head">
-        <h2>{nearMeActive ? "Near you" : "Upcoming"}</h2>
-        <span className="hint">
-          {loading ? "Loading" : `${visible.length} listing${visible.length === 1 ? "" : "s"}`}
-        </span>
+      <h3>{loading ? "Loading..." : `${visible.length} upcoming listing(s)${nearMeActive ? " near you" : ""}`}</h3>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" }}>
+        {visible.map((item) => (
+          <div key={item._id} className="card" style={{ margin: 0, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            {item.image && (
+              <img
+                src={item.image}
+                alt={item.title}
+                style={{ width: "100%", height: "140px", objectFit: "cover", borderRadius: "var(--radius-sm)" }}
+              />
+            )}
+            <span style={{ fontSize: "0.75rem", fontWeight: 700, color: "var(--primary)", textTransform: "uppercase" }}>
+              {TYPE_LABELS[item.type] || item.type}
+            </span>
+            <h4 style={{ margin: 0 }}>{item.title}</h4>
+            {item.museum_name && <p style={{ margin: 0, fontSize: "0.85rem", color: "#8a7a68" }}>{item.museum_name}</p>}
+            <p style={{ margin: 0, fontSize: "0.88rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              <CalendarDays size={14} /> {fmtDate(item.start_date)} - {fmtDate(item.end_date)}
+              {item.start_time && ` · ${item.start_time}${item.end_time ? ` - ${item.end_time}` : ""}`}
+            </p>
+            {item.location?.address && (
+              <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem", color: "#777" }}>
+                <MapPin size={14} /> {item.location.address}
+                {item.distance_km != null && ` · ${item.distance_km.toFixed(1)} km away`}
+              </p>
+            )}
+            {item.description && <p style={{ margin: 0, fontSize: "0.88rem" }}>{item.description}</p>}
+            {item.ticket_info && (
+              <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <Ticket size={14} /> {item.ticket_info}
+              </p>
+            )}
+            {item.contact && (
+              <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <Phone size={14} /> {item.contact}
+              </p>
+            )}
+          </div>
+        ))}
+        {!loading && visible.length === 0 && <p>No upcoming listings match this view yet.</p>}
       </div>
-
-      {loading ? (
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading listings
-        </div>
-      ) : visible.length === 0 ? (
-        <div className="empty-state">
-          <CalendarX size={26} aria-hidden="true" />
-          <h3>Nothing scheduled</h3>
-          <p>
-            No upcoming listings match this view. Try another category, or clear the location
-            filter.
-          </p>
-        </div>
-      ) : (
-        <div className="listing-grid">
-          {visible.map((item) => (
-            <article key={item._id} className="listing-card">
-              {item.image && <img className="listing-image" src={item.image} alt="" loading="lazy" />}
-              <div className="listing-body">
-                <p className="artifact-tile-class">{TYPE_LABELS[item.type] || item.type}</p>
-                <h4 style={{ margin: "0 0 0.15rem" }}>{item.title}</h4>
-                {item.museum_name && <p className="record-meta">{item.museum_name}</p>}
-
-                <p className="meta-row">
-                  <span>
-                    <CalendarDays size={13} aria-hidden="true" /> {fmtDate(item.start_date)} —{" "}
-                    {fmtDate(item.end_date)}
-                    {item.start_time && ` · ${item.start_time}${item.end_time ? `–${item.end_time}` : ""}`}
-                  </span>
-                  {item.location?.address && (
-                    <span>
-                      <MapPin size={13} aria-hidden="true" /> {item.location.address}
-                      {item.distance_km != null && ` · ${item.distance_km.toFixed(1)} km away`}
-                    </span>
-                  )}
-                </p>
-
-                {item.description && (
-                  <p style={{ margin: "0.75rem 0 0", fontSize: "0.875rem", lineHeight: 1.55 }}>
-                    {item.description}
-                  </p>
-                )}
-
-                {(item.ticket_info || item.contact) && (
-                  <p className="meta-row" style={{ marginTop: "0.75rem" }}>
-                    {item.ticket_info && (
-                      <span>
-                        <Ticket size={13} aria-hidden="true" /> {item.ticket_info}
-                      </span>
-                    )}
-                    {item.contact && (
-                      <span>
-                        <Phone size={13} aria-hidden="true" /> {item.contact}
-                      </span>
-                    )}
-                  </p>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
     </div>
   );
 }

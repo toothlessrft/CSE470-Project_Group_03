@@ -11,7 +11,6 @@ const DiscoveryReport = require("../models/DiscoveryReport");
 const ResearcherReport = require("../models/ResearcherReport"); // Researcher Report: Ahad
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { notify, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
-const { sendReviewRequests } = require("../services/reviewNotifications"); // Cross Feedback & Performance Review
 
 const router = express.Router();
 router.use(requireAuth, requireRole("archaeologist"));
@@ -66,7 +65,7 @@ router.post("/request_excavation", async (req, res) => {
       budget,
     });
 
-    // Proposal now waiting on the admin.
+    // Notification: excavation proposal waiting on the Government/Admin.
     await notifyAdmins({
       category: "request",
       type: "excavation.request.submitted",
@@ -87,6 +86,8 @@ router.post("/request_excavation", async (req, res) => {
 // GET /api/arc/projects  (was /arc/manage_project)
 router.get("/projects", async (req, res) => {
   const base = { lead_archaeologist: req.user._id };
+  // Ahad_23201016 - also surface the excavation team awarded through the
+  // tender process, plus the artifacts recovered so far.
   const populateAll = (q) =>
     q
       .populate("site")
@@ -103,19 +104,10 @@ router.get("/projects", async (req, res) => {
 
 // POST /api/arc/projects/:id/end  (was /project/<id>/end)
 router.post("/projects/:id/end", async (req, res) => {
-  const result = await ExcavationProject.updateOne(
-    { _id: req.params.id, lead_archaeologist: req.user._id, end_date: null },
+  await ExcavationProject.updateOne(
+    { _id: req.params.id, lead_archaeologist: req.user._id },
     { end_date: new Date() }
   );
-
-  // Second way a dig can finish (the other is tenders/projects/:id/complete),
-  // so the review prompts have to be raised here too. Guarded on modifiedCount
-  // so re-ending a finished project does not prompt twice.
-  if (result.modifiedCount) {
-    const project = await ExcavationProject.findById(req.params.id);
-    await sendReviewRequests(project);
-  }
-
   res.json({ message: "Project ended." });
 });
 
@@ -161,7 +153,7 @@ router.get("/projects/:id/team", async (req, res) => {
   if (!project) return res.status(404).json({ error: "Project not found." });
   const teams = await ETeam.find({ project: project._id }).populate("manager", "nid name");
 
-  // Ahad_23201016 - the awarded team, company plus representative
+  // Ahad_23201016 - the awarded excavation team (company + representative)
   const et = project.excavation_team;
   const excavation_team = et
     ? {
@@ -282,7 +274,7 @@ router.post("/projects/:id/items", async (req, res) => {
     });
     if (!project) return res.status(404).json({ error: "No active site found." });
 
-    const { name, description, discovery_date, Type, specialization, picture } = req.body;
+    const { name, description, discovery_date, Type, specialization } = req.body;
 
     const item = await Item.create({
       site: project.site,
@@ -290,7 +282,6 @@ router.post("/projects/:id/items", async (req, res) => {
       description,
       discovery_date,
       Type,
-      picture: picture || "",
       specialization, // { utility_pottery, material_type, utility_metal, alloy, painter, ... age, ... }
     });
 
@@ -301,7 +292,7 @@ router.post("/projects/:id/items", async (req, res) => {
   }
 });
 
-// --- field inspection assignments, set by the admin -------------------------
+// ---- Field inspection assignments (from Government/Admin) -----------------
 
 // GET /api/arc/assignments -> discovery reports assigned to me for verification
 router.get("/assignments", async (req, res) => {
@@ -310,7 +301,7 @@ router.get("/assignments", async (req, res) => {
     .sort("-assignment.assigned_at")
     .lean();
 
-  // Researcher reports mapped to these discovery reports.
+  // Find all researcher reports mapped to these discovery reports
   const discoveryIds = reports.map(r => r._id);
   const researcherReports = await ResearcherReport.find({ discoveryReport: { $in: discoveryIds } }).lean();
 
@@ -340,7 +331,8 @@ router.post("/assignments/:id/verify", async (req, res) => {
 
   if (!report) return res.status(404).json({ error: "Assignment not found." });
 
-  // Outcome to the original reporter, plus a heads-up for the admin.
+  // Notification: outcome to the original reporter, and a heads-up to the
+  // Government/Admin that the field verification has landed.
   await notify({
     user: report.reporter,
     category: "report",

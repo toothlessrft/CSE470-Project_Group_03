@@ -6,6 +6,7 @@ import {
   Users,
   PackagePlus,
   Wrench,
+  StopCircle,
   CalendarDays,
   Banknote,
   TrendingUp,
@@ -16,112 +17,103 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-// Foreground colour for the progress pill; the tint and dot are derived from
-// it, so state never depends on colour alone.
 const PROGRESS_COLORS = {
-  "Just Started": "#8a5a12",
-  "In Progress": "#1d4ed8",
-  "Almost Done": "#1f6b2e",
-  Stalled: "#b02020",
+  "Just Started": "#c98a4b",
+  "In Progress": "#2980b9",
+  "Almost Done": "#27ae60",
+  Stalled: "#e03131",
 };
 
-const PROGRESS_TINTS = {
-  "#8a5a12": "#fdf4e3",
-  "#1d4ed8": "#eef3fd",
-  "#1f6b2e": "#eef9f0",
-  "#b02020": "#fdeeee",
-};
-
-function ProjectCard({ p, onAddArtifact }) {
+function ProjectCard({ p, onEnd, onAddArtifact }) {
   const progressColor = PROGRESS_COLORS[p.progress] || "var(--muted)";
 
-  // Ahad_23201016 - tendered projects carry a team and a fixed location;
-  // older ones do not.
+  // Ahad_23201016 - projects awarded through the tender process carry an
+  // excavation team and a fixed location; legacy projects don't.
   const team = p.excavation_team;
   const teamName =
     team?.roleProfile?.company_name || team?.roleProfile?.organization || team?.name || null;
+  const isTenderProject = Boolean(p.tender);
 
   return (
-    <div className="card" style={{ margin: 0, borderLeft: `3px solid ${progressColor}` }}>
-      <div className="report-header">
-        <div style={{ minWidth: 0 }}>
+    <div className="card" style={{ margin: 0, padding: "1.5rem", borderLeft: `4px solid ${progressColor}` }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem" }}>
+        <div>
           {/* Ahad_23201016 - the project name opens the detailed view */}
-          <h3 style={{ margin: "0 0 0.2rem" }}>
+          <h3 style={{ margin: "0 0 0.2rem", fontSize: "1.1rem" }}>
             <Link
               to={`/arc/projects/${p._id}`}
-              style={{
-                color: "inherit",
-                textDecoration: "none",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.4rem",
-              }}
+              style={{ color: "inherit", textDecoration: "none", display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
             >
               {p.p_name}
-              <ArrowRight size={15} style={{ color: "var(--accent)" }} aria-hidden="true" />
+              <ArrowRight size={15} style={{ color: "var(--accent)" }} />
             </Link>
           </h3>
-          <p className="meta-row">
-            <span>
-              <MapPin size={13} aria-hidden="true" /> {p.site?.name || "No site recorded"}
-            </span>
-            <span>
-              <Users size={13} aria-hidden="true" /> {teamName || p.organization || "Team not assigned"}
-            </span>
+          <p className="hint" style={{ margin: 0, display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+            <MapPin size={13} /> {p.site?.name || "No site"}
+            <span>&middot;</span>
+            <Users size={13} /> {teamName || p.organization || "\u2014"}
           </p>
         </div>
         <span
-          className="status-badge"
-          style={{ color: progressColor, backgroundColor: PROGRESS_TINTS[progressColor] || "#f7f3ec" }}
+          style={{
+            display: "inline-block",
+            padding: "0.3rem 0.8rem",
+            borderRadius: "999px",
+            fontSize: "0.75rem",
+            fontWeight: 700,
+            color: "white",
+            background: progressColor,
+            whiteSpace: "nowrap",
+          }}
         >
-          {p.progress || "Status unknown"}
+          {p.progress || "Unknown"}
         </span>
       </div>
 
-      <dl className="detail-list" style={{ margin: "1.1rem 0" }}>
+      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", margin: "1rem 0", fontSize: "0.88rem", color: "var(--muted)" }}>
         {p.budget != null && (
-          <div>
-            <dt>
-              <Banknote size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Budget
-            </dt>
-            <dd className="num">&#2547;{p.budget.toLocaleString()}</dd>
-          </div>
+          <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+            <Banknote size={15} /> Budget: <strong style={{ color: "var(--text)" }}>&#2547;{p.budget.toLocaleString()}</strong>
+          </span>
         )}
         {p.start_date && (
-          <div>
-            <dt>
-              <CalendarDays size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Commenced
-            </dt>
-            <dd className="num">{p.start_date.slice(0, 10)}</dd>
-          </div>
+          <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+            <CalendarDays size={15} /> Started: <strong style={{ color: "var(--text)" }}>{p.start_date.slice(0, 10)}</strong>
+          </span>
         )}
         {/* Ahad_23201016 - artifacts recovered so far on this dig */}
-        <div>
-          <dt>
-            <Boxes size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Artifacts recovered
-          </dt>
-          <dd className="num">{p.artifacts?.length || 0}</dd>
-        </div>
-      </dl>
+        <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+          <Boxes size={15} /> Artifacts: <strong style={{ color: "var(--text)" }}>{p.artifacts?.length || 0}</strong>
+        </span>
+      </div>
 
-      <div
-        className="actions"
-        style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}
-      >
-        {/* Ahad_23201016 - location comes from the project, so there is no
-            map to fill in here. */}
-        <button className="btn-small" onClick={() => onAddArtifact(p)}>
-          <PackagePlus size={13} aria-hidden="true" /> Catalogue artifact
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
+        {/* Ahad_23201016 - "Add Item" replaced by "Add Artifacts"; the location
+            is taken from the project, so there is no map to fill in by hand. */}
+        <button
+          className="btn-small"
+          style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+          onClick={() => onAddArtifact(p)}
+        >
+          <PackagePlus size={13} /> Add Artifacts
         </button>
 
-        {/* Ahad_23201016 - the team awarded this dig */}
-        <Link to={`/arc/projects/${p._id}/team`} className="btn-small btn-secondary">
-          <Users size={13} aria-hidden="true" /> Field team
+        {/* Ahad_23201016 - "Team" is now the awarded excavation team */}
+        <Link to={`/arc/projects/${p._id}/team`} className="btn-small" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+          <Users size={13} /> Excavation Team
         </Link>
 
-        <Link to={`/arc/projects/${p._id}/tools`} className="btn-small btn-secondary">
-          <Wrench size={13} aria-hidden="true" /> Request equipment
+        <Link to={`/arc/projects/${p._id}/tools`} className="btn-small" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+          <Wrench size={13} /> Request Tool
         </Link>
+
+        <button
+          className="btn-small"
+          style={{ background: "var(--danger)", color: "white", border: "none", display: "inline-flex", alignItems: "center", gap: "0.3rem" }}
+          onClick={() => onEnd(p, isTenderProject)}
+        >
+          <StopCircle size={13} /> {isTenderProject ? "Complete & Hand Over" : "End Project"}
+        </button>
       </div>
     </div>
   );
@@ -134,42 +126,34 @@ function PastProjectCard({ p }) {
       className="card"
       style={{
         margin: 0,
-        padding: "0.95rem 1.2rem",
+        padding: "1rem 1.25rem",
         display: "flex",
         alignItems: "center",
         gap: "1rem",
         flexWrap: "wrap",
+        borderLeft: "4px solid var(--border)",
         textDecoration: "none",
         color: "inherit",
       }}
     >
-      <FolderKanban size={18} style={{ color: "var(--muted-soft)", flexShrink: 0 }} aria-hidden="true" />
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <strong style={{ fontSize: "0.9375rem" }}>{p.p_name}</strong>
-        <p className="meta-row">
-          <span>
-            <MapPin size={12} aria-hidden="true" /> {p.site?.name || "No site recorded"}
-          </span>
-          <span>
-            <Users size={12} aria-hidden="true" /> {p.organization || "Team not recorded"}
-          </span>
+      <FolderKanban size={20} style={{ color: "var(--muted)", flexShrink: 0 }} />
+      <div style={{ flex: 1 }}>
+        <strong style={{ fontSize: "0.98rem" }}>{p.p_name}</strong>
+        <p className="hint" style={{ margin: "0.1rem 0 0", display: "flex", alignItems: "center", gap: "0.35rem", flexWrap: "wrap" }}>
+          <MapPin size={12} /> {p.site?.name || "\u2014"}
+          <span>&middot;</span>
+          <Users size={12} /> {p.organization || "\u2014"}
         </p>
       </div>
-      <div className="meta-row" style={{ margin: 0 }}>
+      <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap", fontSize: "0.82rem", color: "var(--muted)" }}>
         {p.budget != null && (
-          <span>
-            <Banknote size={13} aria-hidden="true" /> &#2547;{p.budget.toLocaleString()}
-          </span>
+          <span><Banknote size={13} style={{ verticalAlign: "middle" }} /> &#2547;{p.budget.toLocaleString()}</span>
         )}
         {p.artifacts?.length > 0 && (
-          <span>
-            <Boxes size={13} aria-hidden="true" /> {p.artifacts.length} artifacts
-          </span>
+          <span><Boxes size={13} style={{ verticalAlign: "middle" }} /> {p.artifacts.length}</span>
         )}
         {p.end_date && (
-          <span>
-            <Clock size={13} aria-hidden="true" /> Closed {p.end_date.slice(0, 10)}
-          </span>
+          <span><Clock size={13} style={{ verticalAlign: "middle" }} /> ended {p.end_date.slice(0, 10)}</span>
         )}
       </div>
     </Link>
@@ -203,10 +187,34 @@ export default function ManageProjects() {
 
   useEffect(load, []);
 
+  // Ahad_23201016 - a tender-backed dig gets handed to the Government for
+  // artifact allocation; a legacy project just closes as it always did.
+  async function endProject(p, isTenderProject) {
+    const message = isTenderProject
+      ? `Complete "${p.p_name}"? The ${p.artifacts?.length || 0} artifact(s) recovered will be sent to the Government for allocation. This cannot be undone.`
+      : `End project "${p.p_name}"? This cannot be undone.`;
+    if (!window.confirm(message)) return;
+
+    setError("");
+    setSuccess("");
+    try {
+      if (isTenderProject) {
+        const data = await api.post(`/tenders/projects/${p._id}/complete`, {});
+        setSuccess(data.message);
+      } else {
+        await api.post(`/arc/projects/${p._id}/end`);
+        setSuccess("Project ended.");
+      }
+      load();
+    } catch (err) {
+      setError(err.message || "Could not close the project.");
+    }
+  }
+
   function openAddArtifact(p) {
     if (!p.tender) {
-      // Older projects have no fixed location, so send them to the Add Item
-      // screen rather than guessing coordinates.
+      // Legacy projects have no tender-fixed location, so keep them on the
+      // original Add Item screen rather than guessing coordinates.
       navigate(`/arc/projects/${p._id}/items`);
       return;
     }
@@ -220,9 +228,7 @@ export default function ManageProjects() {
     try {
       await api.post(`/tenders/projects/${artifactProject._id}/artifacts`, form);
       setArtifactProject(null);
-      setSuccess(
-        "Artifact catalogued against the project. It enters the public catalogue once the heritage authority allocates it."
-      );
+      setSuccess("Artifact logged against the project. It reaches Smart Artifact Search once the Government allocates it.");
       load();
     } catch (err) {
       setModalError(err.message);
@@ -231,64 +237,47 @@ export default function ManageProjects() {
     }
   }
 
-  if (loading)
-    return (
-      <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading your projects
-        </div>
-      </div>
-    );
+  if (loading) return <div className="page"><p className="hint">Loading projects...</p></div>;
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Excavations</span>
-          <h1>Project register</h1>
-          <p className="page-subtitle">
-            The excavations you are directing, the contractors working them, and the artifacts
-            recovered so far.
-          </p>
-        </div>
-      </div>
+      <h1>Manage Projects</h1>
+      <p className="page-subtitle">
+        Active excavations you are leading, the teams working them, and the artifacts recovered so far.
+      </p>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
       {/* Ongoing */}
-      <div className="section-head">
-        <h2>
-          <TrendingUp size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--primary)" }} />
-          Active projects
-        </h2>
-        <span className="hint">{ongoing.length} in progress</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+        <TrendingUp size={18} style={{ color: "var(--primary)" }} />
+        <h2 style={{ margin: 0, fontSize: "1.2rem" }}>Active Projects</h2>
+        <span style={{ marginLeft: "0.5rem", background: "var(--accent)", color: "white", fontSize: "0.75rem", fontWeight: 700, padding: "0.15rem 0.6rem", borderRadius: "999px" }}>
+          {ongoing.length}
+        </span>
       </div>
 
       {ongoing.length === 0 ? (
-        <div className="empty-state">
-          <FolderKanban size={24} aria-hidden="true" />
-          <h3>No active excavations</h3>
-          <p>
-            Once you file a field report recommending an excavation and the heritage authority
-            awards the tender, the project appears here.
-          </p>
+        <div className="card" style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
+          No active projects yet. Once you submit a field report requesting an excavation team and the
+          Government awards the tender, the dig will appear here.
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem", marginBottom: "2.5rem" }}>
           {ongoing.map((p) => (
-            <ProjectCard key={p._id} p={p} onAddArtifact={openAddArtifact} />
+            <ProjectCard key={p._id} p={p} onEnd={endProject} onAddArtifact={openAddArtifact} />
           ))}
         </div>
       )}
 
       {/* Past */}
-      <div className="section-head">
-        <h2>
-          <Clock size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--muted)" }} />
-          Closed projects
-        </h2>
-        <span className="hint">{past.length} completed</span>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", margin: "2rem 0 1rem" }}>
+        <Clock size={18} style={{ color: "var(--muted)" }} />
+        <h2 style={{ margin: 0, fontSize: "1.2rem", color: "var(--muted)" }}>Past Projects</h2>
+        <span style={{ marginLeft: "0.5rem", background: "var(--border)", color: "var(--muted)", fontSize: "0.75rem", fontWeight: 700, padding: "0.15rem 0.6rem", borderRadius: "999px" }}>
+          {past.length}
+        </span>
       </div>
 
       {past.length === 0 ? (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { FileSignature, ArrowLeft, MapPin } from "lucide-react"; // Ahad_23201016
+import { FileSignature } from "lucide-react"; // Ahad_23201016
 import { api } from "../../api";
 import GoogleMapPicker from "../../components/GoogleMapPicker";
 import SearchableSelect from "../../components/SearchableSelect";
@@ -16,10 +16,10 @@ export default function AssignInspection() {
   const [loading, setLoading] = useState(true);
 
   const [researcherId, setResearcherId] = useState("");
+  const [budget, setBudget] = useState("");
   const [notes, setNotes] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [ratings, setRatings] = useState({});
 
   // Report Approval & Artifact Allocation
   const [researcherReport, setResearcherReport] = useState(null);
@@ -27,8 +27,8 @@ export default function AssignInspection() {
   const [rrError, setRrError] = useState("");
   const [rrSuccess, setRrSuccess] = useState("");
   const [approving, setApproving] = useState(false);
-  // Ahad_23201016 - a tender already published for this field report, if any
-  const [tender, setTender] = useState(null);
+  const [allocationForms, setAllocationForms] = useState({}); // itemId -> { destination, museumName }
+  const [allocatingId, setAllocatingId] = useState(null);
 
   useEffect(() => {
     api
@@ -37,11 +37,7 @@ export default function AssignInspection() {
         setReport(data.report);
         return api.get(`/admin/researchers?lat=${data.report.location.lat}&lng=${data.report.location.lng}`);
       })
-      .then((data) => {
-        setResearchers(data.researchers);
-        const ids = data.researchers.map((r) => r._id).join(",");
-        if (ids) api.get(`/reviews/ratings?ids=${ids}`).then((r) => setRatings(r.ratings));
-      })
+      .then((data) => setResearchers(data.researchers))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [id]);
@@ -52,10 +48,7 @@ export default function AssignInspection() {
     setRrLoading(true);
     api
       .get(`/admin/researcher-reports/${id}`)
-      .then((data) => {
-        setResearcherReport(data.report);
-        setTender(data.tender || null);
-      })
+      .then((data) => setResearcherReport(data.report))
       .catch(() => setResearcherReport(null))
       .finally(() => setRrLoading(false));
   }, [report, id]);
@@ -72,6 +65,7 @@ export default function AssignInspection() {
     try {
       const data = await api.post(`/admin/reports/${id}/assign`, {
         researcher_id: researcherId,
+        budget: budget ? Number(budget) : undefined,
         notes,
         due_date: dueDate,
       });
@@ -85,14 +79,14 @@ export default function AssignInspection() {
   }
 
   async function handleApproveReport() {
-    if (!window.confirm("Approve this field report?")) return;
+    if (!window.confirm("Approve this final report? Its artifacts will be added to Smart Artifact Search.")) return;
     setRrError("");
     setRrSuccess("");
     setApproving(true);
     try {
       const data = await api.post(`/admin/researcher-reports/${id}/approve`, {});
       setResearcherReport(data.report);
-      setRrSuccess("Field report approved.");
+      setRrSuccess("Report approved. Artifacts added to the catalogue as Unallocated.");
     } catch (err) {
       setRrError(err.message);
     } finally {
@@ -100,228 +94,246 @@ export default function AssignInspection() {
     }
   }
 
-  if (loading)
-    return (
-      <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading the report
-        </div>
-      </div>
-    );
-  if (!report)
-    return (
-      <div className="page">
-        <div className="alert alert-danger">This report could not be found.</div>
-      </div>
-    );
+  function updateAllocationForm(itemId, patch) {
+    setAllocationForms((prev) => ({
+      ...prev,
+      [itemId]: { destination: "Museum", museumName: "", ...prev[itemId], ...patch },
+    }));
+  }
+
+  async function handleAllocate(itemId) {
+    const form = allocationForms[itemId] || { destination: "Museum", museumName: "" };
+    setRrError("");
+    setRrSuccess("");
+    setAllocatingId(itemId);
+    try {
+      const data = await api.post(`/admin/artifacts/${itemId}/allocate`, {
+        destination: form.destination,
+        museumName: form.museumName,
+      });
+      setResearcherReport((prev) => ({
+        ...prev,
+        allocatedItems: prev.allocatedItems.map((it) => (it._id === itemId ? data.item : it)),
+      }));
+      setRrSuccess(`${data.item.name} allocated to ${form.destination === "Museum" ? form.museumName : "Auction"}.`);
+    } catch (err) {
+      setRrError(err.message);
+    } finally {
+      setAllocatingId(null);
+    }
+  }
+
+  if (loading) return <div className="page">Loading...</div>;
+  if (!report) return <div className="page">Report not found.</div>;
 
   return (
     <div className="page">
-      <Link className="back-link" to="/admin/reports">
-        <ArrowLeft size={14} aria-hidden="true" /> Back to field reports
-      </Link>
-
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Discovery report</span>
-          <h1>{report.material}</h1>
-        </div>
+      <p>
+        <Link to="/admin/reports">← Back to all reports</Link>
+      </p>
+      <div className="report-header">
+        <h1>{report.material}</h1>
         <StatusBadge status={report.status} />
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div className="panel">
-        <div className="panel-head">
-          <h3>Reported find</h3>
-        </div>
-        <div className="panel-body">
-          <GoogleMapPicker value={report.location} editable={false} height={260} />
-          <p className="meta-row">
-            <span>
-              <MapPin size={13} aria-hidden="true" />
-              {report.location?.address || `${report.location.lat}, ${report.location.lng}`}
-            </span>
-          </p>
-
-          {report.notes && <p style={{ marginTop: "0.85rem" }}>{report.notes}</p>}
-
-          {report.images?.length > 0 && (
-            <div className="image-grid">
-              {report.images.map((src, i) => (
-                <div className="image-thumb" key={i}>
-                  <img src={src} alt={`Photograph ${i + 1} of the reported find`} />
-                </div>
-              ))}
-            </div>
-          )}
-
-          <h4 className="section-title">Reported by</h4>
-          <dl className="detail-list">
-            <div>
-              <dt>Name</dt>
-              <dd>
-                {report.reporter?.name} ({report.reporter?.nid})
-              </dd>
-            </div>
-            <div>
-              <dt>Email</dt>
-              <dd>{report.reporter?.email || report.contact_email}</dd>
-            </div>
-            <div>
-              <dt>Phone</dt>
-              <dd>{report.contact_phone}</dd>
-            </div>
-          </dl>
-        </div>
+      <div className="card">
+        <h3>Discovery details</h3>
+        <GoogleMapPicker value={report.location} editable={false} height={260} />
+        <p className="hint">
+          📍 {report.location?.address || `${report.location.lat}, ${report.location.lng}`}
+        </p>
+        {report.notes && <p>{report.notes}</p>}
+        {report.images?.length > 0 && (
+          <div className="image-grid">
+            {report.images.map((src, i) => (
+              <div className="image-thumb" key={i}>
+                <img src={src} alt={`report-${i}`} />
+              </div>
+            ))}
+          </div>
+        )}
+        <h4>Reported by</h4>
+        <p>
+          {report.reporter?.name} ({report.reporter?.nid})<br />
+          ✉️ {report.reporter?.email || report.contact_email} &nbsp; 📞 {report.contact_phone}
+        </p>
       </div>
 
       {report.status === "Pending" ? (
-        <div className="panel">
-          <div className="panel-head">
-            <h3>Assign a field inspection</h3>
-          </div>
-          <div className="panel-body">
+        <div className="card">
+          <h3>Assign field inspection</h3>
           <form onSubmit={handleAssign} className="form">
             <label>
-              Inspecting archaeologist
+              Researcher (nearest listed first)
               <select value={researcherId} onChange={(e) => setResearcherId(e.target.value)} required>
-                <option value="">Choose an archaeologist</option>
-                {researchers.map((r) => {
-                  const rating = ratings[r._id];
-                  return (
-                    <option key={r._id} value={r._id}>
-                      {r.name} ({r.nid}){r.affiliation ? ` — ${r.affiliation}` : ""}
-                      {r.distance_km != null ? ` — ${r.distance_km.toFixed(1)} km away` : ""}
-                      {rating ? ` — rated ${rating.average}/5 from ${rating.count}` : " — not yet rated"}
-                    </option>
-                  );
-                })}
+                <option value="">Select a researcher...</option>
+                {researchers.map((r) => (
+                  <option key={r._id} value={r._id}>
+                    {r.name} ({r.nid}){r.affiliation ? ` — ${r.affiliation}` : ""}
+                    {r.distance_km != null ? ` — ${r.distance_km.toFixed(1)} km away` : ""}
+                  </option>
+                ))}
               </select>
             </label>
             <label>
-              Instructions for the inspector
-              <textarea
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={3}
-                placeholder="What to look for on site, and anything the reporter should be asked"
+              Suggested budget (BDT)
+              <input
+                type="number"
+                min="0"
+                value={budget}
+                onChange={(e) => setBudget(e.target.value)}
+                placeholder="e.g. 5000"
               />
             </label>
             <label>
-              Field report due by
+              Notes for the researcher
+              <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} />
+            </label>
+            <label>
+              Report due by
               <input type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
             </label>
             <button type="submit" className="btn" disabled={submitting}>
-              {submitting ? "Assigning" : "Assign inspection"}
+              {submitting ? "Assigning..." : "Assign Researcher"}
             </button>
           </form>
-          </div>
         </div>
       ) : (
-        <div className="panel">
-          <div className="panel-head">
-            <h3>Assignment</h3>
-          </div>
-          <div className="panel-body">
-            <dl className="detail-list">
-              <div>
-                <dt>Assigned to</dt>
-                <dd>{report.assignment?.researcher?.name}</dd>
-              </div>
-              {report.assignment?.budget && (
-                <div>
-                  <dt>Budget</dt>
-                  <dd className="num">৳{Number(report.assignment.budget).toLocaleString()}</dd>
-                </div>
-              )}
-              {report.assignment?.due_date && (
-                <div>
-                  <dt>Report due</dt>
-                  <dd className="num">
-                    {new Date(report.assignment.due_date).toLocaleDateString()}
-                  </dd>
-                </div>
-              )}
-            </dl>
-            {report.assignment?.notes && (
-              <p className="subtle" style={{ marginTop: "1rem" }}>
-                {report.assignment.notes}
-              </p>
-            )}
-            {report.verification?.result && (
-              <div
-                className={`alert ${
-                  report.verification.result === "true" ? "alert-success" : "alert-danger"
-                }`}
-                style={{ marginTop: "1rem", marginBottom: 0 }}
-              >
-                <span>
-                  Field verification:{" "}
-                  {report.verification.result === "true"
-                    ? "confirmed as genuine"
-                    : "could not be verified"}
-                  {report.verification.notes && ` — ${report.verification.notes}`}
-                </span>
-              </div>
-            )}
-          </div>
+        <div className="card">
+          <h3>Assignment</h3>
+          <p>
+            Assigned to <strong>{report.assignment?.researcher?.name}</strong>
+            {report.assignment?.budget ? ` — budget: ৳${report.assignment.budget}` : ""}
+          </p>
+          {report.assignment?.notes && <p className="hint">{report.assignment.notes}</p>}
+          {report.assignment?.due_date && (
+            <p className="hint">Due {new Date(report.assignment.due_date).toLocaleDateString()}</p>
+          )}
+          {report.verification?.result && (
+            <div className={`alert ${report.verification.result === "true" ? "alert-success" : "alert-danger"}`}>
+              Field verification: {report.verification.result === "true" ? "Confirmed genuine" : "Could not be verified"}
+              {report.verification.notes && ` — ${report.verification.notes}`}
+            </div>
+          )}
         </div>
       )}
 
-      {/* Field report review */}
+      {/* Report Approval & Artifact Allocation */}
       {report.verification?.result === "true" && (
-        <div className="panel">
-          <div className="panel-head">
-            <h3>Field report</h3>
-            {researcherReport?.status && <StatusBadge status={researcherReport.status} />}
-          </div>
-          <div className="panel-body">
+        <div className="card" style={{ border: "2px dashed #c98a4b", backgroundColor: "#fdf8f2" }}>
+          <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Researcher Final Report</h3>
 
           {rrLoading ? (
-            <p className="loading-state" style={{ padding: 0 }}>
-              <span className="spinner" aria-hidden="true" /> Loading the field report
-            </p>
+            <p className="hint">Loading researcher report...</p>
           ) : !researcherReport ? (
-            <p className="hint" style={{ margin: 0 }}>
-              The inspecting archaeologist has not started their report yet.
-            </p>
+            <p className="hint">The researcher hasn&apos;t started their report yet.</p>
           ) : researcherReport.status === "Draft" ? (
-            <p className="hint" style={{ margin: 0 }}>
-              The report is still an unsubmitted draft.
-            </p>
+            <p className="hint">The researcher is still working on this report as a draft.</p>
           ) : (
             <>
               {rrError && <div className="alert alert-danger">{rrError}</div>}
               {rrSuccess && <div className="alert alert-success">{rrSuccess}</div>}
 
-              <dl className="detail-list" style={{ marginBottom: "1rem" }}>
-                <div>
-                  <dt>Excavation recommended</dt>
-                  <dd>{researcherReport.requestExcavationTeam ? "Yes" : "No"}</dd>
-                </div>
-                {researcherReport.budgetRequested != null && (
-                  <div>
-                    <dt>Budget requested</dt>
-                    <dd className="num">
-                      ৳{Number(researcherReport.budgetRequested).toLocaleString()}
-                    </dd>
-                  </div>
-                )}
-              </dl>
+              <StatusBadge status={researcherReport.status} />
 
-              {/* Findings written by the inspecting archaeologist */}
-              <span className="stat-label">Findings</span>
-              <p className="subtle" style={{ whiteSpace: "pre-wrap", margin: "0.25rem 0 1rem" }}>
-                {researcherReport.notes ||
-                  report.verification?.notes ||
-                  "No findings were recorded on this report."}
+              <p style={{ marginTop: "0.75rem" }}>
+                {researcherReport.possibleArtifact ? "Researcher flagged a possible artifact at this site." : "Researcher did not flag a possible artifact."}
               </p>
+              {researcherReport.requestExcavationTeam && (
+                <p>The researcher is requesting that an excavation team be assigned to this site.</p>
+              )}
+              {researcherReport.budgetRequested != null && (
+                <p>Requested budget: ৳{researcherReport.budgetRequested}</p>
+              )}
+              {researcherReport.notes && <p>{researcherReport.notes}</p>}
+
+              <h4>Artifacts Found</h4>
+              {researcherReport.artifacts?.length === 0 ? (
+                <p className="hint">No artifacts were listed on this report.</p>
+              ) : researcherReport.status === "Pending" ? (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
+                  {researcherReport.artifacts.map((a, i) => (
+                    <div key={i} className="card" style={{ margin: 0, padding: "0.85rem 1rem" }}>
+                      <strong>{a.name}</strong>
+                      <p className="hint" style={{ margin: "0.2rem 0" }}>{a.Type}</p>
+                      {a.description && <p style={{ fontSize: "0.85rem" }}>{a.description}</p>}
+                      <p style={{ fontSize: "0.8rem", color: "#777", margin: 0 }}>
+                        {a.civilization && <>Civilization: {a.civilization}<br /></>}
+                        {a.era && <>Era: {a.era}<br /></>}
+                        {a.region && <>Region: {a.region}<br /></>}
+                        {a.material && <>Material: {a.material}<br /></>}
+                        {a.usage && <>Usage: {a.usage}</>}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.75rem", marginBottom: "1rem" }}>
+                  {researcherReport.allocatedItems?.map((item) => {
+                    const form = allocationForms[item._id] || { destination: "Museum", museumName: item.museumName || "" };
+                    const isAllocated = item.allocation !== "Unallocated";
+                    return (
+                      <div key={item._id} className="card" style={{ margin: 0, padding: "0.85rem 1rem" }}>
+                        <strong>{item.name}</strong>
+                        <p className="hint" style={{ margin: "0.2rem 0" }}>{item.Type}</p>
+
+                        {isAllocated ? (
+                          <div className="alert alert-success" style={{ margin: "0.5rem 0 0" }}>
+                            ✅ {item.allocation === "Museum"
+                              ? `Allocated to museum storage — ${item.museumName}`
+                              : "Allocated for auction"}
+                          </div>
+                        ) : (
+                          <>
+                            <p style={{ fontSize: "0.85rem" }}>
+                              Allocation: <strong>Unallocated</strong>
+                            </p>
+                            <div className="form">
+                              <label>
+                                Send to
+                                <select
+                                  value={form.destination}
+                                  onChange={(e) => updateAllocationForm(item._id, { destination: e.target.value })}
+                                >
+                                  <option value="Museum">Museum Storage</option>
+                                  <option value="Auction">Auction</option>
+                                </select>
+                              </label>
+                              {form.destination === "Museum" && (
+                                <label>
+                                  Museum name
+                                  <SearchableSelect
+                                    options={MUSEUMS}
+                                    value={form.museumName}
+                                    onChange={(value) => updateAllocationForm(item._id, { museumName: value })}
+                                    placeholder="Search the museum to store this artifact..."
+                                    required
+                                  />
+                                </label>
+                              )}
+                              <button
+                                type="button"
+                                className="btn-small"
+                                disabled={allocatingId === item._id}
+                                onClick={() => handleAllocate(item._id)}
+                              >
+                                {allocatingId === item._id ? "Saving..." : "Save Allocation"}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
 
               {researcherReport.status === "Pending" && (
                 <button className="btn btn-approve" onClick={handleApproveReport} disabled={approving}>
-                  {approving ? "Approving" : "Approve field report"}
+                  {approving ? "Approving..." : "Approve Final Report"}
                 </button>
               )}
 
@@ -329,38 +341,26 @@ export default function AssignInspection() {
                   Once the field report is approved and the archaeologist asked
                   for an excavation team, the Government opens it up to bidding. */}
               {researcherReport.status === "Approved" && researcherReport.requestExcavationTeam && (
-                <div className="subtle" style={{ marginTop: "1.25rem", borderLeft: "3px solid var(--accent)" }}>
-                  {tender ? (
-                    <>
-                      {/* Ahad_23201016 - the tender for this report already exists, so
-                          show where it stands instead of offering to publish it again. */}
-                      <h4 style={{ marginTop: 0 }}>Tender published</h4>
-                      <p className="hint" style={{ marginTop: 0 }}>
-                        {tender.title}
-                        {tender.deadline &&
-                          ` — bidding closes ${new Date(tender.deadline).toLocaleDateString()}.`}
-                      </p>
-                      <Link className="btn btn-small" to={`/admin/tenders/${tender._id}`}>
-                        <FileSignature size={13} aria-hidden="true" /> Open tender
-                      </Link>
-                    </>
-                  ) : (
-                    <>
-                      <h4 style={{ marginTop: 0 }}>Excavation recommended</h4>
-                      <p className="hint" style={{ marginTop: 0 }}>
-                        Publish a tender so licensed contractors can bid on this excavation. The
-                        project details and map location carry over from this report automatically.
-                      </p>
-                      <Link className="btn btn-small" to={`/admin/tenders/new?report=${researcherReport._id}`}>
-                        <FileSignature size={13} aria-hidden="true" /> Publish tender
-                      </Link>
-                    </>
-                  )}
+                <div
+                  className="card"
+                  style={{ margin: "1rem 0 0", background: "var(--surface)", borderLeft: "4px solid var(--accent)" }}
+                >
+                  <h4 style={{ marginTop: 0 }}>Excavation Team Requested</h4>
+                  <p className="hint" style={{ marginTop: 0 }}>
+                    Publish an excavation tender so registered excavation teams can bid on this dig.
+                    Project details and the map location are carried over from this report automatically.
+                  </p>
+                  <Link
+                    className="btn"
+                    to={`/admin/tenders/new?report=${researcherReport._id}`}
+                    style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem" }}
+                  >
+                    <FileSignature size={15} /> Publish Excavation Tender
+                  </Link>
                 </div>
               )}
             </>
           )}
-          </div>
         </div>
       )}
     </div>

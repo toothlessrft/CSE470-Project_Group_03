@@ -18,25 +18,16 @@ export default function ApproveToolRequest() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Field logistics</span>
-          <h1>Equipment requests</h1>
-          <p className="page-subtitle">
-            Applications to draw tools and instruments from the national equipment pool.
-          </p>
-        </div>
-      </div>
+      <h1>Approve Tool Requests</h1>
       {message && <div className="alert alert-success">{message}</div>}
-      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Requested by</th>
-            <th>Equipment</th>
-            <th>Intended use</th>
-            <th>Period</th>
-            <th>Decision</th>
+            <th>Requester</th>
+            <th>Tool</th>
+            <th>Purpose</th>
+            <th>Dates</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -53,21 +44,18 @@ export default function ApproveToolRequest() {
                   Approve
                 </button>
                 <button className="btn-small btn-deny" onClick={() => act(r._id, "deny")}>
-                  Decline
+                  Deny
                 </button>
               </td>
             </tr>
           ))}
           {requests.length === 0 && (
             <tr>
-              <td colSpan={5} className="hint">
-                Nothing awaiting a decision.
-              </td>
+              <td colSpan={5}>No pending requests.</td>
             </tr>
           )}
         </tbody>
       </table>
-      </div>
     </div>
   );
 }
