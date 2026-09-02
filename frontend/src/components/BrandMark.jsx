@@ -1,13 +1,8 @@
-// ArchiveEarth mark: a classical portico set off-centre in a solid disc.
-// The two roof courses and the three columns break past the disc edge, leaving
-// a crescent standing on the left — the same construction as a struck seal.
-//
-// Built from two paths: the disc with the portico envelope knocked out of it
-// (evenodd), then the courses and columns painted back in. Both inherit
-// `currentColor`, so the mark works on the dark app bar and on light pages.
-//
-// `size` defaults to em units so the mark scales with whatever type it sits
-// beside. Keep the geometry in step with public/logo.svg and render_logo.py.
+// ArchiveEarth logo: a portico set off-centre in a disc. Two paths - the disc
+// with the portico knocked out of it (evenodd), then the roof and columns
+// painted back over. Both use currentColor, so it works on the dark app bar
+// and on light pages. `size` is in em, so it scales with the type beside it.
+// Keep in step with public/logo.svg.
 
 // Disc, with the portico envelope removed.
 const DISC = "M48 8a42 42 0 1 0 0 84 42 42 0 0 0 0-84Z" + "M36 58 62 20l30 22v58H36Z";

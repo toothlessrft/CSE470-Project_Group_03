@@ -1,6 +1,5 @@
 const express = require("express");
 const User = require("../models/User");
-const Site = require("../models/Site");
 const ExcavationRequest = require("../models/ExcavationRequest");
 const ExcavationProject = require("../models/ExcavationProject");
 const ItemRequest = require("../models/ItemRequest");
@@ -44,15 +43,10 @@ router.get("/dashboard", async (req, res) => {
   });
 });
 
-// GET /api/admin/work-summary
-// Live outstanding-work counts, one per Admin Dashboard card. These drive the
-// red circles on the dashboard.
-//
-// Deliberately counted from the source records rather than from unread
-// notifications: a badge has to mean "this many things still need you", so it
-// must not clear just because someone glanced at the page, and it has to grow
-// the moment a new record lands. Reading a notification and doing the work are
-// two different things.
+// GET /api/admin/work-summary -> outstanding-work counts, one per dashboard
+// card. Counted from the source records, not from unread notifications, so a
+// badge means "this many things still need you" and only clears once the work
+// is actually done.
 router.get("/work-summary", async (req, res) => {
   try {
     const now = new Date();
@@ -67,30 +61,24 @@ router.get("/work-summary", async (req, res) => {
       pendingUsers,
       activeAuctions,
     ] = await Promise.all([
-      // Discoveries with nobody assigned yet - exactly what the "Pending" tab
-      // on Field Reports shows by default. Final researcher reports awaiting
-      // approval live under that same page's "Verified" tab rather than a
-      // count of their own, so they're deliberately not added in here - a
-      // badge has to match what you see the moment you land on the page.
+      // Unassigned discoveries - what the Field Reports "Pending" tab shows on
+      // load. Reports awaiting approval sit under "Verified", so they aren't
+      // counted here; the badge has to match the tab you land on.
       DiscoveryReport.countDocuments({ status: "Pending" }),
       // Open tenders that have at least one bid still to be judged
       TenderBid.distinct("tender", { status: "Pending" }).then(async (ids) =>
         ids.length ? Tender.countDocuments({ _id: { $in: ids }, status: "Open" }) : 0
       ),
-      // Completed digs whose finds still need a destination. Requires at
-      // least one artifact so a completed project with nothing recovered
-      // (or one that only exists to anchor a review, never a real dig) can't
-      // sit flagged as "awaiting allocation" forever with nothing to do.
+      // Completed digs whose finds still need a destination. The artifact
+      // check stops an empty project sitting flagged forever with nothing to do.
       ExcavationProject.countDocuments({
         submitted_to_admin: true,
         allocation_done: false,
         "artifacts.0": { $exists: true },
       }),
       ItemRequest.countDocuments({ approval_status: "Pending" }),
-      // Same query the Equipment Inventory page's own "Requests" tab uses by
-      // default (routes/inventory.js GET /requests, filtered client-side) -
-      // this used to be overdue-equipment instead, a different number than
-      // what that tab actually shows on load.
+      // Matches the Equipment Inventory "Requests" tab's default query, so the
+      // badge and the tab agree.
       ToolRentalRequest.countDocuments({ approval_status: "Pending" }),
       ExcavationRequest.countDocuments({}),
       User.countDocuments({ status: "pending" }),
@@ -108,8 +96,7 @@ router.get("/work-summary", async (req, res) => {
         excavation_requests: excavationRequests,
         pending_users: pendingUsers,
         auctions: activeAuctions,
-        // "Approved Requests" is a read-only archive - nothing is ever
-        // outstanding there, so it carries no badge by design.
+        // Approved Requests is a read-only archive, so it carries no badge.
         approved_requests: 0,
       },
     });
@@ -139,10 +126,8 @@ router.post("/item-requests/:id", async (req, res) => {
       { new: true }
     ).populate("item", "name");
 
-    // Notification: museum authority hears back on their loan request.
-    // No "Go to page" here - there's no page showing this manager's own
-    // request history (the request itself is gone once approved; it's now
-    // just an allocated item), so a link would only lead somewhere unrelated.
+    // No link: the request row is gone once approved, so there is no page to
+    // send the manager to.
     await notify({
       user: request?.museum_manager,
       category: "request",
@@ -164,7 +149,7 @@ router.post("/item-requests/:id", async (req, res) => {
     return res.json({ message: "Item request approved successfully!" });
   }
   if (action === "deny") {
-    // Read it before deleting so we still know who to tell.
+    // Read before deleting, so we still know who to notify.
     const request = await ItemRequest.findById(req.params.id).populate("item", "name");
     await ItemRequest.findByIdAndDelete(req.params.id);
 
@@ -433,8 +418,8 @@ router.get("/researcher-reports/:discoveryId", async (req, res) => {
     .populate("allocatedItems");
   if (!report) return res.status(404).json({ error: "Researcher report not found." });
 
-  // Ahad_23201016 - so the field report page can show the published tender
-  // instead of offering to publish a second one for the same report.
+  // Ahad_23201016 - lets the report page show the existing tender instead of
+  // offering to publish a second one.
   const tender = await Tender.findOne({ fieldReport: report._id, status: { $ne: "Cancelled" } })
     .select("title status deadline estimated_budget")
     .sort("-createdAt");
@@ -442,10 +427,9 @@ router.get("/researcher-reports/:discoveryId", async (req, res) => {
   res.json({ report, tender: tender || null });
 });
 
-// POST /api/admin/researcher-reports/:discoveryId/approve
-// Approves a final (Pending) researcher report. Every artifact the researcher
-// listed is added straight to the artifact catalogue (Smart Artifact Search),
-// unallocated until the admin sends it to a museum or to auction below.
+// POST /api/admin/researcher-reports/:discoveryId/approve -> approve a final
+// researcher report. Its artifacts enter the catalogue unallocated, until the
+// admin sends each one to a museum or to auction below.
 router.post("/researcher-reports/:discoveryId/approve", async (req, res) => {
   try {
     const report = await ResearcherReport.findOne({ discoveryReport: req.params.discoveryId }).populate(
@@ -477,9 +461,8 @@ router.post("/researcher-reports/:discoveryId/approve", async (req, res) => {
     report.allocatedItems = createdItems.map((i) => i._id);
     await report.save();
 
-    // Populate before sending back so the frontend gets real Item objects
-    // (with a real _id, name, Type, etc.) instead of bare ObjectId strings -
-    // otherwise every artifact card ends up sharing the same "undefined" key.
+    // Populate so the frontend gets real Item objects, not bare ObjectIds -
+    // otherwise every artifact card renders with the same undefined key.
     await report.populate("allocatedItems");
 
     // Notification: acceptance of the researcher's field report.
@@ -512,12 +495,10 @@ router.post("/artifacts/:itemId/allocate", async (req, res) => {
     }
   }
 
-  const destinationLabel = destination === "Museum" ? normalizeMuseumName(museumName) : "Scheduled for Auction";
+  const destinationLabel = destination === "Museum" ? normalizeMuseumName(museumName) : "Auction";
 
-  // Museum Collection & Artifact Inventory Management (Feature 12): fetch +
-  // .save() instead of findByIdAndUpdate, so the model's pre("save") hook
-  // runs and back-fills a unique artifactId on any older item that doesn't
-  // have one yet (findByIdAndUpdate silently skips document middleware).
+  // fetch + save() rather than findByIdAndUpdate, so the pre("save") hook runs
+  // and back-fills artifactId on older items. findByIdAndUpdate skips it.
   const item = await Item.findById(req.params.itemId);
   if (!item) return res.status(404).json({ error: "Artifact not found." });
 
@@ -525,12 +506,11 @@ router.post("/artifacts/:itemId/allocate", async (req, res) => {
   item.museumName = destination === "Museum" ? normalizeMuseumName(museumName) : "";
   item.location = destinationLabel;
   item.availability = destination === "Museum" ? "In Storage" : "Transferred";
-  // Ahad_23201016 - artifacts recovered on an excavation project are held
-  // back from Smart Artifact Search until this moment. Allocating one
-  // releases it into the public catalogue; sending it to Auction also makes
-  // it show up as a candidate in Manage Auctions.
+  // Ahad_23201016 - finds from a dig stay out of the public catalogue until
+  // this point. Allocating releases them; Auction also lists them in Manage
+  // Auctions.
   item.pending_allocation = false;
-  // Being allocated is itself a status/location change worth logging.
+  // Allocation is itself a location change, so log it.
   item.movementHistory.push({
     action: "Allocated",
     status: item.availability,
@@ -543,8 +523,7 @@ router.post("/artifacts/:itemId/allocate", async (req, res) => {
   });
   await item.save();
 
-  // Ahad_23201016 - once every find from a completed dig has a destination,
-  // flag the project itself as fully allocated.
+  // Ahad_23201016 - flag the project done once every find has a destination.
   if (item.excavationProject) {
     const stillPending = await Item.countDocuments({
       excavationProject: item.excavationProject,

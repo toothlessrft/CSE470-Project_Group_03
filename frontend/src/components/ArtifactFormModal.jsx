@@ -1,8 +1,6 @@
-// Ahad_23201016 - Add Artifact, moved out of the field report and into the
-// active excavation project. Same fields as the Smart Artifact Search "Add
-// Artifact" form, except the discovery location is fixed to wherever the
-// original discovery report came from - the team can see it on the map but
-// can't move the pin, so every find stays tied to the reported site.
+// Ahad_23201016 - Add Artifact for an active excavation project. Same fields
+// as the catalogue's own form, except the location is fixed to the discovery
+// report's site: the pin shows on the map but cannot be moved.
 import { useEffect, useState } from "react";
 import { X, MapPin } from "lucide-react";
 import GoogleMapPicker from "./GoogleMapPicker";

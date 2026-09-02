@@ -35,8 +35,8 @@ const PROGRESS_TINTS = {
 function ProjectCard({ p, onAddArtifact }) {
   const progressColor = PROGRESS_COLORS[p.progress] || "var(--muted)";
 
-  // Ahad_23201016 - projects awarded through the tender process carry an
-  // excavation team and a fixed location; legacy projects don't.
+  // Ahad_23201016 - tendered projects carry a team and a fixed location;
+  // older ones do not.
   const team = p.excavation_team;
   const teamName =
     team?.roleProfile?.company_name || team?.roleProfile?.organization || team?.name || null;
@@ -108,13 +108,13 @@ function ProjectCard({ p, onAddArtifact }) {
         className="actions"
         style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}
       >
-        {/* Ahad_23201016 - "Add Item" replaced by "Catalogue artifact"; the
-            location is taken from the project, so there is no map to fill in. */}
+        {/* Ahad_23201016 - location comes from the project, so there is no
+            map to fill in here. */}
         <button className="btn-small" onClick={() => onAddArtifact(p)}>
           <PackagePlus size={13} aria-hidden="true" /> Catalogue artifact
         </button>
 
-        {/* Ahad_23201016 - "Team" is now the awarded excavation team */}
+        {/* Ahad_23201016 - the team awarded this dig */}
         <Link to={`/arc/projects/${p._id}/team`} className="btn-small btn-secondary">
           <Users size={13} aria-hidden="true" /> Field team
         </Link>
@@ -205,8 +205,8 @@ export default function ManageProjects() {
 
   function openAddArtifact(p) {
     if (!p.tender) {
-      // Legacy projects have no tender-fixed location, so keep them on the
-      // original Add Item screen rather than guessing coordinates.
+      // Older projects have no fixed location, so send them to the Add Item
+      // screen rather than guessing coordinates.
       navigate(`/arc/projects/${p._id}/items`);
       return;
     }

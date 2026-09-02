@@ -1,31 +1,7 @@
-// Cross Feedback & Performance Review System - the "review" notification
-// category.
-//
-// Only two roles ever take part in a dig: the lead archaeologist and the
-// excavation team awarded the tender. When a project finishes, each one is
-// asked to rate the other, so exactly two notifications exist per completed
-// project and nobody else can receive one (the allow list is enforced
-// centrally by CATEGORY_ROLES in models/Notification.js).
-//
-// Two entry points:
-//
-//   sendReviewRequests(project)          - called the moment a project is
-//                                          marked finished, from either
-//                                          completion route.
-//   ensureReviewRequestNotifications(u)  - self-healing backfill, called on
-//                                          every notification fetch rather
-//                                          than only at server boot, so it
-//                                          takes effect on the next page
-//                                          load/poll instead of depending on
-//                                          the backend actually being
-//                                          restarted (a browser refresh does
-//                                          not do that).
-//
-// The backfill matters because notify() swallows its own errors by design: a
-// failed send leaves no trace, and a completed project has no UI anywhere to
-// retrigger the prompt from. Both entry points are idempotent - a party who
-// already has the notification, or who has already left their review, is
-// skipped.
+// Cross feedback: when a dig ends, the lead archaeologist and the excavation
+// team are each asked to rate the other, so two prompts per finished project.
+// sendReviewRequests() fires on completion; ensureReviewRequestNotifications()
+// is a backfill for prompts that never arrived. Both are idempotent.
 const Notification = require("../models/Notification");
 const ExcavationProject = require("../models/ExcavationProject");
 const Review = require("../models/Review");
@@ -40,7 +16,7 @@ function idOf(value) {
   return String(value._id || value);
 }
 
-// Has this person already been asked, or already answered, for this project?
+// Already asked, or already answered?
 async function alreadyHandled(userId, project) {
   const [hasNotification, hasReview] = await Promise.all([
     Notification.exists({ user: userId, type: "review.requested", "meta.project": project._id }),
@@ -48,8 +24,7 @@ async function alreadyHandled(userId, project) {
   ]);
   if (hasNotification || hasReview) return true;
 
-  // Also covers a notification sent before "meta.project" was tracked,
-  // without needing a separate migration to backfill that field.
+  // Older notifications predate meta.project, so match on the project name.
   if (project.p_name) {
     const legacyMatch = await Notification.exists({
       user: userId,
@@ -61,8 +36,8 @@ async function alreadyHandled(userId, project) {
   return false;
 }
 
-// One prompt for one person. `role` is passed explicitly so notify() does not
-// have to re-read the user just to check the category allow list.
+// One prompt for one person. role is passed in so notify() need not re-read
+// the user to check the category allow list.
 async function requestReviewFrom(userId, role, project) {
   if (!userId) return null;
   if (await alreadyHandled(userId, project)) return null;
@@ -74,9 +49,7 @@ async function requestReviewFrom(userId, role, project) {
     type: "review.requested",
     title: "Report submitted, rate your partner",
     message: `The excavation "${project.p_name}" is complete. Share a rating and feedback about your partner.`,
-    // "Go to page" opens the recipient's own view of the project, where the
-    // "Rate your partner" button next to the other party sits. The two roles
-    // reach the same ProjectDetail page by different routes.
+    // Both roles land on the same project page, by different routes.
     link:
       role === "excavation_team"
         ? `/et/projects/${project._id}`
@@ -93,24 +66,16 @@ async function requestReviewFrom(userId, role, project) {
   return sent;
 }
 
-/**
- * Ask both sides of a finished project to review each other.
- *
- * Called from every route that ends a project. The person who clicked
- * "Complete" is deliberately NOT excluded here: they see the rating popup
- * inline straight away, but if they dismiss it with "Maybe later" the
- * notification is the only way back to it.
- *
- * @returns the number of prompts actually created (0-2).
- */
+// Ask both sides of a finished project to rate each other. Returns how many
+// prompts were created (0-2). Whoever clicked "Complete" still gets one, since
+// dismissing the inline popup would otherwise lose it.
 async function sendReviewRequests(project) {
   try {
     if (!project?._id || !project.end_date) return 0;
 
     const leadId = idOf(project.lead_archaeologist);
     const teamId = idOf(project.excavation_team);
-    // A review needs two sides - a project with only one party recorded has
-    // nobody to rate.
+    // Needs both sides recorded.
     if (!leadId || !teamId) return 0;
 
     const results = await Promise.all([
@@ -124,23 +89,21 @@ async function sendReviewRequests(project) {
   }
 }
 
-// Accounts already checked in this process. A newly completed project is
-// still caught immediately because the completion routes call
-// sendReviewRequests() themselves - this is only a safety net for prompts
-// that never arrived, so a per-process cache is enough.
+// Accounts already backfilled in this process - just a safety net, so an
+// in-memory set is enough.
 const checked = new Set();
 
 async function ensureReviewRequestNotifications(user) {
   try {
     if (!user?._id) return;
-    // Only the two roles that take part in a dig can be owed a prompt.
+    // Only these two roles take part in a dig.
     if (user.role !== "archaeologist" && user.role !== "excavation_team") return;
 
     const userId = String(user._id);
     if (checked.has(userId)) return;
     checked.add(userId);
 
-    // Finished projects this user was part of, on whichever side they sat.
+    // Finished projects this user was on, either side.
     const sideFilter =
       user.role === "archaeologist"
         ? { lead_archaeologist: user._id, excavation_team: { $ne: null } }

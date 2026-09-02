@@ -17,19 +17,18 @@ const tenderSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
 
-    // Where this tender came from. Both are optional so an admin can also
-    // publish a standalone tender that isn't tied to a public discovery.
+    // Where the tender came from. Optional, so an admin can also publish one
+    // not tied to any public discovery.
     discoveryReport: { type: Schema.Types.ObjectId, ref: "DiscoveryReport", default: null },
     fieldReport: { type: Schema.Types.ObjectId, ref: "ResearcherReport", default: null },
 
-    // The archaeologist who verified the site - becomes the lead on the project
+    // The archaeologist who verified the site; becomes the project lead
     archaeologist: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
     project_details: { type: String, required: true },
     requirements: { type: String, default: "" },
 
-    // Auto-filled from the discovery report so the dig happens exactly where
-    // the artifact was reported.
+    // From the discovery report, so the dig happens where the find was.
     location: {
       lat: { type: Number, default: null },
       lng: { type: Number, default: null },

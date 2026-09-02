@@ -1,11 +1,6 @@
-// Role-Based Notification & Reminder System
-//
-// Navbar bell with an unread count, and a floating panel that drills down in
-// three steps: categories -> the notifications in that category -> the full
-// notification, whose button opens the page the notification is about.
-//
-// Government/Admin does not get a bell - unread counts show up as red circles
-// on the Admin Dashboard cards instead (see AdminDashboard.jsx).
+// Navbar bell with an unread count. The panel drills down in three steps:
+// categories -> the notifications in one -> the full notification, whose
+// button opens the page it is about.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -46,10 +41,9 @@ const CATEGORY_LABELS = [
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_LABELS.map((c) => [c.key, c]));
 
-// Keep in sync with CATEGORY_ROLES in backend/models/Notification.js.
-// The backend already refuses to create a restricted notification for the
-// wrong role, so this is belt-and-braces: it also hides rows that predate
-// that rule, which would otherwise still be sitting in an old inbox.
+// Keep in sync with CATEGORY_ROLES in backend/models/Notification.js. The
+// backend already blocks these at write time; this also hides older rows that
+// predate the rule.
 const CATEGORY_ROLES = {
   review: ["archaeologist", "excavation_team"],
 };
@@ -83,9 +77,8 @@ export default function NotificationBell() {
   const [allNotifications, setAllNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Everything below works off the role-filtered list, so a restricted
-  // category cannot show up in the category list, the per-category counts, or
-  // "Mark read".
+  // Everything below reads the filtered list, so a restricted category cannot
+  // appear in the category rows, the counts, or "Mark read".
   const notifications = useMemo(
     () => allNotifications.filter((n) => canSeeCategory(n.category, role)),
     [allNotifications, role]
@@ -116,12 +109,9 @@ export default function NotificationBell() {
       });
   }, []);
 
-  // Poll the cheap summary endpoint for the bell's badge. While the panel is
-  // open, also re-poll the full list on the same tick - otherwise the
-  // per-category counts (built from `notifications`, fetched once on open)
-  // drift out of sync with the badge (built from `summary`, always polled),
-  // which is exactly what shows a different number on the bell than in the
-  // category rows.
+  // Poll the cheap summary for the badge. While the panel is open, re-poll the
+  // full list on the same tick, or the category counts drift away from the
+  // badge and the two show different numbers.
   useEffect(() => {
     loadSummary();
     const timer = setInterval(() => {
@@ -185,7 +175,7 @@ export default function NotificationBell() {
     setSelected(notification);
     if (notification.read) return;
 
-    // Optimistic - the badge should drop the moment it is opened.
+    // Optimistic: the badge should drop as soon as it is opened.
     setAllNotifications((prev) =>
       prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
     );
@@ -219,9 +209,8 @@ export default function NotificationBell() {
     }
   }
 
-  // The summary endpoint counts every category, so subtract any the current
-  // role is not allowed to see - otherwise the badge could show a number the
-  // user can never open or clear.
+  // The summary counts every category, so subtract the ones this role cannot
+  // see, or the badge shows a number they can never clear.
   const unread = useMemo(() => {
     let total = summary.unread || 0;
     for (const [key, count] of Object.entries(summary.byCategory || {})) {

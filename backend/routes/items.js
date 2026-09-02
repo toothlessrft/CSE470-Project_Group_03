@@ -15,7 +15,7 @@ router.post("/", requireRole("admin"), async (req, res) => {
 
         let siteId = req.body.site;
 
-        // If site is not provided, and coords are provided, create a hidden virtual site for the map coords
+        // No site but coordinates given: make a hidden one so it maps.
         if (!siteId && latitude && longitude) {
             const dummySite = await Site.create({
                 name: site_name || `Discovered location for ${name}`,

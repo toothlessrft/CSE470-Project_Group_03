@@ -1,8 +1,5 @@
-// Public Archaeology Q&A
-//
-// Non-logged-in users can browse questions and answers read-only. Logged-in
-// Public members ask questions and follow/comment on discussions.
-// Archaeologists answer questions and can edit their own answers later.
+// Public archaeology Q&A. Guests browse read-only, public members ask and
+// comment, archaeologists answer and can edit their own answers.
 const express = require("express");
 const Question = require("../models/Question");
 const Answer = require("../models/Answer");
@@ -78,7 +75,7 @@ router.post("/questions", requireAuth, requireRole("public"), async (req, res) =
       images: Array.isArray(images) ? images.slice(0, MAX_IMAGES) : [],
     });
 
-    // So archaeologists/researchers know a new question is waiting for them.
+    // Let archaeologists know a question is waiting.
     await notifyRole(
       "archaeologist",
       {
@@ -172,7 +169,7 @@ router.post("/questions/:id/comments", requireAuth, async (req, res) => {
       body: String(body).trim(),
     });
 
-    // Archaeologists watch the discussion; the asker gets to follow it too.
+    // Archaeologists watch the thread, and so does the asker.
     await notifyRole(
       "archaeologist",
       {

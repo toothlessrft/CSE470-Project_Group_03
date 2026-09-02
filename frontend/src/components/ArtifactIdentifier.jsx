@@ -1,8 +1,6 @@
-// AI Artifact Identification
-// Docked launcher in the bottom-right corner. Opens a panel where you upload
-// a photograph and get back a suggested civilization / class / era / material,
-// plus the closest matches already in the catalogue. Everything it produces is
-// a suggestion for a specialist to check - it never writes to the catalogue.
+// Docked launcher, bottom right. Upload a photo and get back a suggested
+// civilization, class, era and material, plus the closest catalogue matches.
+// Suggestions only, for a specialist to check - it never writes anything.
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ScanSearch, X, Search, RotateCcw, ImagePlus, Info } from "lucide-react";
@@ -44,11 +42,11 @@ export default function ArtifactIdentifier() {
   const [hint, setHint] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  // 503 means the server has no API key yet - a setup step, not a failure
+  // 503 means no API key is configured yet - setup, not a failure
   const [needsSetup, setNeedsSetup] = useState(false);
   const [result, setResult] = useState(null);
 
-  // Identification runs against a paid API, so the backend requires a login.
+  // The backend requires a login, since identification costs an API call.
   if (!user) return null;
 
   async function handleFile(e) {
@@ -90,8 +88,7 @@ export default function ArtifactIdentifier() {
     setNeedsSetup(false);
   }
 
-  // Hands the suggested tags to the catalogue search, which already filters on
-  // exactly these fields.
+  // Hand the tags to the catalogue search, which filters on these same fields.
   function searchCatalogue() {
     const s = result.suggestion;
     const usp = new URLSearchParams();

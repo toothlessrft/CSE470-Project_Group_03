@@ -33,7 +33,7 @@ import MuseumDirectory from "./pages/public/MuseumDirectory";
 import MuseumDetail from "./pages/public/MuseumDetail";
 import NearMe from "./pages/public/NearMe";
 
-// Ahad_23201016 - Excavation Team (replaces Site Caretaker)
+// Ahad_23201016 - Excavation Team
 import ETeamDashboard from "./pages/et/ETeamDashboard";
 import BrowseTenders from "./pages/et/BrowseTenders";
 import MyBids from "./pages/et/MyBids";
@@ -208,7 +208,7 @@ export default function App() {
           }
         />
 
-        {/* Tools & Field Equipment - archaeologists and excavation teams.
+        {/* Tools and field equipment - archaeologists and excavation teams.
             The API rejects anyone who isn't leading or assigned to an active
             project, so a single shared route is enough here. */}
         <Route
@@ -357,7 +357,8 @@ export default function App() {
         <Route path="/museums/:museumName" element={<MuseumDetail />} />
         <Route path="/near-me" element={<NearMe />} />
 
-        {/* Auctions - browsing is open to everyone, bidding/wishlist require login (enforced in the page/API) */}
+        {/* Auctions - anyone can browse; bidding and wishlist need a login,
+            enforced in the page and the API. */}
         <Route path="/auctions" element={<Auctions />} />
         <Route path="/auctions/:id" element={<AuctionDetail />} />
 

@@ -4,11 +4,9 @@ const express = require("express");
 const Tender = require("../models/Tender");
 const TenderBid = require("../models/TenderBid");
 const ExcavationProject = require("../models/ExcavationProject");
-const DiscoveryReport = require("../models/DiscoveryReport");
 const ResearcherReport = require("../models/ResearcherReport");
 const Site = require("../models/Site");
 const Item = require("../models/Item");
-const User = require("../models/User");
 const Notification = require("../models/Notification");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { notify, notifyMany, notifyRole, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
@@ -18,12 +16,10 @@ const { sendReviewRequests } = require("../services/reviewNotifications"); // Cr
 const router = express.Router();
 router.use(requireAuth);
 
-// ---------------------------------------------------------------------------
-// Ahad_23201016 - helpers
-// ---------------------------------------------------------------------------
+// --- helpers ---------------------------------------------------------------
 
-// Site.name and ExcavationProject.p_name are both unique, so a second dig at
-// the same address would otherwise blow up. Suffix until the name is free.
+// Site.name and ExcavationProject.p_name are unique, so a second dig at the
+// same address would clash. Suffix until the name is free.
 async function uniqueName(Model, field, base) {
   const clean = (base || "Excavation").trim() || "Excavation";
   let candidate = clean;
@@ -78,13 +74,10 @@ async function announceBid(tender, user, bid, actor) {
   );
 }
 
-// ===========================================================================
-// Ahad_23201016 - GOVERNMENT / ADMIN: publish and manage tenders
-// ===========================================================================
+// === GOVERNMENT / ADMIN: publish and manage tenders ========================
 
-// GET /api/tenders/admin/sources
-// Approved field reports where the archaeologist asked for an excavation team
-// and no tender has been published yet - these are what an admin picks from.
+// GET /api/tenders/admin/sources -> approved field reports that asked for an
+// excavation team and have no tender yet. This is what the admin picks from.
 router.get("/admin/sources", requireRole("admin"), async (req, res) => {
   try {
     const reports = await ResearcherReport.find({
@@ -346,8 +339,8 @@ router.post("/admin/:id/award", requireRole("admin"), async (req, res) => {
       return res.status(400).json({ error: "That bid was withdrawn and can no longer be accepted." });
     }
 
-    // The dig needs a Site with real coordinates so every artifact recovered
-    // here lands on the Smart Artifact Search map at the reported spot.
+    // The dig needs a Site with real coordinates so its finds land on the
+    // artifact search map at the reported spot.
     const address = tender.location?.address || tender.title;
     let site = null;
     if (tender.location?.lat != null && tender.location?.lng != null) {
@@ -386,8 +379,7 @@ router.post("/admin/:id/award", requireRole("admin"), async (req, res) => {
       agreed_timeline_days: winningBid.timeline_days,
     });
 
-    // Project Team Group Chat - auto-created now that both the lead
-    // archaeologist and the awarded excavation team are set on the project.
+    // Both parties are set now, so the group chat can be created.
     await ensureChatForProject(project);
 
     winningBid.status = "Accepted";
@@ -480,9 +472,7 @@ router.post("/admin/bids/:bidId/reject", requireRole("admin"), async (req, res) 
   res.json({ message: "Bid rejected.", bid });
 });
 
-// ===========================================================================
-// Ahad_23201016 - EXCAVATION TEAM: browse tenders, bid, edit, withdraw
-// ===========================================================================
+// === EXCAVATION TEAM: browse tenders, bid, edit, withdraw ===================
 
 // GET /api/tenders/open -> available tenders, each annotated with my own bid
 router.get("/open", requireRole("excavation_team"), async (req, res) => {
@@ -628,11 +618,9 @@ router.delete("/bids/:bidId", requireRole("excavation_team"), async (req, res) =
   res.json({ message: "Bid withdrawn.", bid });
 });
 
-// ===========================================================================
-// Ahad_23201016 - SHARED PROJECT WORKSPACE
-// The lead archaeologist, the assigned excavation team, and the admin all read
-// the same project record - each just sees the actions their role allows.
-// ===========================================================================
+// === SHARED PROJECT WORKSPACE ==============================================
+// Archaeologist, excavation team and admin all read the same project record;
+// each sees only the actions their role allows.
 
 async function loadProjectFor(req, res) {
   const project = await ExcavationProject.findById(req.params.id)
@@ -668,16 +656,14 @@ router.get("/projects/:id", async (req, res) => {
 
   res.json({
     project: { ...project.toObject(), excavation_team: serializeTeam(project.excavation_team) },
-    // Ahad_23201016 - the excavation team has read-only access to the project;
-    // only the lead archaeologist records progress, artifacts and handover.
+    // Team has read-only access; only the lead records progress and finds.
     permissions: { isAdmin, isLead, isTeam, canEdit: isLead && !project.end_date },
   });
 });
 
-// POST /api/tenders/projects/:id/artifacts
-// The "Add Artifact" flow from Smart Artifact Search, moved into the project.
-// The discovery location is taken from the project itself, never from the
-// client, so every find is pinned to where the report actually came from.
+// POST /api/tenders/projects/:id/artifacts -> log a recovered artifact.
+// Coordinates come from the project, not the client, so every find is pinned
+// to where the report actually came from.
 router.post("/projects/:id/artifacts", async (req, res) => {
   try {
     const loaded = await loadProjectFor(req, res);
@@ -715,8 +701,8 @@ router.post("/projects/:id/artifacts", async (req, res) => {
       excavationProject: project._id,
     });
 
-    // Atomic push - the loaded doc has `artifacts` populated, so mutating it
-    // in place and calling save() would try to write whole sub-documents back.
+    // Atomic push: `artifacts` is populated here, so save() would try to write
+    // whole sub-documents back.
     await ExcavationProject.updateOne({ _id: project._id }, { $push: { artifacts: item._id } });
 
     res.status(201).json({ item });
@@ -788,9 +774,8 @@ router.patch("/projects/:id/progress", async (req, res) => {
   res.json({ message: "Progress updated.", progress: req.body.progress });
 });
 
-// POST /api/tenders/projects/:id/complete
-// Ends the dig and hands the recovered artifacts to the Government/Admin,
-// who then decides where each one goes (museum storage or auction).
+// POST /api/tenders/projects/:id/complete -> end the dig and hand the finds to
+// the admin, who allocates each one to a museum or to auction.
 router.post("/projects/:id/complete", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
@@ -839,11 +824,8 @@ router.post("/projects/:id/complete", async (req, res) => {
     [req.user._id]
   );
 
-  // Cross Feedback & Performance Review System: both sides are asked to rate
-  // each other. The person who clicked "Complete" also sees the rating popup
-  // inline straight away (see ProjectDetail.jsx), but they still get the
-  // notification - dismissing that popup with "Maybe later" would otherwise
-  // leave them no way back to it.
+  // Both sides are asked to rate each other. Whoever clicked "Complete" also
+  // sees the popup inline, but still gets the notification in case they dismiss it.
   await sendReviewRequests(updated);
 
   res.json({

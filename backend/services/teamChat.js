@@ -1,15 +1,11 @@
-// Project Team Group Chat (Archaeologist & Excavation Team) - write-side
-// helpers, called from the tender award / project completion flows in
-// routes/tenders.js so the chat's lifecycle always tracks the project's.
+// Group chat between the archaeologist and the excavation team. Called from
+// the award and completion flows in routes/tenders.js, so the chat's lifecycle
+// follows the project's.
 const TeamChat = require("../models/TeamChat");
 const ChatMessage = require("../models/ChatMessage");
 const { notify } = require("./notify");
 
-/**
- * Auto-create the group chat the moment a project has both a lead
- * archaeologist and an assigned excavation team. Safe to call more than
- * once for the same project - it no-ops if a chat already exists.
- */
+// Create the chat once a project has both parties. No-ops if one exists.
 async function ensureChatForProject(project) {
   if (!project?.lead_archaeologist || !project?.excavation_team) return null;
 
@@ -43,7 +39,7 @@ async function ensureChatForProject(project) {
   return chat;
 }
 
-/** Archive the project's chat on completion. It stays readable in history. */
+// Archive on completion - read-only, but stays in chat history.
 async function archiveChatForProject(projectId) {
   const chat = await TeamChat.findOneAndUpdate(
     { project: projectId, archived: false },

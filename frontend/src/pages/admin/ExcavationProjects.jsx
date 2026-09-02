@@ -1,8 +1,7 @@
-// Ahad_23201016 - Government view of every excavation project created through
-// the tender process. Once a dig is completed and handed over, the admin
-// allocates each recovered artifact here (museum storage or auction) using the
-// existing allocation endpoint. Anything sent to Auction becomes a candidate in
-// Manage Auctions, and allocating releases it into Smart Artifact Search.
+// Ahad_23201016 - admin view of every project created through the tender
+// process. Once a dig is handed over, each recovered artifact is allocated
+// here: a museum, or auction (which lists it in Manage Auctions). Allocating
+// is also what releases the artifact into the public catalogue.
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import {
@@ -77,9 +76,9 @@ export default function ExcavationProjects() {
   const visible = projects.filter((p) => {
     if (tab === "All") return true;
     if (tab === "Active") return !p.end_date;
-    // Mirrors the "excavation_projects" badge query on the backend: only a
-    // completed dig that actually recovered something and isn't fully
-    // allocated yet counts as awaiting allocation.
+    // Mirrors the backend's excavation_projects badge query: a dig only counts
+    // as awaiting allocation if it finished, recovered something, and is not
+    // fully allocated yet.
     return Boolean(p.end_date) && !p.allocation_done && (p.artifacts?.length || 0) > 0;
   });
 

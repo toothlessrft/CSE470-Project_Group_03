@@ -27,8 +27,6 @@ export default function CreateAuction() {
   const [startingBid, setStartingBid] = useState("");
   const [minIncrement, setMinIncrement] = useState("");
   const [deadline, setDeadline] = useState("");
-  const [sourcePercentage, setSourcePercentage] = useState("");
-  const [sourceName, setSourceName] = useState("");
   const [extendTrigger, setExtendTrigger] = useState(2);
   const [extendBy, setExtendBy] = useState(2);
   const [bidCount, setBidCount] = useState(0);
@@ -48,8 +46,6 @@ export default function CreateAuction() {
       setStartingBid(a.starting_bid);
       setMinIncrement(a.min_increment);
       setDeadline(toLocalDatetimeInput(a.deadline));
-      setSourcePercentage(a.source_percentage ?? "");
-      setSourceName(a.source_name || "");
       setExtendTrigger(a.extend_trigger_minutes);
       setExtendBy(a.extend_by_minutes);
       setBidCount(a.bid_count);
@@ -86,8 +82,6 @@ export default function CreateAuction() {
         starting_bid: startingBid,
         min_increment: minIncrement,
         deadline: new Date(deadline).toISOString(),
-        source_percentage: sourcePercentage,
-        source_name: sourceName,
         extend_trigger_minutes: extendTrigger,
         extend_by_minutes: extendBy,
       };
@@ -201,24 +195,6 @@ export default function CreateAuction() {
             <label>
               Extend by (minutes)
               <input type="number" min="0" value={extendBy} onChange={(e) => setExtendBy(e.target.value)} />
-            </label>
-          </div>
-        </fieldset>
-
-        <fieldset>
-          <legend>Share to the source (optional)</legend>
-          <div className="form-row">
-            <label>
-              Share of hammer price (%)
-              <input type="number" min="0" max="100" value={sourcePercentage} onChange={(e) => setSourcePercentage(e.target.value)} placeholder="e.g. 10" />
-            </label>
-            <label>
-              Paid to
-              <input
-                value={sourceName}
-                onChange={(e) => setSourceName(e.target.value)}
-                placeholder="e.g. Rahim Khan, who reported the find"
-              />
             </label>
           </div>
         </fieldset>

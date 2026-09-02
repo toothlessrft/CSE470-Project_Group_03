@@ -9,10 +9,9 @@ const REFRESH_MS = 20 * 1000;
 
 export default function AdminDashboard() {
   const [admin, setAdmin] = useState(null);
-  // Red circles on the cards below. These are live counts of work still
-  // waiting on the admin (pending requests, unassigned reports, active
-  // auctions...), NOT unread notification counts - so a badge only clears once
-  // the underlying request is actually approved, denied, or otherwise handled.
+  // Counts behind the red circles on the cards: work still waiting on the
+  // admin, not unread notifications. A badge only clears once the underlying
+  // request is actually handled.
   const [counts, setCounts] = useState({});
 
   const loadCounts = useCallback(() => {
@@ -26,8 +25,8 @@ export default function AdminDashboard() {
     api.get("/admin/dashboard").then((data) => setAdmin(data.admin));
     loadCounts();
 
-    // Poll while open, and refresh the moment the admin comes back to the tab
-    // or returns from one of the cards, so counts reflect what was just done.
+    // Poll while open, and refresh on tab focus, so the counts reflect work
+    // just done on one of the cards.
     const timer = setInterval(loadCounts, REFRESH_MS);
     window.addEventListener("focus", loadCounts);
     document.addEventListener("visibilitychange", loadCounts);

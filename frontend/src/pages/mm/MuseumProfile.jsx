@@ -31,8 +31,8 @@ export default function MuseumProfile() {
     try {
       const data = await api.get("/mm/museum-profile");
       setProfile(data.profile);
-      // If nothing has ever been filled in, jump straight to editing so the
-      // manager isn't stuck looking at an empty "preview".
+      // Nothing filled in yet, so open straight into editing rather than an
+      // empty preview.
       const isEmpty = !data.profile.address && !data.profile.operating_hours && !data.profile.ticket_info && !data.profile.location;
       setMode(isEmpty ? "edit" : "view");
     } catch (err) {

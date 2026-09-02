@@ -8,7 +8,6 @@ import {
   LayoutDashboard,
   CalendarDays,
   Gavel,
-  FileText,
   LocateFixed,
   Compass,
   MessagesSquare,
@@ -58,7 +57,7 @@ export default function Navbar() {
     <nav className="navbar">
       <Link to="/" className="brand">
         <span className="brand-mark" aria-hidden="true">
-          <BrandMark />
+          <BrandMark size="2.05em" />
         </span>
         <span className="brand-text">
           ArchiveEarth
@@ -74,12 +73,6 @@ export default function Navbar() {
             <Link to="/report-discovery">
               <MapPin size={15} aria-hidden="true" /> Report a find
             </Link>
-
-            {user.role === "excavation_team" && (
-              <Link to="/et/tenders">
-                <FileText size={15} aria-hidden="true" /> Tenders
-              </Link>
-            )}
 
             <span className="nav-divider" aria-hidden="true" />
 

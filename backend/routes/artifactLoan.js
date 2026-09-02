@@ -69,7 +69,7 @@ router.post("/request", async (req, res) => {
       status: "Pending",
     });
 
-    // Notification: action-required loan request for the lending museum.
+    // Action-required alert for the lending museum.
     const artifact = await Item.findById(item_id).select("name");
     await notify({
       user: lending_museum_id,
@@ -128,11 +128,9 @@ router.post("/:id/decision", async (req, res) => {
   loan.response_note = response_note || "";
   loan.decided_at = new Date();
 
-  // Museum Collection & Artifact Inventory Management (Feature 12):
-  // approving a loan automatically moves the artifact's status to "On Loan"
-  // and logs it in the artifact's movement history. We remember the status
-  // it had beforehand so returning it can restore the right one later.
-    if (action === "approve") {
+  // Approving moves the artifact to "On Loan" and logs it. Remember the old
+  // status so the return can restore it.
+  if (action === "approve") {
     const artifact = await Item.findById(loan.item);
     const borrower = await User.findById(loan.requesting_museum).select("roleProfile.museum_name name");
     const borrowerMuseumName = borrower?.roleProfile?.museum_name || borrower?.name || "";
@@ -152,7 +150,7 @@ router.post("/:id/decision", async (req, res) => {
 
   await loan.save();
 
-  // Notification: decision back to the requesting museum.
+  // Decision back to the requesting museum.
   const artifact = await Item.findById(loan.item).select("name");
   await notify({
     user: loan.requesting_museum,
@@ -178,7 +176,7 @@ router.post("/:id/return", async (req, res) => {
   loan.status = "Returned";
   loan.returned_at = new Date();
 
-  // Automatically restore the artifact's prior status and log the return.
+  // Restore the artifact's earlier status and log the return.
   const returningItem = await Item.findById(loan.item);
   if (returningItem) {
     const restoredStatus = loan.previous_availability || "In Storage";
@@ -195,7 +193,7 @@ router.post("/:id/return", async (req, res) => {
 
   await loan.save();
 
-  // Notification: return confirmed for the borrowing museum's records.
+  // Return confirmed, for the borrowing museum's records.
   const returnedItem = await Item.findById(loan.item).select("name");
   await notify({
     user: loan.requesting_museum,

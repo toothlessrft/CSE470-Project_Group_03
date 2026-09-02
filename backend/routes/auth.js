@@ -32,7 +32,7 @@ function issueSession(res, user) {
   };
 }
 
-// Ahad_23201016 - "site_caretaker" is now "excavation_team"
+// Roles anyone may register as; "admin" is created by seeding only.
 const PUBLIC_ROLES = ["public", "archaeologist", "museum_manager", "excavation_team"];
 
 router.get("/sites", async (req, res) => {
@@ -75,8 +75,7 @@ router.post("/register", async (req, res) => {
         address: roleProfile?.address,
       };
     } else if (role === "excavation_team") {
-      // Ahad_23201016 - an excavation team registers as a company; the account
-      // holder (`name`) is that company's representative.
+      // Ahad_23201016 - a team registers as a company; `name` is its rep.
       const companyName = (roleProfile?.company_name || "").trim();
       if (!companyName) {
         return res.status(400).json({ error: "Please provide the excavation company's name." });
@@ -103,7 +102,7 @@ router.post("/register", async (req, res) => {
       roleProfile: profile,
     });
 
-    // Notification: a registration is waiting on the Government/Admin.
+    // A registration is now waiting on the admin.
     if (accountStatus === "pending") {
       await notifyAdmins({
         category: "account",
@@ -116,9 +115,8 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    // Only auto-login when the account is already approved (General Public).
-    // Roles that require Government/Admin approval must NOT receive a session
-    // cookie yet - otherwise they could use the app before being approved.
+    // Only auto-login already-approved accounts. Roles that need admin
+    // approval must not get a session cookie yet.
     if (accountStatus === "approved") {
       const sessionUser = issueSession(res, user);
       return res.status(201).json({ user: sessionUser });

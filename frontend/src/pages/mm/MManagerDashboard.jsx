@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PackageSearch, HandCoins, CalendarDays, Gavel, Archive, Settings } from "lucide-react";
+import { PackageSearch, HandCoins, CalendarDays, Gavel, Archive, Settings} from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -43,16 +43,6 @@ export default function MManagerDashboard() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Museum Authority</span>
-          <h1>Collection workspace</h1>
-          <p className="page-subtitle">
-            Manage your holdings, arrange loans with other museums, and publish exhibitions.
-          </p>
-        </div>
-      </div>
-
       <ProfileCard
         name={manager.name}
         nid={manager.nid}
