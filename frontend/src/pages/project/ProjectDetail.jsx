@@ -411,7 +411,7 @@ export default function ProjectDetail() {
                   )}
                 </p>
 
-                {canEdit && (
+                {permissions.isAdmin && (
                   <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.75rem" }}>
                     <button
                       className="btn-small btn-outline"

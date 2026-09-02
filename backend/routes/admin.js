@@ -498,7 +498,7 @@ router.post("/artifacts/:itemId/allocate", async (req, res) => {
     }
   }
 
-  const destinationLabel = destination === "Museum" ? normalizeMuseumName(museumName) : "Scheduled for Auction";
+  const destinationLabel = destination === "Museum" ? normalizeMuseumName(museumName) : "For Auction";
 
   // Museum Collection & Artifact Inventory Management (Feature 12): fetch +
   // .save() instead of findByIdAndUpdate, so the model's pre("save") hook

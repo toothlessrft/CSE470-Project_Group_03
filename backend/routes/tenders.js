@@ -721,9 +721,9 @@ router.post("/projects/:id/artifacts", async (req, res) => {
 router.patch("/projects/:id/artifacts/:itemId", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead, isTeam } = loaded;
+  const { project, isAdmin } = loaded;
 
-  if (!isLead && !isTeam) return res.status(403).json({ error: "Only the project team can edit artifacts." });
+  if (!isAdmin) return res.status(403).json({ error: "Only the heritage authority can edit artifacts." });
   if (project.end_date) return res.status(400).json({ error: "This project has been completed." });
 
   const item = await Item.findOne({ _id: req.params.itemId, excavationProject: project._id });
@@ -744,9 +744,9 @@ router.patch("/projects/:id/artifacts/:itemId", async (req, res) => {
 router.delete("/projects/:id/artifacts/:itemId", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead, isTeam } = loaded;
+  const { project, isAdmin } = loaded;
 
-  if (!isLead && !isTeam) return res.status(403).json({ error: "Only the project team can remove artifacts." });
+  if (!isAdmin) return res.status(403).json({ error: "Only the heritage authority can remove artifacts." });
   if (project.end_date) return res.status(400).json({ error: "This project has been completed." });
 
   const item = await Item.findOne({ _id: req.params.itemId, excavationProject: project._id });

@@ -59,11 +59,23 @@ export default function MuseumDetail() {
       </div>
 
       <div className="card" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-        {FILTERS.map((f) => (
-          <button key={f || "all"} className={availability === f ? "btn" : "btn-small"} onClick={() => setAvailability(f)}>
-            {f || "All"}
-          </button>
-        ))}
+        {FILTERS.map((f) => {
+          const active = availability === f;
+          return (
+            <button
+              key={f || "all"}
+              className="btn btn-small"
+              onClick={() => setAvailability(f)}
+              style={
+                active
+                  ? undefined
+                  : { background: "var(--surface)", color: "var(--primary-dark)", borderColor: "var(--border-strong)" }
+              }
+            >
+              {f || "All"}
+            </button>
+          );
+        })}
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
@@ -81,6 +93,9 @@ export default function MuseumDetail() {
               <StatusBadge status={item.availability} />
             </div>
             <p className="hint" style={{ margin: "0.25rem 0" }}>{item.Type} &middot; ID: {item.artifactId || "—"}</p>
+            {item.museumName && item.museumName !== museum.museum_name && (
+              <p style={{ margin: "0.3rem 0 0", fontSize: "0.8rem", color: "#777" }}>On loan from {item.museumName}</p>
+            )}
             {item.description && <p style={{ margin: 0, fontSize: "0.85rem" }}>{item.description}</p>}
             {item.location && <p style={{ margin: "0.3rem 0 0", fontSize: "0.8rem", color: "#777" }}>Location: {item.location}</p>}
           </div>

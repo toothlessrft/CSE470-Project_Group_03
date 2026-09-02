@@ -84,14 +84,19 @@ export default function Exhibitions() {
 
       <div className="card" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <button className={typeFilter === "" ? "btn" : "btn-small"} onClick={() => setTypeFilter("")}>
+          <button
+            className="btn btn-small"
+            onClick={() => setTypeFilter("")}
+            style={typeFilter === "" ? undefined : { background: "var(--surface)", color: "var(--primary-dark)", borderColor: "var(--border-strong)" }}
+          >
             All
           </button>
           {Object.entries(TYPE_LABELS).map(([value, label]) => (
             <button
               key={value}
-              className={typeFilter === value ? "btn" : "btn-small"}
+              className="btn btn-small"
               onClick={() => setTypeFilter(value)}
+              style={typeFilter === value ? undefined : { background: "var(--surface)", color: "var(--primary-dark)", borderColor: "var(--border-strong)" }}
             >
               {label}
             </button>
@@ -100,7 +105,7 @@ export default function Exhibitions() {
 
         <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem", alignItems: "center" }}>
           {nearMeActive ? (
-            <button className="btn-small btn-outline" onClick={clearNearMe}>
+            <button className="btn-small btn-outline-light" onClick={clearNearMe}>
               Clear "Near Me"
             </button>
           ) : (

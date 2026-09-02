@@ -45,6 +45,7 @@ import ManageExcavationRequests from "./pages/admin/ManageExcavationRequests";
 import ViewExcavationRequest from "./pages/admin/ViewExcavationRequest";
 import FieldReports from "./pages/admin/FieldReports";
 import AssignInspection from "./pages/admin/AssignInspection";
+import LoansHub from "./pages/mm/LoansHub";
 import RequestLoan from "./pages/mm/RequestLoan";
 import MyLoanRequests from "./pages/mm/MyLoanRequests";
 import IncomingLoanRequests from "./pages/mm/IncomingLoanRequests";
@@ -194,6 +195,22 @@ export default function App() {
           element={
             <ProtectedRoute role="museum_manager">
               <RequestItems />
+            </ProtectedRoute>
+          }
+        />
+        <Route 
+          path="/mm/request-loan" 
+          element={
+            <ProtectedRoute role="museum_manager">
+              <RequestLoan />
+            </ProtectedRoute>
+            }
+        />
+                <Route
+          path="/mm/loans"
+          element={
+            <ProtectedRoute role="museum_manager">
+              <LoansHub />
             </ProtectedRoute>
           }
         />

@@ -105,20 +105,29 @@ router.get("/:museumName", async (req, res) => {
   if (!manager) return res.status(404).json({ error: "Museum not found." });
 
   const { availability, type, civilization, era, material, location, q } = req.query;
-  const filter = { allocation: "Museum", museumName };
-  if (availability) filter.availability = availability;
-  if (type) filter.Type = type;
-  if (civilization) filter.civilization = new RegExp(civilization.trim(), "i");
-  if (era) filter.era = new RegExp(era.trim(), "i");
-  if (material) filter.material = new RegExp(material.trim(), "i");
-  if (location) filter.location = new RegExp(location.trim(), "i");
+
+  // Owns it outright, OR currently has it on an approved loan from elsewhere.
+  const ownership = {
+    $or: [
+      { allocation: "Museum", museumName },
+      { allocation: "Museum", on_loan_to: museumName },
+    ],
+  };
+
+  const extra = {};
+  if (availability) extra.availability = availability;
+  if (type) extra.Type = type;
+  if (civilization) extra.civilization = new RegExp(civilization.trim(), "i");
+  if (era) extra.era = new RegExp(era.trim(), "i");
+  if (material) extra.material = new RegExp(material.trim(), "i");
+  if (location) extra.location = new RegExp(location.trim(), "i");
   if (q) {
     const safeQ = q.trim();
-    filter.$or = [{ name: new RegExp(safeQ, "i") }, { artifactId: new RegExp(safeQ, "i") }];
+    extra.$or = [{ name: new RegExp(safeQ, "i") }, { artifactId: new RegExp(safeQ, "i") }];
   }
 
-  const items = await Item.find(filter)
-    .select("name artifactId Type picture description civilization era region material usage availability location")
+  const items = await Item.find({ $and: [ownership, extra] })
+    .select("name artifactId Type picture description civilization era region material usage availability location museumName")
     .sort({ availability: 1, name: 1 });
 
   res.json({

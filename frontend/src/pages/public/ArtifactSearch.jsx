@@ -324,7 +324,7 @@ export default function ArtifactSearch() {
           </button>
         </div>
 
-        {user?.role === "archaeologist" && (
+        {user?.role === "admin" && (
           <button className="btn" onClick={() => { setEditingItem(null); setItemForm({ name: "", picture: "", description: "", discovery_date: "", location: "", civilization: "", era: "", region: "", material: "", usage: "", latitude: "", longitude: "", site_name: "" }); setShowModal(true); setModalError(""); }}>
             <Plus size={15} /> Add Artifact
           </button>
@@ -473,7 +473,7 @@ export default function ArtifactSearch() {
               </p>
             )}
 
-            {(user?.role === "archaeologist" ||
+            {(user?.role === "admin" ||
               (user?.role === "museum_manager" &&
                 item.allocation === "Museum" &&
                 (item.museumName === user?.museum_name || item.location === user?.museum_name))) && (
@@ -504,7 +504,7 @@ export default function ArtifactSearch() {
                 >
                   <Edit size={14} /> Edit
                 </button>
-                {user?.role === "archaeologist" && (
+                {user?.role === "admin" && (
                   <button
                     className="btn-small"
                     style={{ color: "#fff", background: "var(--danger, #c0392b)", border: "none" }}

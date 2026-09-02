@@ -12,12 +12,6 @@ const router = express.Router();
 // Individual routes below layer on requireAuth / requireRole("admin") as needed.
 router.use(optionalAuth);
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-// Lazily closes an auction if its deadline has passed. Called on every read
-// so auctions close promptly even without a person hitting the sweep below.
 async function closeIfExpired(auction) {
   if (auction.status !== "Active" || auction.deadline > new Date()) return auction;
 
@@ -32,8 +26,26 @@ async function closeIfExpired(auction) {
   }
   auction.closed_at = new Date();
   await auction.save();
+  await updateItemLocationForAuction(auction);
   await announceAuctionResult(auction);
   return auction;
+}
+
+// Keeps the artifact's "Held at" location in sync with how its auction stands.
+async function updateItemLocationForAuction(auction) {
+  try {
+    let location;
+    if (auction.status === "Closed-Sold") {
+      location = "Sold";
+    } else if (auction.status === "Cancelled") {
+      location = "Withdrawn from Auction";
+    } else {
+      location = "Unsold at Auction";
+    }
+    await Item.updateOne({ _id: auction.item }, { location });
+  } catch (err) {
+    console.error("[auctions] could not update item location:", err.message);
+  }
 }
 
 // Notification: won / lost alerts once an auction closes. Guarded by the status
@@ -485,6 +497,7 @@ router.post("/:id/cancel", requireRole("admin"), async (req, res) => {
   auction.cancel_reason = req.body.reason.trim();
   auction.closed_at = new Date();
   await auction.save();
+  await updateItemLocationForAuction(auction);
 
   // Notification: cancellation alert to everyone who bid or wishlisted it.
   const bidderIds = await Bid.find({ auction: auction._id }).distinct("bidder");

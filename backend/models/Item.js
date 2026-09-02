@@ -70,6 +70,7 @@ const itemSchema = new Schema(
       default: "Unallocated",
     },
     museumName: { type: String, trim: true, default: "" },
+    on_loan_to: { type: String, trim: true, default: "" },
 
     // Museum Collection & Artifact Inventory Management (Feature 12) ---------
     // Human-readable unique ID shown to visitors/curators, separate from the

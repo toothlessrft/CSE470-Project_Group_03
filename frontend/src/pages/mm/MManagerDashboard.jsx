@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { PackageSearch, HandCoins, Inbox, CalendarDays, Gavel, Archive, Settings } from "lucide-react";
+import { PackageSearch, HandCoins, CalendarDays, Gavel, Archive, Settings } from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -30,9 +30,7 @@ export default function MManagerDashboard() {
     { to: "/mm/my-museum-items", icon: Archive, title: "My Museum Artifacts", description: "Add, remove, and toggle On Display / In Storage / On Loan status in real time" },
     { to: "/mm/museum-profile", icon: Settings, title: "Museum Profile", description: "Set your museum's location, operating hours, and ticket info for the public directory" },
     { to: "/mm/request-items", icon: PackageSearch, title: "Request Items", description: "Ask to borrow artifacts for exhibition" },
-    { to: "/mm/request-loan", icon: HandCoins, title: "Request Artifact Loan", description: "Ask another museum to loan an artifact" },
-    { to: "/mm/my-loans", icon: PackageSearch, title: "My Loan Requests", description: "Track loans you've requested" },
-    { to: "/mm/incoming-loans", icon: Inbox, title: "Incoming Loan Requests", description: "Approve, decline, and track loans to your museum" },
+    { to: "/mm/loans", icon: HandCoins, title: "Loans", description: "Manage artifact loans with other museums" },
     { to: "/auctions", icon: Gavel, title: "Auctions", description: "Bid on artifacts released for auction" },
   ];
 
