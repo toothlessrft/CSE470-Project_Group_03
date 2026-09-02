@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, History, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Plus, Trash2, History, ChevronDown, ChevronUp, Search, Archive } from "lucide-react";
 import { api } from "../../api";
 import SearchableSelect from "../../components/SearchableSelect";
 import StatusBadge from "../../components/StatusBadge";
+import ArtifactImagePicker from "../../components/ArtifactImagePicker";
 import { MUSEUMS } from "../../data/museums";
 
 const AVAILABILITY_OPTIONS = ["On Display", "In Storage", "Under Conservation", "On Loan", "Transferred"];
@@ -22,6 +23,7 @@ const EMPTY_NEW_ITEM = {
   condition: "Good",
   ownership: "Government of Bangladesh",
   location: "",
+  picture: "",
 };
 
 const EMPTY_FILTERS = { q: "", type: "", availability: "", civilization: "", era: "", material: "", location: "" };
@@ -61,6 +63,7 @@ export default function MyMuseumArtifacts() {
     location: "",
     condition: "Good",
     ownership: "Government of Bangladesh",
+    picture: "",
   });
 
   const [showAddForm, setShowAddForm] = useState(false);
@@ -109,6 +112,7 @@ export default function MyMuseumArtifacts() {
       location: item.location || "",
       condition: item.condition || "Good",
       ownership: item.ownership || "Government of Bangladesh",
+      picture: item.picture || "",
     });
   }
 
@@ -119,7 +123,7 @@ export default function MyMuseumArtifacts() {
       const data = await api.put(`/mm/my-museum-items/${itemId}`, form);
       setItems((prev) => prev.map((it) => (it._id === itemId ? data.item : it)));
       setEditingId(null);
-      flashSuccess(`"${data.item.name}" was updated.`);
+      flashSuccess(`Record for "${data.item.name}" updated.`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -127,8 +131,7 @@ export default function MyMuseumArtifacts() {
     }
   }
 
-  // Status toggles: instantly update if an item is moved to storage / display /
-  // conservation / loan / transferred. Logged automatically in movement history.
+  // Status toggles apply straight away and are written to movement history.
   async function setAvailability(itemId, availability) {
     setSavingId(itemId);
     setError("");
@@ -151,8 +154,8 @@ export default function MyMuseumArtifacts() {
       setNewItem(EMPTY_NEW_ITEM);
       setShowAddForm(false);
       await loadItems();
-      flashSuccess(`"${data.item.name}" was added to your inventory (ID: ${data.item.artifactId}).`);
-      // Scroll up so the confirmation banner and the (now-closed) form area are in view.
+      flashSuccess(`"${data.item.name}" added to the collection register (ID ${data.item.artifactId}).`);
+      // Scroll up so the confirmation banner is in view.
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(err.message);
@@ -162,13 +165,13 @@ export default function MyMuseumArtifacts() {
   }
 
   async function handleDelete(itemId) {
-    if (!window.confirm("Remove this artifact from your museum inventory?")) return;
+    if (!window.confirm("Remove this artifact from your collection register?")) return;
     setSavingId(itemId);
     setError("");
     try {
       await api.del(`/mm/my-museum-items/${itemId}`);
       await loadItems();
-      flashSuccess("Artifact removed from your inventory.");
+      flashSuccess("Artifact removed from the collection register.");
     } catch (err) {
       setError(err.message);
     } finally {
@@ -178,19 +181,28 @@ export default function MyMuseumArtifacts() {
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
 
-  if (loading && items.length === 0) return <div className="page">Loading your museum artifacts...</div>;
+  if (loading && items.length === 0)
+    return (
+      <div className="page">
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading the collection register
+        </div>
+      </div>
+    );
 
   return (
     <div className="page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem" }}>
+      <div className="page-head">
         <div>
-          <h1>Museum Collection &amp; Artifact Inventory</h1>
+          <span className="eyebrow">Museum authority</span>
+          <h1>Collection register</h1>
           <p className="page-subtitle">
-            Digital inventory with unique IDs — add, edit, remove, search, and track status, condition, ownership and movement history.
+            Every artifact held by your museum, with its accession number, condition, ownership, and
+            full movement history.
           </p>
         </div>
         <button type="button" className="btn" onClick={() => setShowAddForm((s) => !s)}>
-          <Plus size={15} /> {showAddForm ? "Cancel" : "Add artifact"}
+          <Plus size={15} aria-hidden="true" /> {showAddForm ? "Cancel" : "Accession artifact"}
         </button>
       </div>
 
@@ -199,31 +211,34 @@ export default function MyMuseumArtifacts() {
 
       {/* Search & filter -------------------------------------------------- */}
       <div className="card">
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search by name, artifact ID, or description..."
-            value={filters.q}
-            onChange={(e) => setFilters((p) => ({ ...p, q: e.target.value }))}
-            style={{ flex: 1 }}
-          />
-          <button type="button" className="btn-small btn-outline-light" onClick={() => setShowFilters((s) => !s)}>
+        <div className="home-search-row">
+          <label className="home-search-field">
+            <Search size={16} aria-hidden="true" />
+            <input
+              type="search"
+              placeholder="Search by name, accession number, or description"
+              aria-label="Search the collection register"
+              value={filters.q}
+              onChange={(e) => setFilters((p) => ({ ...p, q: e.target.value }))}
+            />
+          </label>
+          <button type="button" className="btn btn-secondary" onClick={() => setShowFilters((s) => !s)}>
             Filters {activeFilterCount > 0 && `(${activeFilterCount})`}
           </button>
           {activeFilterCount > 0 && (
-            <button type="button" className="btn-small btn-outline-light" onClick={() => setFilters(EMPTY_FILTERS)}>
+            <button type="button" className="btn btn-secondary" onClick={() => setFilters(EMPTY_FILTERS)}>
               Clear
             </button>
           )}
         </div>
 
         {showFilters && (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "0.75rem", marginTop: "0.75rem" }}>
+          <div className="form" style={{ marginTop: "1rem" }}>
+          <div className="form-row">
             <label>
-              Type
+              Object class
               <select value={filters.type} onChange={(e) => setFilters((p) => ({ ...p, type: e.target.value }))}>
-                <option value="">All types</option>
+                <option value="">All classes</option>
                 {TYPE_OPTIONS.map((t) => (
                   <option key={t} value={t}>{t}</option>
                 ))}
@@ -255,19 +270,21 @@ export default function MyMuseumArtifacts() {
               <input value={filters.location} onChange={(e) => setFilters((p) => ({ ...p, location: e.target.value }))} />
             </label>
           </div>
+          </div>
         )}
       </div>
 
       {/* Add new artifact --------------------------------------------------*/}
       {showAddForm && (
         <form className="card form" onSubmit={handleAddItem}>
+          <h3 style={{ margin: 0 }}>Accession a new artifact</h3>
           <label>
             Artifact name
             <input value={newItem.name} onChange={(e) => setNewItem((p) => ({ ...p, name: e.target.value }))} required />
           </label>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+          <div className="form-row">
             <label>
-              Type
+              Object class
               <select value={newItem.Type} onChange={(e) => setNewItem((p) => ({ ...p, Type: e.target.value }))}>
                 {TYPE_OPTIONS.map((t) => (
                   <option key={t} value={t}>{t}</option>
@@ -283,7 +300,7 @@ export default function MyMuseumArtifacts() {
               </select>
             </label>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+          <div className="form-row">
             <label>
               Condition
               <select value={newItem.condition} onChange={(e) => setNewItem((p) => ({ ...p, condition: e.target.value }))}>
@@ -309,24 +326,40 @@ export default function MyMuseumArtifacts() {
             Description
             <textarea rows={3} value={newItem.description} onChange={(e) => setNewItem((p) => ({ ...p, description: e.target.value }))} />
           </label>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+          <ArtifactImagePicker
+            value={newItem.picture}
+            onChange={(v) => setNewItem((p) => ({ ...p, picture: v }))}
+          />
+          <div className="form-row">
             <label>Civilization <input value={newItem.civilization} onChange={(e) => setNewItem((p) => ({ ...p, civilization: e.target.value }))} /></label>
             <label>Era <input value={newItem.era} onChange={(e) => setNewItem((p) => ({ ...p, era: e.target.value }))} /></label>
             <label>Region <input value={newItem.region} onChange={(e) => setNewItem((p) => ({ ...p, region: e.target.value }))} /></label>
             <label>Material <input value={newItem.material} onChange={(e) => setNewItem((p) => ({ ...p, material: e.target.value }))} /></label>
-            <label>Usage <input value={newItem.usage} onChange={(e) => setNewItem((p) => ({ ...p, usage: e.target.value }))} /></label>
+            <label>Use <input value={newItem.usage} onChange={(e) => setNewItem((p) => ({ ...p, usage: e.target.value }))} /></label>
           </div>
-          <button type="submit" className="btn" disabled={adding}>
-            {adding ? "Adding..." : "Add to inventory"}
-          </button>
+          <div className="actions">
+            <button type="submit" className="btn" disabled={adding}>
+              {adding ? "Accessioning" : "Add to register"}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowAddForm(false)}>
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 
-      <h3>{loading ? "Loading..." : `${items.length} artifact(s)`}</h3>
+      <div className="section-head">
+        <h2>Holdings</h2>
+        <span className="hint">
+          {loading ? "Loading" : `${items.length} artifact${items.length === 1 ? "" : "s"}`}
+        </span>
+      </div>
 
       {items.length === 0 ? (
-        <div className="card">
-          <p className="hint">No artifacts match your search/filters.</p>
+        <div className="empty-state">
+          <Archive size={24} aria-hidden="true" />
+          <h3>No matching records</h3>
+          <p>No artifacts in your register match the current search and filters.</p>
         </div>
       ) : (
         <div style={{ display: "grid", gap: "1rem" }}>
@@ -341,9 +374,9 @@ export default function MyMuseumArtifacts() {
                       Artifact name
                       <input value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} required />
                     </label>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <div className="form-row">
                       <label>
-                        Type
+                        Object class
                         <select value={form.Type} onChange={(e) => setForm((p) => ({ ...p, Type: e.target.value }))}>
                           {TYPE_OPTIONS.map((t) => (
                             <option key={t} value={t}>{t}</option>
@@ -359,14 +392,14 @@ export default function MyMuseumArtifacts() {
                         </select>
                       </label>
                     </div>
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+                    <div className="form-row">
                       <label>
                         Current location
                         <SearchableSelect
                           options={[...MUSEUMS]}
                           value={form.location}
                           onChange={(value) => setForm((p) => ({ ...p, location: value }))}
-                          placeholder="Search location..."
+                          placeholder="Start typing a location"
                         />
                       </label>
                       <label>
@@ -378,94 +411,161 @@ export default function MyMuseumArtifacts() {
                       Description
                       <textarea rows={3} value={form.description} onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))} />
                     </label>
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "1rem" }}>
+                    <ArtifactImagePicker
+                      value={form.picture}
+                      onChange={(v) => setForm((p) => ({ ...p, picture: v }))}
+                    />
+                    <div className="form-row">
                       <label>Civilization <input value={form.civilization} onChange={(e) => setForm((p) => ({ ...p, civilization: e.target.value }))} /></label>
                       <label>Era <input value={form.era} onChange={(e) => setForm((p) => ({ ...p, era: e.target.value }))} /></label>
                       <label>Region <input value={form.region} onChange={(e) => setForm((p) => ({ ...p, region: e.target.value }))} /></label>
                       <label>Material <input value={form.material} onChange={(e) => setForm((p) => ({ ...p, material: e.target.value }))} /></label>
-                      <label>Usage <input value={form.usage} onChange={(e) => setForm((p) => ({ ...p, usage: e.target.value }))} /></label>
+                      <label>Use <input value={form.usage} onChange={(e) => setForm((p) => ({ ...p, usage: e.target.value }))} /></label>
                     </div>
-                    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
+                    <div className="actions">
                       <button type="button" className="btn" onClick={() => saveEdit(item._id)} disabled={savingId === item._id}>
-                        {savingId === item._id ? "Saving..." : "Save changes"}
+                        {savingId === item._id ? "Saving" : "Save changes"}
                       </button>
-                      <button type="button" className="btn-small btn-outline-light" onClick={() => setEditingId(null)}>
+                      <button type="button" className="btn btn-secondary" onClick={() => setEditingId(null)}>
                         Cancel
                       </button>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "flex-start" }}>
-                      <div>
+                    <div className="report-header">
+                      <div style={{ minWidth: 0 }}>
                         <h3 style={{ margin: 0 }}>{item.name}</h3>
-                        <p className="hint" style={{ margin: "0.25rem 0 0.2rem" }}>
-                          {item.Type} &middot; ID: {item.artifactId || "—"}
+                        <p className="meta-row">
+                          <span>{item.Type}</span>
+                          <span className="num">Accession {item.artifactId || "not assigned"}</span>
                         </p>
                       </div>
-                      <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                      <div className="record-side">
                         <StatusBadge status={item.availability} />
-                        <button type="button" className="btn-small btn-outline-light" onClick={() => openEdit(item)}>
+                        <button type="button" className="btn-small btn-secondary" onClick={() => openEdit(item)}>
                           Edit
                         </button>
                         <button
                           type="button"
-                          className="btn-small btn-outline-light"
+                          className="icon-btn icon-btn-danger"
                           onClick={() => handleDelete(item._id)}
                           disabled={savingId === item._id}
-                          title="Remove from your museum inventory"
+                          aria-label={`Remove ${item.name} from the register`}
                         >
-                          <Trash2 size={14} />
+                          <Trash2 size={14} aria-hidden="true" />
                         </button>
                       </div>
                     </div>
 
-                    {/* Status toggles - instantly update, auto-logged to movement history */}
-                    <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", margin: "0.6rem 0" }}>
-                      {AVAILABILITY_OPTIONS.map((a) => (
-                        <button
-                          key={a}
-                          type="button"
-                          className={item.availability === a ? "btn-small" : "btn-small btn-outline-light"}
-                          disabled={savingId === item._id || item.availability === a}
-                          onClick={() => setAvailability(item._id, a)}
-                        >
-                          {a}
-                        </button>
-                      ))}
+                    {/* Status toggles - applied immediately and written to movement history */}
+                    <div style={{ margin: "0.9rem 0" }}>
+                      <span className="stat-label">Set status</span>
+                      <div className="actions" style={{ marginTop: "0.35rem" }}>
+                        {AVAILABILITY_OPTIONS.map((a) => (
+                          <button
+                            key={a}
+                            type="button"
+                            className={
+                              item.availability === a ? "btn-small" : "btn-small btn-secondary"
+                            }
+                            aria-pressed={item.availability === a}
+                            disabled={savingId === item._id || item.availability === a}
+                            onClick={() => setAvailability(item._id, a)}
+                          >
+                            {a}
+                          </button>
+                        ))}
+                      </div>
                     </div>
 
-                    <p style={{ margin: 0 }}>{item.description || "No description provided."}</p>
+                    <p style={{ margin: 0 }}>{item.description || "No description recorded."}</p>
 
-                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.25rem 1rem", fontSize: "0.85rem", marginTop: "0.7rem" }}>
-                      {item.civilization && <span>Civilization: {item.civilization}</span>}
-                      {item.era && <span>Era: {item.era}</span>}
-                      {item.region && <span>Region: {item.region}</span>}
-                      {item.material && <span>Material: {item.material}</span>}
-                      {item.usage && <span>Usage: {item.usage}</span>}
-                      <span>Condition: {item.condition || "Good"}</span>
-                      <span>Ownership: {item.ownership || "Government of Bangladesh"}</span>
-                      {item.location && <span>Location: {item.location}</span>}
-                    </div>
+                    <dl className="detail-list" style={{ marginTop: "1rem" }}>
+                      {item.civilization && (
+                        <div>
+                          <dt>Civilization</dt>
+                          <dd>{item.civilization}</dd>
+                        </div>
+                      )}
+                      {item.era && (
+                        <div>
+                          <dt>Era</dt>
+                          <dd>{item.era}</dd>
+                        </div>
+                      )}
+                      {item.region && (
+                        <div>
+                          <dt>Region</dt>
+                          <dd>{item.region}</dd>
+                        </div>
+                      )}
+                      {item.material && (
+                        <div>
+                          <dt>Material</dt>
+                          <dd>{item.material}</dd>
+                        </div>
+                      )}
+                      {item.usage && (
+                        <div>
+                          <dt>Use</dt>
+                          <dd>{item.usage}</dd>
+                        </div>
+                      )}
+                      <div>
+                        <dt>Condition</dt>
+                        <dd>{item.condition || "Good"}</dd>
+                      </div>
+                      <div>
+                        <dt>Ownership</dt>
+                        <dd>{item.ownership || "Government of Bangladesh"}</dd>
+                      </div>
+                      {item.location && (
+                        <div>
+                          <dt>Location</dt>
+                          <dd>{item.location}</dd>
+                        </div>
+                      )}
+                    </dl>
 
                     <button
                       type="button"
-                      className="btn-small btn-outline-light"
-                      style={{ marginTop: "0.75rem", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
+                      className="btn-small btn-secondary"
+                      style={{ marginTop: "1rem" }}
+                      aria-expanded={isHistoryOpen}
                       onClick={() => setHistoryOpenId(isHistoryOpen ? null : item._id)}
                     >
-                      <History size={14} /> Movement history ({(item.movementHistory || []).length})
-                      {isHistoryOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      <History size={14} aria-hidden="true" /> Movement history (
+                      {(item.movementHistory || []).length})
+                      {isHistoryOpen ? (
+                        <ChevronUp size={14} aria-hidden="true" />
+                      ) : (
+                        <ChevronDown size={14} aria-hidden="true" />
+                      )}
                     </button>
 
                     {isHistoryOpen && (
-                      <div style={{ marginTop: "0.6rem", borderLeft: "2px solid var(--border, #e5e0d8)", paddingLeft: "0.9rem" }}>
-                        {(item.movementHistory || []).length === 0 && <p className="hint">No movement recorded yet.</p>}
+                      <div
+                        style={{
+                          marginTop: "0.75rem",
+                          borderLeft: "2px solid var(--border)",
+                          paddingLeft: "0.9rem",
+                        }}
+                      >
+                        {(item.movementHistory || []).length === 0 && (
+                          <p className="hint" style={{ margin: 0 }}>
+                            No movement recorded yet.
+                          </p>
+                        )}
                         {[...(item.movementHistory || [])].reverse().map((h, i) => (
-                          <div key={i} style={{ marginBottom: "0.6rem" }}>
-                            <p style={{ margin: 0, fontWeight: 600, fontSize: "0.85rem" }}>{h.action}</p>
-                            <p style={{ margin: 0, fontSize: "0.8rem", color: "#777" }}>{fmtDate(h.date)}</p>
-                            {h.note && <p style={{ margin: "0.15rem 0 0", fontSize: "0.85rem" }}>{h.note}</p>}
+                          <div key={i} style={{ marginBottom: "0.7rem" }}>
+                            <p style={{ margin: 0, fontWeight: 600, fontSize: "0.875rem" }}>{h.action}</p>
+                            <p className="hint" style={{ margin: 0 }}>
+                              {fmtDate(h.date)}
+                            </p>
+                            {h.note && (
+                              <p style={{ margin: "0.15rem 0 0", fontSize: "0.875rem" }}>{h.note}</p>
+                            )}
                           </div>
                         ))}
                       </div>

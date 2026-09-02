@@ -16,14 +16,27 @@ function fileToDataUrl(file) {
 
 const TYPES = [
   { value: "exhibition", label: "Exhibition" },
-  { value: "educational_tour", label: "Educational Tour" },
-  { value: "cultural_event", label: "Cultural Event" },
+  { value: "educational_tour", label: "Educational tour" },
+  { value: "cultural_event", label: "Cultural event" },
 ];
 
+// Foreground colour for the status pill; the wash is derived from it.
 const STATUS_COLORS = {
-  draft: "#8a7a68",
-  published: "#2e7d32",
-  cancelled: "#c62828",
+  draft: "#6f6254",
+  published: "#1f6b2e",
+  cancelled: "#b02020",
+};
+
+const STATUS_TINTS = {
+  "#6f6254": "#f7f3ec",
+  "#1f6b2e": "#eef9f0",
+  "#b02020": "#fdeeee",
+};
+
+const STATUS_LABELS = {
+  draft: "Draft",
+  published: "Published",
+  cancelled: "Cancelled",
 };
 
 const EMPTY_FORM = {
@@ -69,7 +82,7 @@ export default function ExhibitionManagement() {
       const data = await api.get("/mm/exhibitions");
       setExhibitions(data.exhibitions);
     } catch (err) {
-      setError(err.message || "Could not load your exhibitions.");
+      setError(err.message || "Your listings could not be loaded.");
     } finally {
       setLoading(false);
     }
@@ -109,7 +122,7 @@ export default function ExhibitionManagement() {
     setModalError("");
 
     if (!form.title || !form.start_date || !form.end_date) {
-      setModalError("Title, start date, and end date are required.");
+      setModalError("A title, start date, and end date are required.");
       return;
     }
 
@@ -128,7 +141,7 @@ export default function ExhibitionManagement() {
       setShowModal(false);
       await load();
     } catch (err) {
-      setModalError(err.message || "Could not save this listing.");
+      setModalError(err.message || "This listing could not be saved.");
     } finally {
       setBusy(false);
     }
@@ -140,11 +153,11 @@ export default function ExhibitionManagement() {
     e.target.value = ""; 
     if (!file) return;
     if (!file.type.startsWith("image/")) {
-      setImageError("Please choose an image file.");
+      setImageError("Choose an image file.");
       return;
     }
     if (file.size > MAX_IMAGE_BYTES) {
-      setImageError("Image is too large. Please choose one under 1.5 MB.");
+      setImageError("Image too large. The limit is 1.5 MB.");
       return;
     }
     const dataUrl = await fileToDataUrl(file);
@@ -162,17 +175,17 @@ export default function ExhibitionManagement() {
       await api.patch(`/mm/exhibitions/${item._id}/${action}`);
       await load();
     } catch (err) {
-      alert(err.message || "Could not update status.");
+      alert(err.message || "The status could not be updated.");
     }
   }
 
   async function handleCancel(item) {
-    if (!window.confirm("Mark this listing as cancelled?")) return;
+    if (!window.confirm("Mark this listing as cancelled? It will show as cancelled to the public.")) return;
     try {
       await api.patch(`/mm/exhibitions/${item._id}/cancel`);
       await load();
     } catch (err) {
-      alert(err.message || "Could not cancel this listing.");
+      alert(err.message || "This listing could not be cancelled.");
     }
   }
 
@@ -182,7 +195,7 @@ export default function ExhibitionManagement() {
       await api.del(`/mm/exhibitions/${item._id}`);
       setExhibitions((prev) => prev.filter((e) => e._id !== item._id));
     } catch (err) {
-      alert(err.message || "Could not delete this listing.");
+      alert(err.message || "This listing could not be deleted.");
     }
   }
 
@@ -196,109 +209,109 @@ export default function ExhibitionManagement() {
 
   return (
     <div className="page">
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "1rem" }}>
+      <div className="page-head">
         <div>
-          <h1>Exhibition Management</h1>
+          <span className="eyebrow">Public programme</span>
+          <h1>Exhibitions & events</h1>
           <p className="page-subtitle">
-            Schedule exhibitions, educational tours, and cultural events. Publish them to make them
-            visible on Near Me and other public pages.
+            Schedule exhibitions, educational tours, and cultural events. Publishing a listing makes
+            it visible across the public register.
           </p>
         </div>
         <button className="btn" onClick={openCreate}>
-          <Plus size={16} /> New Listing
+          <Plus size={16} aria-hidden="true" /> New listing
         </button>
       </div>
 
       {loading ? (
-        <p>Loading...</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading your listings
+        </div>
       ) : exhibitions.length === 0 ? (
-        <div className="card">
-          <p style={{ margin: 0 }}>You haven't scheduled anything yet. Click "New Listing" to get started.</p>
+        <div className="empty-state">
+          <CalendarDays size={26} aria-hidden="true" />
+          <h3>Nothing scheduled</h3>
+          <p>Create a listing to publish an exhibition, tour, or event to the public register.</p>
+          <button className="btn" onClick={openCreate}>
+            New listing
+          </button>
         </div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-          {exhibitions.map((item) => (
-            <div key={item._id} className="card" style={{ margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.5rem" }}>
-                <h4 style={{ margin: 0 }}>{item.title}</h4>
-                <span
-                  style={{
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    color: "#fff",
-                    background: STATUS_COLORS[item.status] || "#8a7a68",
-                    padding: "0.2rem 0.55rem",
-                    borderRadius: "999px",
-                    textTransform: "uppercase",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {item.status}
-                </span>
-              </div>
-              <p style={{ margin: 0, fontSize: "0.85rem", color: "#8a7a68" }}>
-                {TYPES.find((t) => t.value === item.type)?.label || item.type}
-              </p>
-              <p style={{ margin: 0, fontSize: "0.88rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                <CalendarDays size={14} /> {fmtDate(item.start_date)} - {fmtDate(item.end_date)}
-              </p>
-              {item.location?.address && (
-                <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem", color: "#777" }}>
-                  <MapPin size={14} /> {item.location.address}
-                </p>
-              )}
-              {item.description && (
-                <p style={{ margin: 0, fontSize: "0.88rem" }}>{item.description}</p>
-              )}
+        <div className="listing-grid">
+          {exhibitions.map((item) => {
+            const color = STATUS_COLORS[item.status] || "#6f6254";
+            return (
+              <div key={item._id} className="listing-card">
+                {item.image && <img className="listing-image" src={item.image} alt="" loading="lazy" />}
+                <div className="listing-body">
+                  <div className="report-header" style={{ marginBottom: "0.35rem" }}>
+                    <h4 style={{ margin: 0 }}>{item.title}</h4>
+                    <span
+                      className="status-badge"
+                      style={{ color, backgroundColor: STATUS_TINTS[color] || "#f7f3ec" }}
+                    >
+                      {STATUS_LABELS[item.status] || item.status}
+                    </span>
+                  </div>
 
-              <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
-                <button className="btn-small btn-outline" onClick={() => openEdit(item)}>
-                  <Edit size={14} /> Edit
-                </button>
-                {item.status !== "cancelled" && (
-                  <button className="btn-small" onClick={() => handlePublishToggle(item)}>
-                    <Upload size={14} /> {item.status === "published" ? "Unpublish" : "Publish"}
-                  </button>
-                )}
-                {item.status !== "cancelled" && (
-                  <button className="btn-small btn-outline" onClick={() => handleCancel(item)}>
-                    Cancel
-                  </button>
-                )}
-                <button
-                  className="btn-small"
-                  style={{ color: "#fff", background: "var(--danger, #c0392b)", border: "none" }}
-                  onClick={() => handleDelete(item)}
-                >
-                  <Trash2 size={14} /> Delete
-                </button>
+                  <p className="artifact-tile-class">
+                    {TYPES.find((t) => t.value === item.type)?.label || item.type}
+                  </p>
+
+                  <p className="meta-row">
+                    <span>
+                      <CalendarDays size={13} aria-hidden="true" /> {fmtDate(item.start_date)} —{" "}
+                      {fmtDate(item.end_date)}
+                    </span>
+                    {item.location?.address && (
+                      <span>
+                        <MapPin size={13} aria-hidden="true" /> {item.location.address}
+                      </span>
+                    )}
+                  </p>
+
+                  {item.description && (
+                    <p style={{ margin: "0.75rem 0 0", fontSize: "0.875rem", lineHeight: 1.55 }}>
+                      {item.description}
+                    </p>
+                  )}
+
+                  <div className="actions" style={{ marginTop: "1rem" }}>
+                    <button className="btn-small btn-secondary" onClick={() => openEdit(item)}>
+                      <Edit size={13} aria-hidden="true" /> Edit
+                    </button>
+                    {item.status !== "cancelled" && (
+                      <button className="btn-small" onClick={() => handlePublishToggle(item)}>
+                        <Upload size={13} aria-hidden="true" />{" "}
+                        {item.status === "published" ? "Withdraw" : "Publish"}
+                      </button>
+                    )}
+                    {item.status !== "cancelled" && (
+                      <button className="btn-small btn-secondary" onClick={() => handleCancel(item)}>
+                        Mark cancelled
+                      </button>
+                    )}
+                    <button className="btn-small btn-danger" onClick={() => handleDelete(item)}>
+                      <Trash2 size={13} aria-hidden="true" /> Delete
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
       {showModal && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 2000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-          }}
-        >
-          <div className="card" style={{ width: "100%", maxWidth: "640px", maxHeight: "90vh", overflowY: "auto", margin: 0 }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ margin: 0 }}>{editing ? "Edit Listing" : "New Listing"}</h2>
-              <button className="btn-link" onClick={() => setShowModal(false)}>
-                <X size={20} />
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 640 }}>
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">Public programme</span>
+                <h2>{editing ? "Edit listing" : "New listing"}</h2>
+              </div>
+              <button className="modal-close" onClick={() => setShowModal(false)} aria-label="Close">
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
 
@@ -311,7 +324,7 @@ export default function ExhibitionManagement() {
               </label>
 
               <label>
-                Type
+                Listing type
                 <select value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}>
                   {TYPES.map((t) => (
                     <option key={t.value} value={t.value}>
@@ -326,7 +339,7 @@ export default function ExhibitionManagement() {
                 <textarea rows={3} value={form.description} onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))} />
               </label>
 
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+              <div className="form-row">
                 <label>
                   Start date
                   <input type="date" value={form.start_date} onChange={(e) => setForm((f) => ({ ...f, start_date: e.target.value }))} required />
@@ -348,18 +361,18 @@ export default function ExhibitionManagement() {
                   <input type="number" min="0" value={form.capacity} onChange={(e) => setForm((f) => ({ ...f, capacity: e.target.value }))} />
                 </label>
                 <label>
-                  Ticket info (optional)
-                  <input placeholder="e.g. Free entry / BDT 50" value={form.ticket_info} onChange={(e) => setForm((f) => ({ ...f, ticket_info: e.target.value }))} />
+                  Admission (optional)
+                  <input placeholder="e.g. Free entry, or ৳50" value={form.ticket_info} onChange={(e) => setForm((f) => ({ ...f, ticket_info: e.target.value }))} />
                 </label>
               </div>
 
               <label>
-                Contact (optional)
+                Public contact (optional)
                 <input value={form.contact} onChange={(e) => setForm((f) => ({ ...f, contact: e.target.value }))} />
               </label>
 
               <label>
-                Image (optional)
+                Listing image (optional)
                 <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
                   {form.image ? (
                     <div style={{ position: "relative" }}>
@@ -390,18 +403,18 @@ export default function ExhibitionManagement() {
                       </button>
                     </div>
                   ) : (
-                    <button type="button" className="btn-small btn-outline" onClick={() => imageInputRef.current?.click()}>
-                      <ImagePlus size={14} /> Upload image
+                    <button type="button" className="btn-small btn-secondary" onClick={() => imageInputRef.current?.click()}>
+                      <ImagePlus size={14} aria-hidden="true" /> Choose image
                     </button>
                   )}
                   <input ref={imageInputRef} type="file" accept="image/*" hidden onChange={handleImageFile} />
                 </div>
-                {imageError && <p style={{ color: "#c0392b", fontSize: "0.82rem", margin: "0.3rem 0 0" }}>{imageError}</p>}
+                {imageError && <p className="field-hint text-danger" style={{ margin: "0.3rem 0 0" }}>{imageError}</p>}
                 <p className="hint" style={{ margin: "0.3rem 0 0" }}>JPG or PNG, up to 1.5 MB.</p>
               </label>
 
               <fieldset>
-                <legend>Venue location (for "Near Me" discovery)</legend>
+                <legend>Venue location</legend>
                 <GoogleMapPicker
                   value={form.location}
                   onChange={(loc) => setForm((f) => ({ ...f, location: loc }))}
@@ -409,13 +422,13 @@ export default function ExhibitionManagement() {
                 />
               </fieldset>
 
-              <div className="actions" style={{ marginTop: "0.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                <button type="submit" className="btn-outline" disabled={busy}>
-                  {busy ? "Saving..." : editing ? "Save changes" : "Save as draft"}
+              <div className="modal-footer">
+                <button type="submit" className="btn btn-secondary" disabled={busy}>
+                  {busy ? "Saving" : editing ? "Save changes" : "Save as draft"}
                 </button>
                 {!editing && (
                   <button type="button" className="btn" disabled={busy} onClick={(e) => handleSubmit(e, true)}>
-                    {busy ? "Saving..." : "Save & publish"}
+                    {busy ? "Saving" : "Save and publish"}
                   </button>
                 )}
               </div>

@@ -1,19 +1,18 @@
 const express = require("express");
 const Site = require("../models/Site");
 const Item = require("../models/Item");
-const ItemRequest = require("../models/ItemRequest");
 const Exhibition = require("../models/Exhibition");
 const { MUSEUMS, normalizeMuseumName } = require("../config/museums");
 const User = require("../models/User");
 const { requireAuth, requireRole } = require("../middleware/auth");
-const { notifyMany, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
+const { notifyMany } = require("../services/notify");
 
 const router = express.Router();
 router.use(requireAuth, requireRole("museum_manager"));
 
-// Nearby exhibition / event alerts -----------------------------------------
-// Members carry an optional home location on their profile; anyone inside this
-// radius of a newly published listing gets told about it.
+// --- nearby exhibition alerts ----------------------------------------------
+// Members have an optional home location; anyone within this radius of a newly
+// published listing is told about it.
 const NEARBY_RADIUS_KM = 50;
 
 function haversineKm(lat1, lng1, lat2, lng2) {
@@ -26,12 +25,9 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-/**
- * Announce a newly published exhibition. Members with a home location inside
- * NEARBY_RADIUS_KM get a "near you" alert; everyone else who is a general
- * member still gets the plain new-event notice, so the Events tab is never
- * empty just because someone never set a location.
- */
+// Announce a published exhibition. Members inside NEARBY_RADIUS_KM get a "near
+// you" alert; everyone else gets the plain notice, so the Events tab is never
+// empty just because someone never set a location.
 async function announceExhibition(exhibition, actorId) {
   try {
     if (exhibition.status !== "published") return;
@@ -115,8 +111,8 @@ router.get("/sites/:siteId/items", async (req, res) => {
   res.json({ items });
 });
 
-// Museum-scoped artifact access: only artifacts assigned to this manager's museum.
-// Supports search & filter (Feature 12): ?q=&type=&civilization=&era=&material=&availability=&location=
+// Only artifacts assigned to this manager's museum.
+// Filters: ?q=&type=&civilization=&era=&material=&availability=&location=
 router.get("/my-museum-items", async (req, res) => {
   const museumName = normalizeMuseumName(req.user.roleProfile?.museum_name);
   if (!museumName || !MUSEUMS.includes(museumName)) {
@@ -173,12 +169,13 @@ router.put("/my-museum-items/:itemId", async (req, res) => {
     "availability",
     "condition",
     "ownership",
+    "picture",
   ];
   for (const key of allowed) {
     if (req.body[key] !== undefined) item[key] = req.body[key];
   }
 
-  // Automatically log a movement-history entry whenever location or status changes.
+  // Log a movement-history entry whenever location or status changes.
   if (item.location !== previousLocation) {
     item.movementHistory.push({
       action: "Moved",
@@ -251,6 +248,7 @@ router.post("/my-museum-items", async (req, res) => {
       condition,
       ownership,
       location,
+      picture,
     } = req.body;
     if (!name) return res.status(400).json({ error: "name is required." });
 
@@ -258,6 +256,7 @@ router.post("/my-museum-items", async (req, res) => {
       name,
       Type: Type || "other",
       description,
+      picture: picture || "",
       civilization,
       era,
       region,
@@ -288,10 +287,9 @@ router.post("/my-museum-items", async (req, res) => {
   }
 });
 
-// DELETE /api/mm/my-museum-items/:itemId -> remove from inventory.
-// Artifacts this manager added directly get deleted outright; artifacts that
-// arrived through the Government allocation pipeline are only unassigned,
-// since archaeologists/admin still need that discovery record.
+// DELETE /api/mm/my-museum-items/:itemId -> remove from inventory. Artifacts
+// the manager added are deleted outright; ones allocated by the admin are only
+// unassigned, since the discovery record still belongs to the register.
 router.delete("/my-museum-items/:itemId", async (req, res) => {
   const museumName = normalizeMuseumName(req.user.roleProfile?.museum_name);
   if (!museumName || !MUSEUMS.includes(museumName)) {
@@ -367,45 +365,6 @@ router.put("/museum-profile", async (req, res) => {
     console.error("[museum-profile] update failed:", err);
     res.status(500).json({ error: "Could not update museum profile." });
   }
-});
-
-// POST /api/mm/request_items  (was /m_manager/request_items)
-router.post("/request_items", async (req, res) => {
-  try {
-    const { item_id, purpose, start_date, end_date, insurance_info } = req.body;
-    const request = await ItemRequest.create({
-      museum_manager: req.user._id,
-      item: item_id,
-      purpose,
-      start_date,
-      end_date,
-      insurance_info,
-      approval_status: "Pending",
-    });
-
-    // Notification: museum loan request waiting on the Government/Admin.
-    const artifact = await Item.findById(item_id).select("name");
-    await notifyAdmins({
-      category: "request",
-      type: "item.request.submitted",
-      title: "New museum item request",
-      message: `${req.user.roleProfile?.museum_name || req.user.name} requested "${artifact?.name || "an artifact"}" for ${purpose}.`,
-      link: "/admin/item-requests",
-      dashboardKey: "item_requests",
-      actionRequired: true,
-    }, [req.user._id]);
-
-    res.status(201).json({ request });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Could not submit item request." });
-  }
-});
-
-// GET /api/mm/my-requests -> this manager's own request history
-router.get("/my-requests", async (req, res) => {
-  const requests = await ItemRequest.find({ museum_manager: req.user._id }).populate("item", "name Type");
-  res.json({ requests });
 });
 
 // GET /api/mm/exhibitions -> all of this manager's own listings (any status)

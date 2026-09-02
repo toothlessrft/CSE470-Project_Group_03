@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { HandCoins } from "lucide-react";
 import { api } from "../../api";
 import StatusBadge from "../../components/StatusBadge";
 
@@ -23,15 +25,27 @@ export default function MyLoanRequests() {
 
   return (
     <div className="page">
-      <h1>My Loan Requests</h1>
-      <p className="page-subtitle">Artifact loans you've requested from other museums.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Inter-museum loans</span>
+          <h1>Outgoing loan requests</h1>
+          <p className="page-subtitle">
+            Artifacts you have asked other museums to lend, and where each request stands.
+          </p>
+        </div>
+        <Link className="btn" to="/mm/request-loan">
+          <HandCoins size={16} aria-hidden="true" /> Request a loan
+        </Link>
+      </div>
+
+      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Lending Museum</th>
+            <th>Lending museum</th>
             <th>Artifact</th>
             <th>Exhibition</th>
-            <th>Loan Period</th>
+            <th>Loan period</th>
             <th>Duration</th>
             <th>Status</th>
           </tr>
@@ -52,7 +66,7 @@ export default function MyLoanRequests() {
                 <td>
                   {durationDays(l.start_date, l.end_date)} days
                   {remaining != null && (
-                    <div className="page-subtitle" style={{ margin: 0 }}>
+                    <div className="hint" style={{ margin: 0 }}>
                       {remaining >= 0 ? `${remaining} days left` : `${Math.abs(remaining)} days overdue`}
                     </div>
                   )}
@@ -65,11 +79,14 @@ export default function MyLoanRequests() {
           })}
           {loans.length === 0 && (
             <tr>
-              <td colSpan={6}>No loan requests yet.</td>
+              <td colSpan={6} className="hint">
+                You have not requested any loans yet.
+              </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

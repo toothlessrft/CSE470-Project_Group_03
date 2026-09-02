@@ -35,20 +35,31 @@ export default function IncomingLoanRequests() {
 
   return (
     <div className="page">
-      <h1>Incoming Loan Requests</h1>
-      <p className="page-subtitle">Requests from other museums to borrow artifacts your museum holds.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Inter-museum loans</span>
+          <h1>Incoming loan requests</h1>
+          <p className="page-subtitle">
+            Requests from other museums to borrow artifacts from your collection.
+          </p>
+        </div>
+      </div>
       {message && <div className="alert alert-success">{message}</div>}
 
-      <h3>Pending approval</h3>
+      <div className="section-head">
+        <h2>Awaiting your decision</h2>
+        <span className="hint">{pending.length} outstanding</span>
+      </div>
+      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Requesting Museum</th>
+            <th>Requesting museum</th>
             <th>Artifact</th>
             <th>Exhibition</th>
             <th>Purpose</th>
-            <th>Requested Loan Period</th>
-            <th>Actions</th>
+            <th>Requested period</th>
+            <th>Decision</th>
           </tr>
         </thead>
         <tbody>
@@ -75,21 +86,28 @@ export default function IncomingLoanRequests() {
           ))}
           {pending.length === 0 && (
             <tr>
-              <td colSpan={6}>No pending requests.</td>
+              <td colSpan={6} className="hint">
+                Nothing awaiting a decision.
+              </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
 
-      <h3>Active loans (out on loan)</h3>
+      <div className="section-head">
+        <h2>Currently out on loan</h2>
+        <span className="hint">{active.length} in circulation</span>
+      </div>
+      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Requesting Museum</th>
+            <th>Borrowing museum</th>
             <th>Artifact</th>
-            <th>Loan Period</th>
-            <th>Time Left</th>
-            <th>Actions</th>
+            <th>Loan period</th>
+            <th>Time remaining</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
@@ -107,7 +125,7 @@ export default function IncomingLoanRequests() {
                 <td>{remaining >= 0 ? `${remaining} days left` : `${Math.abs(remaining)} days overdue`}</td>
                 <td className="actions">
                   <button className="btn-small btn-approve" onClick={() => markReturned(l._id)}>
-                    Mark Returned
+                    Record return
                   </button>
                 </td>
               </tr>
@@ -115,20 +133,27 @@ export default function IncomingLoanRequests() {
           })}
           {active.length === 0 && (
             <tr>
-              <td colSpan={5}>No active loans.</td>
+              <td colSpan={5} className="hint">
+                Nothing is currently out on loan.
+              </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
 
-      <h3>History</h3>
+      <div className="section-head">
+        <h2>Closed requests</h2>
+        <span className="hint">Declined and returned</span>
+      </div>
+      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Requesting Museum</th>
+            <th>Requesting museum</th>
             <th>Artifact</th>
-            <th>Loan Period</th>
-            <th>Status</th>
+            <th>Loan period</th>
+            <th>Outcome</th>
           </tr>
         </thead>
         <tbody>
@@ -148,11 +173,14 @@ export default function IncomingLoanRequests() {
           ))}
           {decided.length === 0 && (
             <tr>
-              <td colSpan={4}>Nothing here yet.</td>
+              <td colSpan={4} className="hint">
+                No closed requests yet.
+              </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

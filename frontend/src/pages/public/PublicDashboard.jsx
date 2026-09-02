@@ -1,77 +1,71 @@
-import { Landmark, MapPin, FileText, Images, Search, CalendarDays, Gavel, LocateFixed } from "lucide-react";
+import { Landmark, FileText, Search, CalendarDays, Gavel, LocateFixed, MessagesSquare } from "lucide-react";
 import ActionGrid from "../../components/ActionGrid";
+import ProfileCard from "../../components/ProfileCard";
+import { useAuth } from "../../context/AuthContext";
 
 export default function PublicDashboard() {
+  const { user } = useAuth();
   const actions = [
     {
       to: "/exhibitions",
       icon: CalendarDays,
-      title: "Exhibitions & Events",
-      description: "Discover exhibitions, educational tours, and cultural events near you.",
+      title: "Exhibitions & events",
+      description: "Exhibitions, educational tours, and cultural programmes near you.",
     },
     {
       to: "/search",
       icon: Search,
-      title: "Smart Artifact Search",
-      description: "Search artifacts by civilization, era, region, material, usage, or location.",
+      title: "Artifact catalogue",
+      description: "Search the national record by civilization, era, region, material, or use.",
     },
     {
       to: "/museums",
       icon: Landmark,
-      title: "Museum Directory",
-      description: "Browse museums and see what's on display, in storage, or on loan.",
+      title: "Museum directory",
+      description: "Participating museums and what each holds on display, in storage, or on loan.",
     },
     {
       to: "/near-me",
       icon: LocateFixed,
-      title: "Near Me",
-      description: "Find archaeological sites, exhibitions, and museums close to you.",
+      title: "Sites near you",
+      description: "Recorded excavation sites, museums, and events within reach.",
     },
     {
       to: "/auctions",
       icon: Gavel,
-      title: "Auctions",
-      description: "Bid on artifacts released for auction, and build your wishlist.",
-    },
-    {
-      to: "/heritage-sites",
-      icon: Landmark,
-      title: "Heritage Sites",
-      description: "Explore famous heritage locations. (Coming Soon)",
+      title: "Artifact auctions",
+      description: "Bid on lots released for lawful sale and follow the ones you are watching.",
     },
     {
       to: "/my-reports",
       icon: FileText,
-      title: "My Reports",
-      description: "Track the status of discoveries you have submitted to ArchiveEarth.",
+      title: "My submissions",
+      description: "Follow every discovery you have reported through inspection and verification.",
+    },
+    {
+      to: "/qna",
+      icon: MessagesSquare,
+      title: "Ask an archaeologist",
+      description: "Put a question to working researchers, or read what they have answered before.",
     },
   ];
 
   return (
     <div className="page">
-      <h1>General Public Dashboard</h1>
+      {user && (
+        <ProfileCard
+          name={user.name}
+          nid={user.nid}
+          email={user.email}
+          role="Public Member"
+          lines={[user.phone && `Phone: ${user.phone}`]}
+        />
+      )}
 
-      <p className="page-subtitle">
-        Welcome to ArchiveEarth. Help preserve history by reporting newly
-        discovered artifacts and exploring Bangladesh's cultural heritage.
-      </p>
-
-      <ActionGrid items={actions} />
-
-      <div
-        style={{
-          marginTop: "40px",
-          padding: "25px",
-          borderRadius: "12px",
-          background: "#fff",
-        }}
-      >
-        <h2>Featured Artifacts</h2>
-
-        <p style={{ color: "#777" }}>
-          Artifact gallery will appear here in the next version.
-        </p>
+      <div className="section-head">
+        <h2>Explore the register</h2>
       </div>
+      <ActionGrid items={actions} />
     </div>
   );
 }

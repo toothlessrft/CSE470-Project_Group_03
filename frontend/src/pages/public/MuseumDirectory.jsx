@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Ticket, Clock, LocateFixed } from "lucide-react";
+import { MapPin, Ticket, Clock, LocateFixed, Search, Landmark } from "lucide-react";
 import { api } from "../../api";
 
 export default function MuseumDirectory() {
@@ -22,7 +22,7 @@ export default function MuseumDirectory() {
       const data = await api.get("/museums");
       setMuseums(data.museums || []);
     } catch (err) {
-      setError(err.message || "Could not load the museum directory.");
+      setError(err.message || "The museum directory could not be loaded.");
     } finally {
       setLoading(false);
     }
@@ -30,7 +30,7 @@ export default function MuseumDirectory() {
 
   function useNearMe() {
     if (!navigator.geolocation) {
-      setError("Your browser doesn't support location services.");
+      setError("This browser does not support location services.");
       return;
     }
     setLocating(true);
@@ -43,13 +43,13 @@ export default function MuseumDirectory() {
           setMuseums(data.museums || []);
           setNearMeActive(true);
         } catch (err) {
-          setError(err.message || "Could not load nearby museums.");
+          setError(err.message || "Nearby museums could not be loaded.");
         } finally {
           setLocating(false);
         }
       },
       () => {
-        setError("Location permission denied. Showing the full directory instead.");
+        setError("Location access was declined, so the full directory is shown instead.");
         setLocating(false);
       }
     );
@@ -64,64 +64,115 @@ export default function MuseumDirectory() {
 
   return (
     <div className="page">
-      <h1>Museum Directory</h1>
-      <p className="page-subtitle">Browse museums, their locations, and what's currently on display, in storage, or on loan.</p>
-
-      <div className="card" style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "center" }}>
-        <input
-          type="text"
-          placeholder="Search museums..."
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          style={{ flex: 1, minWidth: "200px" }}
-        />
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Public record</span>
+          <h1>Museum directory</h1>
+          <p className="page-subtitle">
+            Every participating museum, with visitor information and what each holds on display, in
+            storage, or on loan.
+          </p>
+        </div>
         {nearMeActive ? (
-          <button className="btn-small btn-outline-light" onClick={clearNearMe}>Clear "Near Me"</button>
+          <button className="btn btn-secondary" onClick={clearNearMe}>
+            Show full directory
+          </button>
         ) : (
           <button className="btn" onClick={useNearMe} disabled={locating}>
-            <LocateFixed size={15} /> {locating ? "Locating..." : "Near Me"}
+            <LocateFixed size={16} aria-hidden="true" /> {locating ? "Locating" : "Find near me"}
           </button>
         )}
       </div>
 
+      <div className="home-search-row">
+        <label className="home-search-field">
+          <Search size={16} aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search by museum name"
+            aria-label="Search the museum directory"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </label>
+      </div>
+
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <h3>{loading ? "Loading..." : `${visible.length} museum(s)${nearMeActive ? " near you" : ""}`}</h3>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-        {visible.map((m) => (
-          <div key={m.museum_name} className="card" style={{ margin: 0, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-            <h4 style={{ margin: 0 }}>{m.museum_name}</h4>
-            {m.address && (
-              <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem", color: "#777" }}>
-                <MapPin size={13} /> {m.address}
-                {m.distance_km != null && ` · ${m.distance_km.toFixed(1)} km away`}
-              </p>
-            )}
-            {m.operating_hours && (
-              <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                <Clock size={13} /> {m.operating_hours}
-              </p>
-            )}
-            {m.ticket_info && (
-              <p style={{ margin: 0, fontSize: "0.85rem", display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                <Ticket size={13} /> {m.ticket_info}
-              </p>
-            )}
-            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", fontSize: "0.78rem", marginTop: "0.25rem" }}>
-              <span className="status-badge" style={{ backgroundColor: "#2e7d32" }}>On Display: {m.artifact_counts["On Display"]}</span>
-              <span className="status-badge" style={{ backgroundColor: "#6b6258" }}>In Storage: {m.artifact_counts["In Storage"]}</span>
-              <span className="status-badge" style={{ backgroundColor: "#d17d00" }}>Under Conservation: {m.artifact_counts["Under Conservation"]}</span>
-              <span className="status-badge" style={{ backgroundColor: "#b5834d" }}>On Loan: {m.artifact_counts["On Loan"]}</span>
-              <span className="status-badge" style={{ backgroundColor: "#5b6b8c" }}>Transferred: {m.artifact_counts["Transferred"]}</span>
-            </div>
-            <Link to={`/museums/${encodeURIComponent(m.museum_name)}`} className="btn-small" style={{ marginTop: "0.5rem", textAlign: "center" }}>
-              View collection ({m.artifact_counts.total})
-            </Link>
-          </div>
-        ))}
-        {!loading && visible.length === 0 && <p>No museums match this view yet.</p>}
+      <div className="section-head">
+        <h2>{nearMeActive ? "Museums near you" : "All museums"}</h2>
+        <span className="hint">
+          {loading ? "Loading" : `${visible.length} listed`}
+        </span>
       </div>
+
+      {loading ? (
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading the directory
+        </div>
+      ) : visible.length === 0 ? (
+        <div className="empty-state">
+          <Landmark size={26} aria-hidden="true" />
+          <h3>No museums found</h3>
+          <p>No museum in the directory matches this search.</p>
+        </div>
+      ) : (
+        <div className="listing-grid">
+          {visible.map((m) => (
+            <article key={m.museum_name} className="listing-card">
+              <div className="listing-body">
+                <h4 style={{ margin: "0 0 0.35rem" }}>{m.museum_name}</h4>
+
+                <p className="meta-row" style={{ marginTop: 0 }}>
+                  {m.address && (
+                    <span>
+                      <MapPin size={13} aria-hidden="true" /> {m.address}
+                      {m.distance_km != null && ` · ${m.distance_km.toFixed(1)} km away`}
+                    </span>
+                  )}
+                  {m.operating_hours && (
+                    <span>
+                      <Clock size={13} aria-hidden="true" /> {m.operating_hours}
+                    </span>
+                  )}
+                  {m.ticket_info && (
+                    <span>
+                      <Ticket size={13} aria-hidden="true" /> {m.ticket_info}
+                    </span>
+                  )}
+                </p>
+
+                <dl className="artifact-tile-facts" style={{ marginTop: "0.9rem" }}>
+                  <div>
+                    <dt>On display</dt>
+                    <dd className="num">{m.artifact_counts["On Display"]}</dd>
+                  </div>
+                  <div>
+                    <dt>In storage</dt>
+                    <dd className="num">{m.artifact_counts["In Storage"]}</dd>
+                  </div>
+                  <div>
+                    <dt>Under conservation</dt>
+                    <dd className="num">{m.artifact_counts["Under Conservation"]}</dd>
+                  </div>
+                  <div>
+                    <dt>On loan</dt>
+                    <dd className="num">{m.artifact_counts["On Loan"]}</dd>
+                  </div>
+                </dl>
+
+                <Link
+                  to={`/museums/${encodeURIComponent(m.museum_name)}`}
+                  className="btn btn-small btn-secondary"
+                  style={{ marginTop: "1rem" }}
+                >
+                  View collection ({m.artifact_counts.total})
+                </Link>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
