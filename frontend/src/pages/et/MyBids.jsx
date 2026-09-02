@@ -218,7 +218,6 @@ export default function MyBids() {
                   <input
                     type="number"
                     min="0"
-                    step="1000"
                     value={form.cost}
                     onChange={(e) => setForm({ ...form, cost: e.target.value })}
                     required

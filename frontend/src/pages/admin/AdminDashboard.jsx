@@ -68,17 +68,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Heritage Authority</span>
-          <h1>Oversight workspace</h1>
-          <p className="page-subtitle">
-            Excavation licensing, artifact allocation, and public reporting for the national
-            register.
-          </p>
-        </div>
-      </div>
-
       <ProfileCard
         name={admin.name}
         nid={admin.nid}

@@ -1,5 +1,4 @@
-import { Landmark, MapPin, FileText, Search, CalendarDays, Gavel, LocateFixed, MessagesSquare } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Landmark, FileText, Search, CalendarDays, Gavel, LocateFixed, MessagesSquare } from "lucide-react";
 import ActionGrid from "../../components/ActionGrid";
 import ProfileCard from "../../components/ProfileCard";
 import { useAuth } from "../../context/AuthContext";
@@ -53,20 +52,6 @@ export default function PublicDashboard() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Public Member</span>
-          <h1>Your workspace</h1>
-          <p className="page-subtitle">
-            Report newly surfaced artifacts, follow your submissions, and explore the public
-            record of Bangladesh&apos;s heritage.
-          </p>
-        </div>
-        <Link className="btn" to="/report-discovery">
-          <MapPin size={16} aria-hidden="true" /> Report a find
-        </Link>
-      </div>
-
       {user && (
         <ProfileCard
           name={user.name}

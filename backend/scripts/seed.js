@@ -369,7 +369,7 @@ async function run() {
       discovery_date: new Date("2024-05-15"),
       allocation: "Auction",
       museumName: "",
-      location: "Scheduled for Auction",
+      location: "Auction",
     },
   ]);
 
@@ -386,7 +386,7 @@ async function run() {
       discovery_date: new Date("2024-05-17"),
       allocation: "Auction",
       museumName: "",
-      location: "Scheduled for Auction",
+      location: "Auction",
     },
     {
       name: "Banded Agate Bead",
@@ -400,7 +400,7 @@ async function run() {
       discovery_date: new Date("2024-05-22"),
       allocation: "Auction",
       museumName: "",
-      location: "Scheduled for Auction",
+      location: "Auction",
     },
     {
       name: "Black and Red Ware Sherd",
@@ -414,7 +414,7 @@ async function run() {
       discovery_date: new Date("2024-05-29"),
       allocation: "Auction",
       museumName: "",
-      location: "Scheduled for Auction",
+      location: "Auction",
     },
     {
       name: "Bone Hairpin",
@@ -428,7 +428,7 @@ async function run() {
       discovery_date: new Date("2024-06-03"),
       allocation: "Auction",
       museumName: "",
-      location: "Scheduled for Auction",
+      location: "Auction",
     },
     {
       name: "Bone Needle",
@@ -442,7 +442,7 @@ async function run() {
       discovery_date: new Date("2024-06-08"),
       allocation: "Auction",
       museumName: "",
-      location: "Scheduled for Auction",
+      location: "Auction",
     },
   ]);
 

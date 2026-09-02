@@ -28,16 +28,6 @@ export default function SCaretakerDashboard() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Site Caretaker</span>
-          <h1>Custodian workspace</h1>
-          <p className="page-subtitle">
-            Keep your assigned site in good condition and bid for excavation work.
-          </p>
-        </div>
-      </div>
-
       <ProfileCard
         name={caretaker.name}
         nid={caretaker.nid}

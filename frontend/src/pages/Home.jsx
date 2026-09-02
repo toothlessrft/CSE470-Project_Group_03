@@ -106,8 +106,8 @@ export default function Home() {
                 <Link className="btn" to={ROLE_HOME[user.role] || "/"}>
                   <LayoutDashboard size={16} aria-hidden="true" /> Open your workspace
                 </Link>
-                <Link className="btn btn-outline" to="/report-discovery">
-                  <MapPin size={16} aria-hidden="true" /> Report a find
+                <Link className="btn btn-outline" to="/near-me">
+                  <LocateFixed size={16} aria-hidden="true" /> Sites near you
                 </Link>
               </>
             ) : (

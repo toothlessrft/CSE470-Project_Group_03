@@ -196,7 +196,6 @@ export default function CreateTender() {
             <input
               type="number"
               min="0"
-              step="1000"
               value={form.estimated_budget}
               onChange={(e) => setForm({ ...form, estimated_budget: e.target.value })}
               placeholder="e.g. 500000"
