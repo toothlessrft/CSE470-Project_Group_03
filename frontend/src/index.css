@@ -606,21 +606,18 @@ strong {
 }
 
 /* Secondary: bordered and quiet, for the non-primary path. */
-.btn-outline-light,
 .btn-secondary {
   background: var(--surface);
   color: var(--primary-dark);
   border: 1px solid var(--border-strong);
 }
 
-.btn-outline-light:hover,
 .btn-secondary:hover {
   background: var(--surface-sunken);
   border-color: var(--primary);
   color: var(--primary-dark);
 }
 
-.btn-outline-light:disabled,
 .btn-secondary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
@@ -663,20 +660,7 @@ strong {
   color: white;
 }
 
-.btn-ghost {
-  background: transparent;
-  border-color: transparent;
-  color: var(--primary);
-}
-
-.btn-ghost:hover {
-  background: var(--tint);
-  border-color: transparent;
-  color: var(--primary-dark);
-}
-
 .actions,
-.link-grid,
 .toolbar {
   display: flex;
   gap: 0.5rem;
@@ -687,15 +671,6 @@ strong {
 .toolbar {
   gap: 0.6rem;
   margin: 1rem 0;
-}
-
-.toolbar-spacer {
-  flex: 1 1 auto;
-}
-
-.link-grid {
-  gap: 0.6rem;
-  margin-top: 0.9rem;
 }
 
 /* ==========================================================================
@@ -843,7 +818,7 @@ input[type="datetime-local"] {
   min-width: 0;
 }
 
-/* The old .form-scoped rules are gone; these keep the legacy hooks working. */
+/* Form controls fill their label, so rows line up on any width. */
 .form label {
   width: 100%;
 }
@@ -1230,14 +1205,6 @@ fieldset legend {
   color: var(--danger);
 }
 
-.text-success {
-  color: var(--success);
-}
-
-.text-muted {
-  color: var(--muted);
-}
-
 /* Status pill: tinted, sentence case, with a colour dot so state is not
    carried by colour alone. */
 .status-badge {
@@ -1347,130 +1314,8 @@ fieldset legend {
 }
 
 /* ==========================================================================
-   Masthead (home)
+   Action card grid
    ========================================================================== */
-
-.hero {
-  background: var(--primary-dark);
-  color: white;
-  border-radius: var(--radius);
-  padding: 2.5rem 2.25rem;
-  margin-bottom: 2rem;
-}
-
-.hero-eyebrow {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  font-size: 0.6875rem;
-  font-weight: 600;
-  color: var(--accent);
-  margin-bottom: 0.9rem;
-}
-
-.hero-title {
-  color: white;
-  font-size: 2.1rem;
-  max-width: 20ch;
-  margin: 0 0 0.75rem;
-  letter-spacing: -0.02em;
-}
-
-.hero-subtitle {
-  color: rgba(255, 255, 255, 0.78);
-  max-width: 62ch;
-  font-size: 1rem;
-  line-height: 1.6;
-  margin-bottom: 1.5rem;
-}
-
-.hero-actions {
-  display: flex;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-
-.hero-actions .btn:not(.btn-outline) {
-  background: white;
-  color: var(--primary-dark);
-  border-color: white;
-}
-
-.hero-actions .btn:not(.btn-outline):hover {
-  background: var(--tint);
-  border-color: var(--tint);
-  color: var(--primary-dark);
-}
-
-.hero-facts {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 2rem;
-  margin-top: 2rem;
-  padding-top: 1.5rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.15);
-}
-
-.hero-fact b {
-  display: block;
-  font-family: var(--font-display);
-  font-size: 1.35rem;
-  font-weight: 600;
-  color: white;
-  line-height: 1.2;
-}
-
-.hero-fact span {
-  font-size: 0.75rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.6);
-}
-
-/* ==========================================================================
-   Role and action directories
-   ========================================================================== */
-
-.role-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--border);
-  overflow: hidden;
-}
-
-.role-card {
-  padding: 1.15rem 1.25rem;
-  background: var(--surface);
-}
-
-.role-icon {
-  width: 34px;
-  height: 34px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  background: var(--tint);
-  color: var(--primary);
-  margin-bottom: 0.7rem;
-}
-
-.role-card h4 {
-  margin: 0 0 0.25rem;
-  font-size: 0.9375rem;
-}
-
-.role-card p {
-  margin: 0;
-  font-size: 0.8125rem;
-  color: var(--muted);
-  line-height: 1.5;
-}
 
 .action-grid {
   display: grid;
@@ -2266,38 +2111,6 @@ fieldset legend {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-}
-
-.notif-inline {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  margin-top: 0.9rem;
-}
-
-.notif-inline-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-  padding: 0.8rem 1.1rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--surface-sunken);
-}
-
-.notif-inline-head strong {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-family: var(--font-display);
-  font-size: 0.95rem;
-  color: var(--primary-dark);
-}
-
-.notif-inline-body {
-  max-height: 460px;
-  overflow-y: auto;
 }
 
 /* ==========================================================================
@@ -3618,14 +3431,6 @@ fieldset legend {
 
   h1 {
     font-size: 1.5rem;
-  }
-
-  .hero {
-    padding: 1.75rem 1.4rem;
-  }
-
-  .hero-title {
-    font-size: 1.6rem;
   }
 
   .chat-shell {

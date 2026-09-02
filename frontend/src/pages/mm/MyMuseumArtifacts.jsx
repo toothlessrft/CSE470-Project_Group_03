@@ -131,8 +131,7 @@ export default function MyMuseumArtifacts() {
     }
   }
 
-  // Status toggles: instantly update if an item is moved to storage / display /
-  // conservation / loan / transferred. Logged automatically in movement history.
+  // Status toggles apply straight away and are written to movement history.
   async function setAvailability(itemId, availability) {
     setSavingId(itemId);
     setError("");
@@ -156,7 +155,7 @@ export default function MyMuseumArtifacts() {
       setShowAddForm(false);
       await loadItems();
       flashSuccess(`"${data.item.name}" added to the collection register (ID ${data.item.artifactId}).`);
-      // Scroll up so the confirmation banner and the (now-closed) form area are in view.
+      // Scroll up so the confirmation banner is in view.
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
       setError(err.message);

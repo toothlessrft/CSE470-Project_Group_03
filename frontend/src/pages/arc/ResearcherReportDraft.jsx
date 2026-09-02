@@ -1,4 +1,4 @@
-//Researcher Report: Ahad
+// Researcher Report - Ahad
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 
@@ -14,9 +14,8 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
         requestExcavationTeam: false,
     });
 
-    // Ahad_23201016 - "Add Artifact" no longer lives on the field report. Finds
-    // are now logged against the active excavation project in Manage Projects,
-    // once a team has actually been awarded the dig through the tender process.
+    // Ahad_23201016 - finds are logged against the excavation project in
+    // Manage Projects, not on the field report.
 
     const [busy, setBusy] = useState(false);
 
@@ -70,7 +69,7 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
             const data = await api.post(`/researcher-report/${discoveryId}/submit`, { ...form });
             setSuccess("Field report submitted to the heritage authority.");
             setReport(data.report);
-            // Notify parent to reload list so the card moves to Previous Projects once approved
+            // Reload the parent list, so an approved card moves to Previous.
             if (onSubmitted) onSubmitted();
         } catch (err) {
             setError(err.message);
@@ -92,8 +91,8 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
     const isApproved = report.status === "Approved";
     const isLocked = !isDraft; // Pending or Approved - no more edits allowed
 
-    // Once submitted the report is read-only, so show the submitted report back
-    // to the archaeologist as a summary instead of a locked, empty-looking form.
+    // A submitted report is read-only, so show it as a summary rather than a
+    // locked, empty-looking form.
     if (isLocked) {
         return (
             <div className="panel" style={{ marginTop: "1.25rem" }}>

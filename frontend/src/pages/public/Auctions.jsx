@@ -5,7 +5,7 @@ import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import StatusBadge from "../../components/StatusBadge";
 
-// Dynamic time counter component that updates every second
+// Countdown that ticks once a second.
 function TimeCounter({ deadline }) {
   const [display, setDisplay] = useState("");
 

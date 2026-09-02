@@ -61,16 +61,13 @@ async function run() {
     Question.deleteMany({}), // Public Archaeology Q&A
     Answer.deleteMany({}), // Public Archaeology Q&A
     QnAComment.deleteMany({}), // Public Archaeology Q&A
-    // Every notification (real or sample) references a user and usually a
-    // record that just got recreated above with a brand new _id, so nothing
-    // in here can still be valid after a reseed - leaving old rows behind
-    // just means stale notifications pointing at records that no longer
-    // exist (e.g. an exhibition that was deleted by the last reseed).
+    // Every notification points at a user and usually a record, all of which
+    // get new _ids above, so none of them survive a reseed.
     Notification.deleteMany({}),
   ]);
 
-  // Some older seed runs left stale unique indexes on the bids collection.
-  // Dropping the collection ensures the current schema can be recreated cleanly.
+  // Older seed runs left stale unique indexes on bids, so drop the whole
+  // collection and let the current schema rebuild it.
   try {
     await Bid.collection.drop();
   } catch (err) {
@@ -115,8 +112,8 @@ async function run() {
     { nid: "MM001", role: "museum_manager", status: "approved", name: "Fatima Begum", email: "fatima@museum.bd", phone: "+8801789012345", password: hash, roleProfile: { museum_name: "National Museum of Bangladesh", m_city: "Dhaka", m_street: "Shahbag Avenue" } },
     { nid: "MM002", role: "museum_manager", status: "approved", name: "Tariq Islam", email: "tariq@museum.bd", phone: "+8801790123456", password: hash, roleProfile: { museum_name: "Folk Art Museum", m_city: "Narayanganj", m_street: "Sonargaon" } },
     { nid: "MM003", role: "museum_manager", status: "approved", name: "Nusrat Jahan", email: "nusrat@museum.bd", phone: "+8801801234567", password: hash, roleProfile: { museum_name: "Varendra Research Museum", m_city: "Rajshahi", m_street: "University Road" } },
-    // Ahad_23201016 - Excavation Team accounts. Each one is a company, and
-    // `name` is that company's representative. Log in with nid E001/E002/E003.
+    // Ahad_23201016 - excavation team accounts. Each is a company; `name` is
+    // its representative. Log in with nid E001/E002/E003.
     { nid: "E001", role: "excavation_team", status: "approved", name: "Rahim Khan", email: "rahim@bengalexcavation.bd", phone: "+8801756789012", password: hash, roleProfile: { company_name: "Bengal Excavation Works Ltd.", team_size: 24, organization: "Bengal Excavation Works Ltd.", team_leader: "Rahim Khan" } },
     { nid: "E002", role: "excavation_team", status: "approved", name: "Sultana Ahmed", email: "sultana@heritagedigs.bd", phone: "+8801767890123", password: hash, roleProfile: { company_name: "Heritage Digs & Conservation", representative_designation: "Managing Director", team_size: 16, organization: "Heritage Digs & Conservation", team_leader: "Sultana Ahmed" } },
     { nid: "E003", role: "excavation_team", status: "approved", name: "Jamal Uddin", email: "jamal@padmagroundworks.bd", phone: "+8801778901234", password: hash, roleProfile: { company_name: "Padma Groundworks", representative_designation: "Field Supervisor", team_size: 31, organization: "Padma Groundworks", team_leader: "Jamal Uddin" } },
@@ -216,7 +213,7 @@ async function run() {
 
   const baseMuseumItems = itemDefs.map((item, index) => ({
     ...item,
-    // Real freely-licensed photograph for this kind of object, where we have one
+    // Freely-licensed photo, where we have one for this kind of object
     picture: ARTIFACT_IMAGES[item.name]?.picture || "",
     site: item.site._id,
     allocation: "Museum",
@@ -339,9 +336,8 @@ async function run() {
     verification: { result: "true", notes: "A genuine limestone architectural block, likely Guptan.", submitted_at: new Date("2024-05-15") },
   });
 
-  // Report Approval & Artifact Allocation demo: an already-approved report
-  // whose artifacts have been added to the catalogue - one sent to a museum,
-  // one sent to auction - so Smart Artifact Search reflects both outcomes.
+  // Approved report whose artifacts are already in the catalogue, one sent to
+  // a museum and one to auction, so search shows both outcomes.
   const approvedArtifactItems = await Item.create([
     {
       name: "Carved Stone Deity Fragment",
@@ -515,9 +511,7 @@ async function run() {
     verification: { result: "true", notes: "Identified as authentic rupees from Emperor Aurangzeb's reign.", submitted_at: new Date("2024-08-05") },
   });
 
-  // Report Approval & Artifact Allocation demo: a final report already
-  // submitted by the researcher and sitting Pending, waiting on the admin to
-  // approve it (test the "Approve Final Report" button on this one).
+  // A final report sitting Pending - use this one to test "Approve Final Report".
   await ResearcherReport.create({
     discoveryReport: dr_lalbagh._id,
     researcher: bob._id,
@@ -548,8 +542,6 @@ async function run() {
     starting_bid: 5000,
     min_increment: 500,
     deadline: new Date(now + 3 * day),
-    source_percentage: 10,
-    source_name: "Alice Rahman (excavation lead)",
     current_bid: 7000,
     current_bidder: publicUser._id,
     bid_count: 3,
@@ -567,11 +559,9 @@ async function run() {
     starting_bid: 3000,
     min_increment: 300,
     deadline: new Date(now + 5 * day),
-    source_percentage: 15,
-    source_name: "Somapura Excavation Team",
   });
 
-  // --- 3. Active, deadline coming up soon (demoes the countdown/urgency UI) ---
+  // --- 3. Active, deadline soon, to show the countdown ---
   const auctionSilverDinars = await Auction.create({
     item: itemByNameUpdated["Silver Dinars"]._id,
     created_by: dina._id,
@@ -581,8 +571,6 @@ async function run() {
     reserve_price: 9500,
     extend_trigger_minutes: 5,
     extend_by_minutes: 5,
-    source_percentage: 8,
-    source_name: "Mainamati Excavation Team",
     current_bid: 10000,
     current_bidder: tariq._id,
     bid_count: 3,
@@ -601,8 +589,6 @@ async function run() {
     min_increment: 400,
     deadline: new Date(now + 7 * day),
     reserve_price: 4000,
-    source_percentage: 20,
-    source_name: "Javed Public (original reporter)",
     current_bid: 4400,
     current_bidder: nusrat._id,
     bid_count: 2,
@@ -620,8 +606,6 @@ async function run() {
     min_increment: 200,
     deadline: new Date(now - 2 * day),
     reserve_price: 2500,
-    source_percentage: 12,
-    source_name: "Bob Karim (field researcher)",
     current_bid: 3000,
     current_bidder: jamal._id,
     bid_count: 4,
@@ -645,8 +629,6 @@ async function run() {
     min_increment: 1000,
     deadline: new Date(now - 1 * day),
     reserve_price: 20000,
-    source_percentage: 10,
-    source_name: "Wari-Bateshwar Excavation Team",
     current_bid: 16000,
     current_bidder: charlie._id,
     bid_count: 2,
@@ -665,8 +647,6 @@ async function run() {
     starting_bid: 6000,
     min_increment: 500,
     deadline: new Date(now + 4 * day),
-    source_percentage: 10,
-    source_name: "Somapura Excavation Team",
     current_bid: 6000,
     current_bidder: rahim._id,
     bid_count: 1,
@@ -684,8 +664,6 @@ async function run() {
     min_increment: 250,
     deadline: new Date(now + 1.5 * day), // ends in 1.5 days
     reserve_price: 4000,
-    source_percentage: 8,
-    source_name: "Gupta Era Research Project",
     current_bid: 4250,
     current_bidder: publicUser._id, // User in winning position
     bid_count: 5,
@@ -706,8 +684,6 @@ async function run() {
     min_increment: 150,
     deadline: new Date(now - 6 * 60 * 60 * 1000), // closed 6 hours ago
     reserve_price: 2200,
-    source_percentage: 7,
-    source_name: "Narsingdi Excavation Team",
     current_bid: 2650,
     current_bidder: publicUser._id,
     bid_count: 4,
@@ -724,19 +700,12 @@ async function run() {
   ]);
 
 
-  // =========================================================================
-  // Ahad_23201016 - Tender Publication & Bidding demo data
-  //
-  // Four scenarios are seeded so every screen has something to show:
-  //   1. An approved field report requesting a team, with NO tender yet
-  //      -> appears in the admin's "Create Tender" source dropdown.
-  //   2. An Open tender with three competing bids
-  //      -> the admin can evaluate and award; E001-E003 can edit/withdraw.
-  //   3. An Awarded tender with a live project + unallocated artifacts
-  //      -> shows in Manage Projects (archaeologist) and My Projects (team).
-  //   4. A completed project handed over to the Government
-  //      -> shows in admin "Excavation Projects" awaiting artifact allocation.
-  // =========================================================================
+  // === Ahad_23201016 - tender and bidding demo data =======================
+  // Four scenarios, so every screen has something to show:
+  //   1. Approved report, no tender yet -> admin's Create Tender dropdown.
+  //   2. Open tender with three bids    -> admin can award; E001-E003 can edit.
+  //   3. Awarded tender, live project   -> Manage Projects / My Projects.
+  //   4. Completed dig                  -> admin, awaiting artifact allocation.
   console.log("Creating excavation tenders, bids, and projects...");
 
   const tDay = 24 * 60 * 60 * 1000;
@@ -935,8 +904,8 @@ async function run() {
     agreed_timeline_days: 55,
   });
 
-  // Finds logged on the active dig - held back from Smart Artifact Search
-  // until the Government allocates them after the project is handed over.
+  // Finds on the active dig. They stay out of public search until the admin
+  // allocates them after handover.
   const activeFinds = await Item.create([
     {
       site: activeSite._id,
@@ -1140,9 +1109,8 @@ async function run() {
 
   console.log("Creating sample cross feedback & performance reviews...");
 
-  // A couple of extra completed projects purely so more than one person has
-  // rating history (site/tender are optional on ExcavationProject, so these
-  // stay lightweight - they only need to exist to anchor the reviews).
+  // Extra completed projects so more than one person has rating history. Site
+  // and tender are optional, so these stay lightweight.
   const reviewProjectSylhet = await ExcavationProject.create({
     p_name: "Sylhet Tea Estate Boundary Survey",
     organization: "Bengal Excavation Works Ltd.",
@@ -1156,8 +1124,7 @@ async function run() {
     submitted_to_admin: true,
     completed_at: new Date(nowMs - 15 * tDay),
     completion_notes: "Boundary trenches closed, no further finds expected.",
-    // No artifacts were ever attached to this project - it only exists to
-    // anchor the reviews below - so there is genuinely nothing to allocate.
+    // No artifacts here - this project only exists to anchor the reviews.
     allocation_done: true,
   });
 
@@ -1265,10 +1232,8 @@ async function run() {
     },
   ]);
 
-  // ---- A second still-active, fully-assigned project ready to be marked
-  // complete, so the review popup + partner notification can be tested end
-  // to end with clean data (in addition to the existing activeProject above,
-  // which is lead_archaeologist: bob / excavation_team: rahim). ----
+  // A second fully-staffed active project, so the review popup and partner
+  // notification can be tested end to end on clean data.
   const khulnaProject = await ExcavationProject.create({
     p_name: "Khulna Coastal Shell Midden Excavation",
     organization: "Padma Groundworks",
@@ -1281,11 +1246,8 @@ async function run() {
     location: { lat: 22.8456, lng: 89.5403, address: "Rupsa Riverbank, Khulna" },
   });
 
-  // Every other project above that has both a lead archaeologist and an
-  // excavation team assigned (the review-anchor digs + Khulna) also gets its
-  // group chat, same as the two seeded with full conversations - a project
-  // being fully staffed is what creates the chat, not which script path
-  // created the project.
+  // Any project with both parties assigned gets a chat - being fully staffed
+  // is what creates one, so the review-anchor digs and Khulna get theirs too.
   for (const proj of [reviewProjectSylhet, reviewProjectBogura, reviewProjectRajshahi, khulnaProject]) {
     await ensureChatForProject(proj);
     if (proj.end_date) await archiveChatForProject(proj._id);
@@ -1299,16 +1261,15 @@ async function run() {
     { user: rahim._id, item: itemByNameUpdated["Gold Earring"]._id },
   ]);
 
-  // Tiny inline placeholder photo (data URL), same convention as every other
-  // uploaded image in this app (ImageUploader stores data URLs directly).
+  // Inline placeholder photo. ImageUploader stores data URLs directly, so
+  // every uploaded image in the app looks like this.
   const PLACEHOLDER_IMAGE =
     "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=";
 
   console.log("Creating Project Team Group Chats (dummy + working data)...");
 
-  // Live chat on the still-active Comilla dig (Bob leads, Rahim's company is
-  // the excavation team) - shows an ongoing conversation, image sharing, and
-  // a participant added after the fact (Mizan joining as a second opinion).
+  // Live chat on the active Comilla dig: an ongoing conversation, a shared
+  // image, and Mizan added later as a second opinion.
   const activeChat = await TeamChat.create({
     project: activeProject._id,
     participants: [
@@ -1332,16 +1293,14 @@ async function run() {
     { chat: activeChat._id, sender: rahim._id, text: "Will do. Weather's held up well this week, we're roughly on schedule.", createdAt: new Date(nowMs - 5 * tDay) },
   ]);
 
-  // Bob (the lead) has read up to a few days ago; Rahim and Mizan have not
-  // read the latest messages yet, so the DM icon has a real unread badge to
-  // show right after seeding.
+  // Bob has read up to a few days ago; Rahim and Mizan have not, so the chat
+  // icon shows a real unread badge straight after seeding.
   await TeamChat.updateOne(
     { _id: activeChat._id, "participants.user": bob._id },
     { $set: { "participants.$.last_read_at": new Date(nowMs - 6 * tDay) } }
   );
 
-  // Archived chat on the completed Somapura dig (Alice + Sultana's team) -
-  // shows a finished conversation that stays visible in chat history.
+  // Archived chat on the completed Somapura dig - finished, but still readable.
   const archivedChat = await TeamChat.create({
     project: completedProject._id,
     participants: [
@@ -1414,7 +1373,7 @@ async function run() {
     createdAt: new Date(nowMs - 1 * tDay),
   });
 
-  // Answered by more than one archaeologist, so "My Answers" has real cross-author data.
+  // Two archaeologists answered, so "My Answers" has cross-author data.
   const qMultiAnswer = await Question.create({
     askedBy: shirin._id,
     title: "Why were so many Pala-era Buddhist sites built with cruciform ground plans?",

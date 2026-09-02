@@ -4,7 +4,6 @@ import { UserPlus } from "lucide-react";
 import { useAuth, ROLE_HOME } from "../context/AuthContext";
 import SearchableSelect from "../components/SearchableSelect";
 import { MUSEUMS } from "../data/museums";
-//import { api } from "../api";
 
 const ROLES = [
   { value: "public", label: "Member of the public" },

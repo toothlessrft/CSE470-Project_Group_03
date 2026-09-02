@@ -1,7 +1,6 @@
-// Ahad_23201016 - Detailed view of an active excavation project. Reached by
-// clicking a project from Manage Projects (archaeologist) or My Projects
-// (excavation team); the admin can open it too. Everyone reads the same
-// record - the buttons on offer just depend on the role.
+// Ahad_23201016 - one excavation project in detail. Opened from Manage
+// Projects (archaeologist), My Projects (team), or by the admin. Everyone
+// reads the same record; only the buttons differ by role.
 import { useCallback, useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import {
@@ -57,9 +56,8 @@ export default function ProjectDetail() {
   const [busy, setBusy] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
 
-  // Cross Feedback & Performance Review: whether this user still owes their
-  // partner a rating on this project. null until checked (or when the check
-  // does not apply, e.g. an admin viewing someone else's dig).
+  // Whether this user still owes their partner a rating. null until checked,
+  // or when it does not apply (an admin viewing someone else's dig).
   const [reviewStatus, setReviewStatus] = useState(null);
 
   function load() {
@@ -76,9 +74,8 @@ export default function ProjectDetail() {
 
   useEffect(load, [projectId]);
 
-  // Only the two people on the dig can rate each other, and only once it is
-  // finished - the endpoint rejects anyone else, so don't even ask outside
-  // those cases (an admin viewing the page would just get a 403).
+  // Only the two parties on a finished dig can rate each other, so don't ask
+  // outside that case - anyone else gets a 403.
   const canReview = Boolean(project?.end_date) && (permissions.isLead || permissions.isTeam);
 
   const loadReviewStatus = useCallback(() => {
@@ -175,14 +172,10 @@ export default function ProjectDetail() {
 
   const isComplete = Boolean(project.end_date);
 
-  // "Rate your partner", rendered next to whichever party the current user is
-  // entitled to review. Only shown once the dig is finished - there is nothing
-  // to rate mid-project, and the API would reject it anyway.
-  //
-  // Deliberately NOT gated on reviewStatus having loaded: that call is only
-  // needed to choose the label, and gating on it means one failed request
-  // silently hides the button with no way for the user to tell why. The modal
-  // re-fetches the same context itself and reports any real problem.
+  // "Rate your partner", shown beside whichever party this user may review,
+  // and only once the dig is finished. Not gated on reviewStatus loading -
+  // that call only picks the label, and gating on it would hide the button
+  // silently if it failed. The modal re-checks and reports real problems.
   const alreadyRated = Boolean(reviewStatus?.already_reviewed);
   const ratePartnerButton = canReview ? (
     <button
@@ -356,7 +349,7 @@ export default function ProjectDetail() {
             <Users size={15} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.35rem" }} />
             Excavation contractor
           </h3>
-          {/* Mirror image of the button below: the archaeologist assesses the contractor. */}
+          {/* Mirrors the button below: the archaeologist rates the contractor. */}
           {permissions.isLead && team && ratePartnerButton}
         </div>
         <div className="panel-body">

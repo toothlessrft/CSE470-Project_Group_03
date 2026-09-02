@@ -48,7 +48,7 @@ export default function AuctionDetail() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, auction?.item?._id]);
 
-  // Live-ish countdown + poll for updates while the auction is close to ending
+  // Countdown, and poll for new bids while the auction is close to ending.
   useEffect(() => {
     const tick = setInterval(() => forceTick((n) => n + 1), 1000);
     let poll;

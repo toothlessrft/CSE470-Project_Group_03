@@ -20,7 +20,7 @@ import {
 import { api } from "../api";
 import { useAuth } from "../context/AuthContext";
 
-// "public" flag = visible to guests (not logged in) without an account.
+// The "public" flag means guests can see it without an account.
 const CATEGORIES = [
   { id: "research_paper", label: "Research papers", icon: BookOpen, public: true },
   { id: "book", label: "Books", icon: Book, public: false },
@@ -29,9 +29,7 @@ const CATEGORIES = [
   { id: "vlog_audio", label: "Field diaries", icon: Clapperboard, public: false },
 ];
 
-// Mirrors the server-side rule in backend/routes/knowledge.js.
-// "Researcher" is the same account as "archaeologist". "Excavation Team" is
-// the "excavation_team" role. Ahad_23201016
+// Ahad_23201016 - mirrors the rule in backend/routes/knowledge.js.
 const CATEGORY_UPLOAD_ROLES = {
   research_paper: ["archaeologist"],
   book: ["archaeologist"],

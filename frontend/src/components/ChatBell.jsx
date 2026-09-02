@@ -1,6 +1,5 @@
-// Project Team Group Chat - navbar DM icon, sits right of the notification
-// bell. Shows a red unread count and a dropdown listing every project chat
-// the current user belongs to, same drill-down feel as NotificationBell.
+// Navbar chat icon, beside the notification bell. Red unread count, and a
+// dropdown listing every project chat this user belongs to.
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle, ChevronRight, Users, Archive } from "lucide-react";

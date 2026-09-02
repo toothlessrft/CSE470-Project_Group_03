@@ -1,6 +1,5 @@
-// Status is shown as a tinted pill with a colour dot, so the state is never
-// carried by colour alone. Each entry is the pill's foreground colour; the
-// dot, border and text all inherit it.
+// Status pill: a colour dot plus the label, so state is never carried by
+// colour alone. Each entry is the foreground colour everything inherits.
 const COLORS = {
   Pending: "#8a5a12",
   Assigned: "#1d4ed8",

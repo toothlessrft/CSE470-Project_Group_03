@@ -22,10 +22,6 @@ const auctionSchema = new Schema(
     min_increment: { type: Number, required: true, min: 1 },
     reserve_price: { type: Number, default: null }, // hidden from bidders; optional
 
-    // Who gets a cut of the final sale price, and how much.
-    source_percentage: { type: Number, default: 0, min: 0, max: 100 },
-    source_name: { type: String, trim: true, default: "" }, // e.g. "Rahim Khan (reporter)" or a museum name
-
     deadline: { type: Date, required: true },
 
     // Anti-sniping: if a valid bid lands within `extend_trigger_minutes` of

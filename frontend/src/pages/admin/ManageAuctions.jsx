@@ -189,7 +189,6 @@ export default function ManageAuctions() {
             <th>Lot</th>
             <th>Hammer price</th>
             <th>Successful bidder</th>
-            <th>Share to source</th>
             <th>Outcome</th>
           </tr>
         </thead>
@@ -202,11 +201,6 @@ export default function ManageAuctions() {
               </td>
               <td>
                 {a.status === "Closed-Sold" && a.winner ? `${a.winner.name} (${a.winner.nid})` : "—"}
-              </td>
-              <td className="num">
-                {a.final_price != null && a.source_percentage > 0
-                  ? `৳${Math.round((a.final_price * a.source_percentage) / 100).toLocaleString()} · ${a.source_percentage}% to ${a.source_name || "source"}`
-                  : "—"}
               </td>
               <td>
                 <StatusBadge status={a.status.replace("Closed-", "")} />

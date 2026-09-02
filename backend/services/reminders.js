@@ -1,15 +1,10 @@
-// Role-Based Notification & Reminder System - automatic deadline reminders.
+// Automatic deadline reminders. One sweeper runs on an interval and covers
+// everything with a due date: tenders, field reports, auctions, equipment
+// returns, artifact loans and exhibitions.
 //
-// A single sweeper runs on an interval (same pattern as the auction sweep in
-// routes/auctions.js) and raises reminders for anything with a due date:
-// tenders, field reports, auctions, equipment returns, artifact loans and
-// exhibitions.
-//
-// Every reminder carries a deterministic dedupe_key, so re-running the sweep
-// (or running it after a server restart) never produces duplicates - the unique
-// sparse index on Notification.dedupe_key rejects the repeat insert.
+// Each reminder builds a deterministic dedupe_key, so re-running the sweep or
+// restarting the server never produces duplicates.
 const Tender = require("../models/Tender");
-const TenderBid = require("../models/TenderBid");
 const Auction = require("../models/Auction");
 const Bid = require("../models/Bid");
 const Wishlist = require("../models/Wishlist");
@@ -20,9 +15,9 @@ const Exhibition = require("../models/Exhibition");
 const User = require("../models/User");
 const { notify, notifyMany, notifyRole } = require("./notify");
 
-// Reminders fire once per window. Picking only the tightest applicable window
-// means a deadline three days out produces "3 days left", then "1 day left",
-// then "6 hours left" - never all three at once.
+// One reminder per window. Taking only the tightest window means a deadline
+// three days out gives "3 days left", then "1 day", then "6 hours" - not all
+// three at once.
 const WINDOWS = [
   { hours: 72, label: "in 3 days" },
   { hours: 24, label: "tomorrow" },
@@ -32,11 +27,8 @@ const WINDOWS = [
 const SWEEP_INTERVAL_MS = 15 * 60 * 1000; // every 15 minutes
 const NEARBY_RADIUS_KM = 50;
 
-/**
- * Returns the tightest reminder window a deadline currently falls inside, or
- * null if the deadline is already past or still further out than the widest
- * window.
- */
+// Tightest window this deadline falls inside, or null if it is past or still
+// further out than the widest window.
 function windowFor(deadline) {
   if (!deadline) return null;
   const msLeft = new Date(deadline).getTime() - Date.now();
@@ -64,9 +56,7 @@ function money(n) {
   return n == null ? "-" : `BDT ${Number(n).toLocaleString()}`;
 }
 
-// ---------------------------------------------------------------------------
-// Individual sweeps
-// ---------------------------------------------------------------------------
+// --- individual sweeps -----------------------------------------------------
 
 // Tender bidding deadlines -> every excavation team, plus the admin who owns it.
 async function remindTenderDeadlines() {
@@ -282,9 +272,7 @@ async function remindExhibitions() {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Runner
-// ---------------------------------------------------------------------------
+// --- runner ----------------------------------------------------------------
 
 const SWEEPS = [
   ["tender deadlines", remindTenderDeadlines],

@@ -66,7 +66,7 @@ router.post("/request_excavation", async (req, res) => {
       budget,
     });
 
-    // Notification: excavation proposal waiting on the Government/Admin.
+    // Proposal now waiting on the admin.
     await notifyAdmins({
       category: "request",
       type: "excavation.request.submitted",
@@ -87,8 +87,8 @@ router.post("/request_excavation", async (req, res) => {
 // GET /api/arc/projects  (was /arc/manage_project)
 router.get("/projects", async (req, res) => {
   const base = { lead_archaeologist: req.user._id };
-  // Ahad_23201016 - also surface the excavation team awarded through the
-  // tender process, plus the artifacts recovered so far.
+  // Ahad_23201016 - include the team awarded through the tender process and
+  // the artifacts recovered so far.
   const populateAll = (q) =>
     q
       .populate("site")
@@ -110,12 +110,9 @@ router.post("/projects/:id/end", async (req, res) => {
     { end_date: new Date() }
   );
 
-  // Cross Feedback & Performance Review System: this is the second way a dig
-  // can finish (the other is /api/tenders/projects/:id/complete), so the
-  // review prompts have to be raised here too - otherwise a project ended
-  // from "Manage Projects" would never ask either side for a rating.
-  // Guarded on modifiedCount so re-ending an already-finished project is a
-  // no-op rather than a second round of prompts.
+  // Second way a dig can finish (the other is tenders/projects/:id/complete),
+  // so the review prompts have to be raised here too. Guarded on modifiedCount
+  // so re-ending a finished project does not prompt twice.
   if (result.modifiedCount) {
     const project = await ExcavationProject.findById(req.params.id);
     await sendReviewRequests(project);
@@ -166,7 +163,7 @@ router.get("/projects/:id/team", async (req, res) => {
   if (!project) return res.status(404).json({ error: "Project not found." });
   const teams = await ETeam.find({ project: project._id }).populate("manager", "nid name");
 
-  // Ahad_23201016 - the awarded excavation team (company + representative)
+  // Ahad_23201016 - the awarded team, company plus representative
   const et = project.excavation_team;
   const excavation_team = et
     ? {
@@ -306,7 +303,7 @@ router.post("/projects/:id/items", async (req, res) => {
   }
 });
 
-// ---- Field inspection assignments (from Government/Admin) -----------------
+// --- field inspection assignments, set by the admin -------------------------
 
 // GET /api/arc/assignments -> discovery reports assigned to me for verification
 router.get("/assignments", async (req, res) => {
@@ -315,7 +312,7 @@ router.get("/assignments", async (req, res) => {
     .sort("-assignment.assigned_at")
     .lean();
 
-  // Find all researcher reports mapped to these discovery reports
+  // Researcher reports mapped to these discovery reports.
   const discoveryIds = reports.map(r => r._id);
   const researcherReports = await ResearcherReport.find({ discoveryReport: { $in: discoveryIds } }).lean();
 
@@ -345,8 +342,7 @@ router.post("/assignments/:id/verify", async (req, res) => {
 
   if (!report) return res.status(404).json({ error: "Assignment not found." });
 
-  // Notification: outcome to the original reporter, and a heads-up to the
-  // Government/Admin that the field verification has landed.
+  // Outcome to the original reporter, plus a heads-up for the admin.
   await notify({
     user: report.reporter,
     category: "report",
