@@ -24,9 +24,8 @@ async function resolveReviewContext(project, userId) {
   return { isParticipant: false };
 }
 
-// GET /api/reviews/project/:projectId
-// Tells the frontend who the current user should be rating for this project,
-// and whether they already have (so the popup can show a thank-you instead).
+// GET /api/reviews/project/:projectId -> who this user should rate here, and
+// whether they already have, so the popup can show a thank-you instead.
 router.get("/project/:projectId", async (req, res) => {
   const project = await ExcavationProject.findById(req.params.projectId)
     .populate("lead_archaeologist", "name")
@@ -79,9 +78,7 @@ router.post("/project/:projectId", async (req, res) => {
       feedback: (req.body.feedback || "").trim(),
     });
 
-    // The prompt has now been answered, so retire it: left unread it keeps a
-    // red badge and an action-required marker on the bell forever, since
-    // nothing else in the app would ever clear it.
+    // Retire the prompt - nothing else would ever clear its badge.
     await Notification.updateMany(
       { user: req.user._id, type: "review.requested", "meta.project": project._id, read: false },
       { read: true, read_at: new Date(), action_required: false }
@@ -97,8 +94,8 @@ router.post("/project/:projectId", async (req, res) => {
   }
 });
 
-// GET /api/reviews/ratings?ids=id1,id2,id3
-// Batch average rating + count, e.g. to show "★ 4.3 (12)" beside a list of names.
+// GET /api/reviews/ratings?ids=id1,id2 -> batch average and count, for showing
+// "★ 4.3 (12)" beside a list of names.
 router.get("/ratings", async (req, res) => {
   const ids = (req.query.ids || "").split(",").filter(Boolean);
   if (ids.length === 0) return res.json({ ratings: {} });

@@ -1,7 +1,6 @@
-// Single artifact photograph picker. Item.picture is one string, so this keeps
-// one image at a time: either an uploaded file (stored as a data URL, same as
-// ImageUploader does for reports) or a pasted image link, since seeded
-// catalogue records already hold plain URLs.
+// Picks one artifact photo. Item.picture is a single string, so it holds one
+// image at a time: an upload stored as a data URL, or a pasted link (seeded
+// records already hold plain URLs).
 import { useRef, useState } from "react";
 import { ImagePlus, X } from "lucide-react";
 

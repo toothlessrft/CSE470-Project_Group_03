@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { UserCheck } from "lucide-react";
 import { api } from "../../api";
 
 const ROLE_LABELS = {

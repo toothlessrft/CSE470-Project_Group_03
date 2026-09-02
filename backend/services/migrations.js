@@ -1,24 +1,11 @@
-// One-time, idempotent startup fixes for data shaped by an older version of
-// the code. Safe to run on every boot - each one only touches rows that
-// still need it, so a second run is always a no-op.
-//
-// (The "review.requested" notification never having been created at all is
-// handled separately in services/reviewNotifications.js, checked on every
-// notification fetch rather than only here - a fix that only runs at boot
-// depends on the backend process actually being restarted, which a plain
-// browser refresh does not do.)
+// Idempotent startup fixes for rows written by older versions of the code.
+// Each one only touches rows that still need it, so re-running is a no-op.
 const Notification = require("../models/Notification");
 const Item = require("../models/Item");
 
-// "Report submitted, rate your partner" notifications always link to the
-// dedicated /reviews/:projectId review page. An earlier version briefly
-// pointed these at the recipient's own project page instead
-// (/et/projects/:id?review=1 or /arc/projects/:id?review=1); any
-// notification created under that code is stuck with the old link forever -
-// the project is already complete, so the recipient has no way to
-// regenerate it - unless it's rewritten here. Also backfills the "review"
-// category on any older row that predates that category existing (it was
-// filed under "assignment" as a fallback).
+// Review prompts once pointed at /et|arc/projects/:id instead of /reviews/:id.
+// The project is already finished, so the link can't be regenerated - repoint
+// it here, and file the row under "review" if it predates that category.
 async function fixReviewRequestNotifications() {
   const stray = await Notification.find({
     type: "review.requested",
@@ -36,11 +23,9 @@ async function fixReviewRequestNotifications() {
   if (fixed) console.log(`[migrations] fixed ${fixed} review.requested notification(s).`);
 }
 
-// Artifacts sent to auction used to be filed under the location "Scheduled
-// for Auction", which rendered on the public catalogue card as "Held at
-// Scheduled for Auction". The label is now plain "Auction", so the card
-// reads "Held at Auction"; rows written by the old code carry the old string
-// forever unless they are rewritten here.
+// The auction location label used to read "Scheduled for Auction", which
+// showed on the catalogue card as "Held at Scheduled for Auction". Relabel
+// old rows so they read "Held at Auction" like new ones.
 async function renameAuctionLocation() {
   const OLD = "Scheduled for Auction";
   const items = await Item.updateMany({ location: OLD }, { $set: { location: "Auction" } });

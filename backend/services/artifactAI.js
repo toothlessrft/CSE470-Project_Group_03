@@ -1,20 +1,17 @@
-// AI Artifact Identification
-// Wraps the vision call that turns an uploaded photo into the same set of tags
-// the Smart Artifact Search already filters on (Type, civilization, era,
-// region, material, usage), so a suggestion can be fed straight back into the
-// catalogue search.
+// AI artifact identification: turns an uploaded photo into the same tags the
+// artifact search filters on (Type, civilization, era, region, material,
+// usage), so a suggestion can be fed straight into the catalogue search.
 //
-// Provider: Google Gemini (free tier). The Interactions API is called over
-// plain HTTPS - Google's schema adherence is looser than a guaranteed-schema
-// provider, so every response is validated against `identificationSchema`
-// below and retried once before we give up.
+// Provider is Google Gemini over plain HTTPS. It does not guarantee schema
+// adherence, so every reply is validated against identificationSchema below
+// and retried once before giving up.
 const { z } = require("zod");
 
 const API_BASE = "https://generativelanguage.googleapis.com/v1beta/models";
 const MODEL = "gemini-3.5-flash";
 
-// Must stay in step with the Type enum on models/Item.js - the model is only
-// ever allowed to answer with a value the catalogue can actually store.
+// Keep in step with the Type enum on models/Item.js, so the model can only
+// answer with values the catalogue can store.
 const ITEM_TYPES = [
   "Pottery",
   "Metal_Object",
@@ -28,8 +25,8 @@ const ITEM_TYPES = [
 
 const ALLOWED_MEDIA_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 
-// ~7 MB of base64 is a little over 5 MB of image; the uploader caps files at
-// 1 MB, so anything near this is either a bug or someone poking the endpoint.
+// ~7 MB of base64 is about 5 MB of image. The uploader caps at 1 MB, so
+// anything near this is a bug or someone poking the endpoint directly.
 const MAX_BASE64_LENGTH = 7 * 1024 * 1024;
 
 const identificationSchema = z.object({
@@ -127,9 +124,8 @@ function getApiKey() {
   return key;
 }
 
-// The frontend uploader hands us a data URL ("data:image/png;base64,AAAA...").
-// Split it into the two pieces the vision API wants, rejecting anything that
-// isn't a supported image.
+// The uploader sends a data URL. Split it into the mime type and base64 body
+// the vision API wants, rejecting unsupported images.
 function parseDataUrl(dataUrl) {
   const match = /^data:([a-z]+\/[a-z0-9.+-]+);base64,(.+)$/i.exec(String(dataUrl || "").trim());
   if (!match) {
@@ -155,12 +151,10 @@ function parseDataUrl(dataUrl) {
   return { mediaType, data };
 }
 
-// The REST response nests generated content under steps[].content[]; the
-// `output_text` shortcut only exists on Google's own SDKs, so pull the text
-// blocks out by hand.
+// Pull the reply text out of the REST response.
 function extractText(payload) {
-  // generateContent returns candidates[].content.parts[].text; the `.text`
-  // shortcut only exists on Google's own SDKs, so join the parts by hand.
+  // generateContent nests it under candidates[].content.parts[].text. The
+  // .text shortcut only exists in Google's SDKs, so join the parts by hand.
   const fromParts = (payload?.candidates || [])
     .flatMap((candidate) => candidate?.content?.parts || [])
     .filter((part) => typeof part.text === "string")
@@ -169,8 +163,8 @@ function extractText(payload) {
     .trim();
   if (fromParts) return fromParts;
 
-  // Envelope shapes shift between API versions. Rather than fail outright,
-  // walk the payload for the first JSON-looking string it contains.
+  // Envelope shapes change between API versions, so as a last resort walk the
+  // payload for the first JSON-looking string in it.
   const seen = new Set();
   const stack = [payload];
   while (stack.length) {
@@ -226,8 +220,7 @@ async function callGemini({ apiKey, promptText, mediaType, data }) {
     const body = await res.text().catch(() => "");
     console.error(`Gemini ${res.status}:`, body.slice(0, 400));
 
-    // 403 means Google refused this key's project outright - an account issue
-    // the user has to settle with Google; retrying will never fix it.
+    // 403 is an account problem with the key itself; retrying cannot fix it.
     let message = "Could not reach the identification service.";
     if (res.status === 429) {
       message = "The free identification quota has been used up for now. Please try again later.";
@@ -246,9 +239,8 @@ async function callGemini({ apiKey, promptText, mediaType, data }) {
   return res.json();
 }
 
-// Runs the identification. `hint` is the optional free-text note the uploader
-// can add ("found near a river bank in Comilla"), which we pass through as
-// context but never as fact.
+// Runs the identification. `hint` is the optional note the uploader can add
+// ("found near a river bank in Comilla"), passed as context, never as fact.
 async function identifyArtifact({ image, hint }) {
   const { mediaType, data } = parseDataUrl(image);
   const apiKey = getApiKey();
@@ -259,8 +251,7 @@ async function identifyArtifact({ image, hint }) {
     : "Identify this artifact.";
 
   let lastProblem = "";
-  // One retry: a free-tier model occasionally returns prose or a near-miss
-  // shape, and asking again is cheaper than failing the user.
+  // One retry - the model sometimes returns prose or a near-miss shape.
   for (let attempt = 0; attempt < 2; attempt++) {
     const payload = await callGemini({ apiKey, promptText, mediaType, data });
     const text = extractText(payload);

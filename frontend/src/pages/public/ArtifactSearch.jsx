@@ -30,8 +30,8 @@ export default function ArtifactSearch() {
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Which panel (if any) is expanded. Independent of what's actually driving
-  // the current results - opening a panel does not run a search by itself.
+  // Which panel is expanded. Separate from what drives the current results -
+  // opening a panel does not run a search on its own.
   const [panelOpen, setPanelOpen] = useState(null); // null | "filters" | "map"
 
   const [sites, setSites] = useState([]);
@@ -57,8 +57,8 @@ export default function ArtifactSearch() {
   useEffect(() => {
     api.get("/search/filters").then(setOptions);
     api.get("/search/map").then((data) => setSites(data.sites));
-    // The searchParams effect below runs the opening query, so nothing else is
-    // needed here - firing a second one races it.
+    // The searchParams effect below runs the opening query; a second one here
+    // would race it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -81,8 +81,8 @@ export default function ArtifactSearch() {
     const museumFilter = searchParams.get("museum") || "";
     setActiveMuseumFilter(museumFilter);
 
-    // A single record opened directly, e.g. a comparable match clicked in the
-    // AI identifier. Overrides every other search mode.
+    // One record opened directly, e.g. a match clicked in the AI identifier.
+    // Overrides every other search mode.
     const artifactId = searchParams.get("id") || "";
     if (artifactId) {
       setQ("");
@@ -106,8 +106,8 @@ export default function ArtifactSearch() {
       runQuery({ museumName: museumFilter }, "museum");
       return;
     }
-    // AI Artifact Identification hands its suggested tags over as query
-    // params, so the filter panel opens already filled in.
+    // The AI identifier passes its tags as query params, so the filter panel
+    // opens already filled in.
     const tagFields = ["civilization", "era", "region", "material", "usage"];
     const prefill = {};
     tagFields.forEach((field) => {
@@ -132,7 +132,8 @@ export default function ArtifactSearch() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
-  // --- 1. Text bar: searches name/description/site/civilization/etc, ignores filters + map selection ---
+  // --- 1. Text bar: name, description, site, civilization. Ignores the
+  // filters and the map selection. ---
   function handleTextSearch(e) {
     e.preventDefault();
     setSelectedSite(null);
@@ -143,7 +144,7 @@ export default function ArtifactSearch() {
     runQuery({ q }, "text");
   }
 
-  // --- 2. Filter panel: uses only the dropdown values, ignores the text bar + map selection ---
+  // --- 2. Filter panel: dropdowns only, ignores the text bar and the map. ---
   function togglePanel(name) {
     setPanelOpen((current) => (current === name ? null : name));
   }
@@ -172,7 +173,7 @@ export default function ArtifactSearch() {
     runQuery({});
   }
 
-  // --- 3. Map panel: uses only the selected site, ignores the text bar + filters ---
+  // --- 3. Map panel: the selected site only, ignores the text bar and filters. ---
   function handleSelectSite(site) {
     setSelectedSite(site);
     setMapSearchLocation(null);
@@ -284,7 +285,7 @@ export default function ArtifactSearch() {
       }
 
       setShowModal(false);
-      // Reload the currently active search method only. Do not merge other unrelated modes.
+      // Reload whichever search mode is active; never merge two of them.
       if (searchMode === "artifact") {
         runQuery({ id: searchParams.get("id") }, "artifact");
       } else if (searchMode === "filters") {

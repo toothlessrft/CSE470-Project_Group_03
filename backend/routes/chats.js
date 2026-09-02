@@ -1,8 +1,6 @@
-// Project Team Group Chat (Archaeologist & Excavation Team)
-//
-// One chat per excavation project, auto-created when the project gets both a
-// lead archaeologist and an assigned excavation team (see services/teamChat.js,
-// hooked into the tender award / project completion flow in routes/tenders.js).
+// Group chat between the archaeologist and the excavation team. One chat per
+// project, created once both are assigned - see services/teamChat.js, called
+// from the tender award flow in routes/tenders.js.
 const express = require("express");
 const TeamChat = require("../models/TeamChat");
 const ChatMessage = require("../models/ChatMessage");
@@ -31,11 +29,8 @@ async function loadChat(req, res) {
 
   let chat = await TeamChat.findOne({ project: project._id }).populate("participants.user", PARTICIPANT_FIELDS);
   if (!chat) {
-    // The chat is normally created the moment a project gets both a lead
-    // archaeologist and an excavation team (see the tender award flow), but
-    // any project that got both fields set another way - directly seeded,
-    // migrated, imported - would otherwise be stuck chat-less forever. Create
-    // it lazily here so "assigned members get a chat" always holds.
+    // A project staffed outside the award flow (seeded, migrated) would have
+    // no chat, so create it lazily here too.
     const created = await ensureChatForProject(project);
     if (!created) {
       res.status(404).json({ error: "No group chat exists for this project yet." });
@@ -148,7 +143,7 @@ router.post("/:projectId/messages", async (req, res) => {
       image: image || "",
     });
 
-    // Bumps updatedAt so the chat list sorts this conversation to the top.
+    // Bump updatedAt so this conversation sorts to the top of the list.
     await TeamChat.updateOne({ _id: chat._id }, { $set: { updatedAt: new Date() } });
 
     await message.populate("sender", "name nid role");
@@ -172,7 +167,7 @@ router.post("/:projectId/read", async (req, res) => {
 });
 
 // POST /api/chats/:projectId/participants  { nid }
-// Only the lead archaeologist or an admin can change who's in the chat.
+// Only the lead archaeologist or an admin may change who is in the chat.
 router.post("/:projectId/participants", async (req, res) => {
   try {
     const loaded = await loadChat(req, res);

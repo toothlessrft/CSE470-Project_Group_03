@@ -1,5 +1,5 @@
-// Ahad_23201016 - Excavation Team dashboard (replaces the Site Caretaker one).
-// The account is a company; the profile shown is the company representative.
+// Ahad_23201016 - excavation team dashboard. The account is a company, so the
+// profile shown is its representative.
 import { useEffect, useState } from "react";
 import { FileSearch, ClipboardList, FolderKanban, Gavel } from "lucide-react";
 import { Link } from "react-router-dom";

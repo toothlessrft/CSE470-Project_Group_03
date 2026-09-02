@@ -41,8 +41,7 @@ export default function MyAssignments() {
     }
   }
 
-  // Current: still waiting to verify, or verified true with the field report
-  // still an unsubmitted draft.
+  // Current: not yet verified, or verified with the report still a draft.
   const isFinished = (r) =>
     r.verification?.result === "false" ||
     r.researcherReportStatus === "Pending" ||
@@ -50,7 +49,7 @@ export default function MyAssignments() {
 
   const currentProjects = reports.filter((r) => !isFinished(r));
 
-  // Previous: rejected/unverifiable, or the field report has been submitted.
+  // Previous: rejected, unverifiable, or the report is submitted.
   const previousProjects = reports.filter(isFinished);
 
   // Full card for current projects (with map, verification form, report)

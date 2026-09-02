@@ -1,16 +1,8 @@
-// Real photographs for the seeded catalogue artifacts.
-//
-// Every image is a freely licensed photograph from Wikimedia Commons (public
-// domain, CC0, CC BY or CC BY-SA), chosen to match the object class - a real
-// Northern Black Polished Ware sherd for the NBPW sherd, a Nalanda bronze
-// Buddha for the bronze Buddha, and so on.
-//
-// These are representative museum photographs of the same kind of object, not
-// photographs of the specific (fictional) seeded find. `credit` and `source`
-// record where each one came from so the attribution stays with the data.
-//
-// Artifacts with no genuinely matching photograph are deliberately absent
-// rather than given a misleading picture; they simply render without an image.
+// Photographs for the seeded artifacts, all freely licensed from Wikimedia
+// Commons and matched to the object class. They show the same kind of object,
+// not the (fictional) seeded find itself, so `credit` and `source` keep the
+// attribution with the data. Artifacts with no good match are left out rather
+// than given a misleading photo.
 const ARTIFACT_IMAGES = {
   "Terracotta Plaque": {
     picture: "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bc/Terracotta_Plaques_%2827433726423%29.jpg/960px-Terracotta_Plaques_%2827433726423%29.jpg",

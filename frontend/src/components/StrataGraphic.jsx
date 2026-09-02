@@ -1,7 +1,6 @@
-// A section drawing of an excavation trench: six soil layers, a depth scale,
-// and one representative find drawn at the depth it would be recovered from.
-// Purely decorative, so it is hidden from assistive technology behind a single
-// descriptive label.
+// Section drawing of a trench: six soil layers, a depth scale, and one find
+// per layer at the depth it would come from. Decorative, so it is hidden from
+// screen readers behind a single label.
 const LAYERS = [
   { top: 20, fill: "#6e4423", label: "Modern" },
   { top: 82, fill: "#855433", label: "Medieval" },

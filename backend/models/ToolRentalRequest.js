@@ -23,13 +23,10 @@ const toolRentalRequestSchema = new Schema(
     purpose: { type: String, required: true },
     admin: { type: Schema.Types.ObjectId, ref: "User", default: null },
 
-    // ---- Inventory Tracking -------------------------------------------
-    // How many units of this tool are being taken out. Defaults to 1 so rows
-    // created before this field existed still count correctly.
+    // Units taken out. Defaults to 1 so older rows still count correctly.
     quantity: { type: Number, default: 1, min: 1 },
 
-    // Set when the kit is checked back in; until then the units count as out
-    // on assignment and are subtracted from availability.
+    // Set on check-in. Until then the units count as out on assignment.
     returned_at: { type: Date, default: null },
     return_notes: { type: String, default: "" },
 
@@ -40,9 +37,9 @@ const toolRentalRequestSchema = new Schema(
   { timestamps: true }
 );
 
-// A team may need the same tool on two different digs, and may re-borrow a
-// tool it has already returned, so (user, tool) deliberately is NOT unique.
-// Duplicate *open* requests are rejected in routes/inventory.js instead.
+// (user, tool) is deliberately not unique: a team may take the same tool to
+// two digs, or re-borrow one it returned. Duplicate open requests are rejected
+// in routes/inventory.js instead.
 toolRentalRequestSchema.index({ user: 1, tool: 1, project: 1 });
 toolRentalRequestSchema.index({ approval_status: 1, returned_at: 1 });
 

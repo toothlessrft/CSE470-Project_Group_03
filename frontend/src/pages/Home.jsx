@@ -18,8 +18,7 @@ import { ROLE_HOME } from "../context/AuthContext";
 import { api } from "../api";
 import StrataGraphic from "../components/StrataGraphic";
 
-// The public entry points, presented as a numbered index rather than a wall
-// of cards.
+// Public entry points, as a numbered index rather than a wall of cards.
 const INDEX = [
   { to: "/search", num: "01", icon: Search, title: "Artifact catalogue", desc: "Filter the national record by civilization, era, region, material, or use." },
   { to: "/museums", num: "02", icon: Landmark, title: "Museum directory", desc: "Every participating museum, with what is on display, in storage, or on loan." },
@@ -29,7 +28,7 @@ const INDEX = [
   { to: "/qna", num: "06", icon: MessagesSquare, title: "Ask an archaeologist", desc: "Put a question to working researchers and read what they answered before." },
 ];
 
-// What actually happens to a reported find. Useful, and specific to this site.
+// What happens to a find after it is reported.
 const PROCESS = [
   { n: "1", title: "A find is reported", body: "Anyone can log a surfaced artifact with photographs and a map location." },
   { n: "2", title: "An inspection is assigned", body: "The heritage authority routes the report to an archaeologist for verification." },
@@ -57,7 +56,7 @@ export default function Home() {
       .then((data) => setExhibitions(data.exhibitions || []))
       .catch(() => setExhibitions([]));
 
-    // One request covers both the recent-finds strip and the artifact figure.
+    // One request feeds both the recent-finds strip and the artifact count.
     api
       .get("/search/artifacts")
       .then((data) => {

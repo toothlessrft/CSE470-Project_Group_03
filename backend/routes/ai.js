@@ -1,7 +1,5 @@
-// AI Artifact Identification
-// Upload a photo -> suggested civilization / type / era / material, plus the
-// closest matches already in the catalogue. The suggestion is advisory only:
-// nothing here writes to the Item collection.
+// Upload a photo -> suggested civilization, type, era and material, plus the
+// closest matches already catalogued. Advisory only; nothing here writes an Item.
 const express = require("express");
 const Item = require("../models/Item");
 const { requireAuth } = require("../middleware/auth");
@@ -12,8 +10,8 @@ const router = express.Router();
 // Identification costs a paid API call, so it stays behind a login.
 router.use(requireAuth);
 
-// Small in-memory throttle. Enough to stop a stuck retry loop or a bored user
-// from burning through the API budget; it resets when the server restarts.
+// In-memory throttle, enough to stop a retry loop burning the API budget.
+// Resets on restart.
 const RATE_LIMIT = 10; // identifications
 const RATE_WINDOW_MS = 60 * 60 * 1000; // per hour, per user
 const recentCalls = new Map(); // userId -> number[] of timestamps
@@ -35,9 +33,8 @@ function toRegex(value) {
   return new RegExp(String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "i");
 }
 
-// Finds catalogue artifacts that share tags with the suggestion, ranked by how
-// many tags they share. Uses the same visibility rule as Smart Artifact Search:
-// artifacts still pending allocation stay out of the results.
+// Catalogue artifacts sharing tags with the suggestion, ranked by how many.
+// Same visibility rule as the search: pending-allocation finds stay out.
 async function findSimilar(suggestion) {
   const tagFields = ["civilization", "era", "region", "material", "usage"];
   const tags = tagFields
@@ -95,7 +92,7 @@ router.post("/identify", async (req, res) => {
 
     const suggestion = await identifyArtifact({ image: req.body?.image, hint: req.body?.hint });
 
-    // No point searching the catalogue for something the model could not read.
+    // Nothing to match on if the model could not read the photo.
     const similar = suggestion.identifiable ? await findSimilar(suggestion) : [];
 
     res.json({ suggestion, similar });

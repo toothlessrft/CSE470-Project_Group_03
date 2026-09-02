@@ -80,13 +80,12 @@ router.get("/map", async (req, res) => {
 router.get("/artifacts", async (req, res) => {
   const { id, civilization, era, region, material, usage, q, site, lat, lng, radius_km, museumName, location } = req.query;
 
-  // Ahad_23201016 - artifacts still being recovered on an active excavation
-  // project stay out of the public catalogue until the Government allocates
-  // them. Everything already catalogued has pending_allocation unset/false.
+  // Ahad_23201016 - finds from an active dig stay out of the catalogue until
+  // the admin allocates them.
   const filter = { pending_allocation: { $ne: true } };
 
-  // A single record, e.g. opening one comparable match from the AI
-  // identifier. An unusable id returns nothing rather than a cast error.
+  // Single record, e.g. opening a match from the AI identifier. A bad id
+  // returns nothing rather than a cast error.
   if (id) {
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.json({ count: 0, limited: !req.user, results: [] });
@@ -180,11 +179,11 @@ router.get("/artifacts", async (req, res) => {
     };
 
     if (!isLoggedIn) {
-      // Knowledge hub: guests get a teaser only, no exact provenance data
+      // Guests get a teaser only, no exact provenance
       return { ...base, limited: true };
     }
 
-    // Logged-in users (any role) get the full record
+    // Logged-in users get the full record
     return {
       ...base,
       limited: false,
