@@ -40,16 +40,6 @@ export default function ArcDashboard() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Archaeologist</span>
-          <h1>Research workspace</h1>
-          <p className="page-subtitle">
-            Your excavation projects, field teams, inspection assignments, and equipment.
-          </p>
-        </div>
-      </div>
-
       <ProfileCard
         name={archaeologist.name}
         nid={archaeologist.nid}

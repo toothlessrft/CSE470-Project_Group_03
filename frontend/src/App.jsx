@@ -24,7 +24,6 @@ import ToolRequest from "./pages/arc/ToolRequest";
 import MyAssignments from "./pages/arc/MyAssignments";
 
 import MManagerDashboard from "./pages/mm/MManagerDashboard";
-import RequestItems from "./pages/mm/RequestItems";
 import ExhibitionManagement from "./pages/mm/ExhibitionManagement";
 import Exhibitions from "./pages/public/Exhibitions";
 import MuseumProfile from "./pages/mm/MuseumProfile";
@@ -225,14 +224,6 @@ export default function App() {
           element={
             <ProtectedRoute role="museum_manager">
               <MManagerDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/mm/request-items"
-          element={
-            <ProtectedRoute role="museum_manager">
-              <RequestItems />
             </ProtectedRoute>
           }
         />

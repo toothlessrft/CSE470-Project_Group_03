@@ -12,14 +12,10 @@ import StarRating from "../../components/StarRating";
 export default function ETeamDashboard() {
   const { user } = useAuth();
   const [team, setTeam] = useState(null);
-  const [stats, setStats] = useState(null);
   const [rating, setRating] = useState(null);
 
   useEffect(() => {
-    api.get("/et/dashboard").then((data) => {
-      setTeam(data.team);
-      setStats(data.stats);
-    });
+    api.get("/et/dashboard").then((data) => setTeam(data.team));
   }, []);
 
   useEffect(() => {
@@ -65,16 +61,6 @@ export default function ETeamDashboard() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Excavation Contractor</span>
-          <h1>Contract workspace</h1>
-          <p className="page-subtitle">
-            Bid for government excavation tenders and deliver the contracts you are awarded.
-          </p>
-        </div>
-      </div>
-
       <ProfileCard
         name={team.company_name || team.name}
         nid={team.nid}
@@ -95,22 +81,6 @@ export default function ETeamDashboard() {
           )
         }
       />
-
-      {stats && (
-        <div className="stat-row">
-          {[
-            { label: "Open tenders", value: stats.open_tenders },
-            { label: "Bids pending", value: stats.pending_bids },
-            { label: "Active projects", value: stats.active_projects },
-            { label: "Completed", value: stats.completed_projects },
-          ].map((s) => (
-            <div key={s.label} className="stat">
-              <span className="stat-label">{s.label}</span>
-              <span className="stat-value">{s.value}</span>
-            </div>
-          ))}
-        </div>
-      )}
 
       <div className="section-head">
         <h2>Contract management</h2>

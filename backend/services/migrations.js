@@ -8,6 +8,7 @@
 // depends on the backend process actually being restarted, which a plain
 // browser refresh does not do.)
 const Notification = require("../models/Notification");
+const Item = require("../models/Item");
 
 // "Report submitted, rate your partner" notifications always link to the
 // dedicated /reviews/:projectId review page. An earlier version briefly
@@ -35,9 +36,27 @@ async function fixReviewRequestNotifications() {
   if (fixed) console.log(`[migrations] fixed ${fixed} review.requested notification(s).`);
 }
 
+// Artifacts sent to auction used to be filed under the location "Scheduled
+// for Auction", which rendered on the public catalogue card as "Held at
+// Scheduled for Auction". The label is now plain "Auction", so the card
+// reads "Held at Auction"; rows written by the old code carry the old string
+// forever unless they are rewritten here.
+async function renameAuctionLocation() {
+  const OLD = "Scheduled for Auction";
+  const items = await Item.updateMany({ location: OLD }, { $set: { location: "Auction" } });
+  const history = await Item.updateMany(
+    { "movementHistory.location": OLD },
+    { $set: { "movementHistory.$[entry].location": "Auction" } },
+    { arrayFilters: [{ "entry.location": OLD }] }
+  );
+  const changed = (items.modifiedCount || 0) + (history.modifiedCount || 0);
+  if (changed) console.log(`[migrations] relabelled ${changed} auction location(s).`);
+}
+
 async function runStartupMigrations() {
   try {
     await fixReviewRequestNotifications();
+    await renameAuctionLocation();
   } catch (err) {
     console.error("[migrations] failed:", err.message);
   }

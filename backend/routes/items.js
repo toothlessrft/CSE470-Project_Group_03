@@ -67,7 +67,7 @@ router.put("/:id", async (req, res) => {
             if (!managerMuseum || !isOwnedMuseumArtifact) {
                 return res.status(403).json({ error: "You can only edit artifacts stored in your own museum." });
             }
-        } else if (req.user.role !== "archaeologist") {
+        } else if (req.user.role !== "admin") {
             return res.status(403).json({ error: "You are not allowed to edit artifacts." });
         }
 
@@ -114,7 +114,7 @@ router.put("/:id", async (req, res) => {
 });
 
 // DELETE /api/items/:id -> Delete an artifact
-router.delete("/:id", requireRole("archaeologist"), async (req, res) => {
+router.delete("/:id", requireRole("admin"), async (req, res) => {
     try {
         const item = await Item.findByIdAndDelete(req.params.id);
         if (!item) return res.status(404).json({ error: "Item not found." });

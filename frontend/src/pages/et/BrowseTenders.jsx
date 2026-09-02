@@ -228,7 +228,6 @@ export default function BrowseTenders() {
                   <input
                     type="number"
                     min="0"
-                    step="1000"
                     value={form.cost}
                     onChange={(e) => setForm({ ...form, cost: e.target.value })}
                     placeholder="e.g. 450000"
