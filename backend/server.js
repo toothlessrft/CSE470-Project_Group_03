@@ -22,12 +22,7 @@ const notificationRoutes = require("./routes/notifications"); // Role-Based Noti
 const inventoryRoutes = require("./routes/inventory"); // Tool & Field Equipment Requests + Inventory Tracking
 const museumsRoutes = require("./routes/museums"); // Museum Directory
 const nearMeRoutes = require("./routes/nearMe"); // Near Me
-const reviewsRoutes = require("./routes/reviews"); // Cross Feedback & Performance Review System
-const aiRoutes = require("./routes/ai"); // AI Artifact Identification
-const chatRoutes = require("./routes/chats"); // Project Team Group Chat
-const qnaRoutes = require("./routes/qna"); // Public Archaeology Q&A
 const { startReminderScheduler } = require("./services/reminders");
-const { runStartupMigrations } = require("./services/migrations");
 
 const app = express();
 
@@ -62,10 +57,6 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/inventory", inventoryRoutes);
 app.use("/api/museums", museumsRoutes);
 app.use("/api/near-me", nearMeRoutes);
-app.use("/api/reviews", reviewsRoutes);
-app.use("/api/ai", aiRoutes); // AI Artifact Identification
-app.use("/api/chats", chatRoutes); // Project Team Group Chat
-app.use("/api/qna", qnaRoutes); // Public Archaeology Q&A
 
 // 404 fallback
 app.use("/api", (req, res) => res.status(404).json({ error: "Not found" }));
@@ -92,8 +83,7 @@ function startServer(portCandidates) {
 const PORT = Number(process.env.PORT || 5555);
 const portCandidates = [PORT, 5556, 5557, 5558, 5559];
 
-connectDB().then(async () => {
-  await runStartupMigrations();
+connectDB().then(() => {
   startServer(portCandidates);
   // Automatic deadline reminders (tenders, reports, auctions, equipment
   // returns, artifact loans, exhibitions).

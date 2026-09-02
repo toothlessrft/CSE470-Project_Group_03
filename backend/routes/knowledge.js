@@ -9,8 +9,10 @@ const ALL_TYPES = ["research_paper", "book", "article", "historical_reference", 
 // Categories a guest (not logged in) may view.
 const GUEST_VISIBLE_TYPES = ["research_paper", "article"];
 
-// Ahad_23201016 - which roles may upload new material into each category.
-// "archaeologist" is shown to users as "Archaeologist / Researcher".
+// Which roles may upload NEW material into each category.
+// "Researcher" is the same account as "archaeologist" in this system
+// (see Register.jsx: role "archaeologist" is labeled "Archaeologist / Researcher").
+// "Excavation Team" is the "excavation_team" role. Ahad_23201016
 const CATEGORY_UPLOAD_ROLES = {
   research_paper: ["archaeologist"],
   book: ["archaeologist"],
@@ -31,7 +33,10 @@ router.get("/", optionalAuth, async (req, res) => {
       // Guests can only ever see Research Papers and Articles.
       filter.type = { $in: GUEST_VISIBLE_TYPES };
     }
-    // Any logged-in user can view all five categories, just not modify them.
+    // Any logged-in user (including "public"/General Public) can view all
+    // 5 categories, they just can't modify them.
+
+    // Apply type filter if provided
     if (type) {
       if (!isRegistered && !GUEST_VISIBLE_TYPES.includes(type)) {
         return res.json({ resources: [] });
@@ -39,7 +44,7 @@ router.get("/", optionalAuth, async (req, res) => {
       filter.type = type;
     }
 
-    // Text search
+    // Apply text search if provided
     if (q) {
       filter.$or = [
         { title: { $regex: q, $options: "i" } },
@@ -64,7 +69,7 @@ router.post("/", requireAuth, async (req, res) => {
   try {
     const { title, type, author, content, url, mediaType } = req.body;
 
-    // Admins may only delete, never add.
+    // Admins can never add material, only delete it.
     if (req.user.role === "admin") {
       return res.status(403).json({ error: "Admins are not permitted to add knowledge material." });
     }
@@ -83,7 +88,7 @@ router.post("/", requireAuth, async (req, res) => {
     }
 
     if (type === "vlog_audio") {
-      // Excavation Diaries need a photo or video, not just text.
+      // Excavation Diaries require an actual photo or video, not just text.
       if (!url) {
         return res.status(400).json({ error: "A photo or video is required for Excavation Diaries." });
       }
@@ -168,7 +173,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Resource not found." });
     }
 
-    // Admin deletes anything; everyone else only their own uploads.
+    // Admin can delete anything; otherwise only the uploader can delete their own.
     if (req.user.role !== "admin" && !resource.addedBy.equals(req.user._id)) {
       return res.status(403).json({ error: "Not authorized to delete this resource." });
     }

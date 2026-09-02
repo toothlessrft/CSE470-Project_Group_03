@@ -8,14 +8,10 @@ const { notify, notifyMany, notifyAdmins } = require("../services/notify"); // R
 
 const router = express.Router();
 
-// Everyone can browse; optionalAuth just tells us who is logged in. Routes
-// below add requireAuth / requireRole("admin") where they need it.
+// Everyone can browse (optionalAuth just tells us who's logged in, if anyone).
+// Individual routes below layer on requireAuth / requireRole("admin") as needed.
 router.use(optionalAuth);
 
-// --- helpers ---------------------------------------------------------------
-
-// Lazily closes an auction if its deadline has passed. Called on every read
-// so auctions close promptly even without a person hitting the sweep below.
 async function closeIfExpired(auction) {
   if (auction.status !== "Active" || auction.deadline > new Date()) return auction;
 
@@ -30,12 +26,30 @@ async function closeIfExpired(auction) {
   }
   auction.closed_at = new Date();
   await auction.save();
+  await updateItemLocationForAuction(auction);
   await announceAuctionResult(auction);
   return auction;
 }
 
-// Won/lost alerts. Guarded by the status flip above, so this runs on the
-// transition only, not on every read.
+// Keeps the artifact's "Held at" location in sync with how its auction stands.
+async function updateItemLocationForAuction(auction) {
+  try {
+    let location;
+    if (auction.status === "Closed-Sold") {
+      location = "Sold";
+    } else if (auction.status === "Cancelled") {
+      location = "Withdrawn from Auction";
+    } else {
+      location = "Unsold at Auction";
+    }
+    await Item.updateOne({ _id: auction.item }, { location });
+  } catch (err) {
+    console.error("[auctions] could not update item location:", err.message);
+  }
+}
+
+// Notification: won / lost alerts once an auction closes. Guarded by the status
+// flip above, so it only ever runs on the transition, not on every read.
 async function announceAuctionResult(auction) {
   try {
     const itemName = await itemNameFor(auction);
@@ -129,13 +143,17 @@ function serializeAuction(auction, viewerIsAdmin) {
   };
   if (viewerIsAdmin) {
     base.reserve_price = auction.reserve_price;
+    base.source_percentage = auction.source_percentage;
+    base.source_name = auction.source_name;
     base.cancel_reason = auction.cancel_reason;
     base.created_by = auction.created_by;
   }
   return base;
 }
 
-// --- browsing, public ------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Browsing (public - optionalAuth already applied above)
+// ---------------------------------------------------------------------------
 
 // GET /api/auctions?status=Active&q=bronze
 router.get("/", async (req, res) => {
@@ -178,7 +196,8 @@ router.get("/:id", async (req, res) => {
   if (!auction) return res.status(404).json({ error: "Auction not found." });
   auction = await closeIfExpired(auction);
 
-  // Only admins see the bid-by-bid history; everyone else sees the top bid.
+  // Bid-by-bid history (who bid what, when) is only visible to admins -
+  // everyone else just sees the current highest bid.
   let bids = [];
   if (isAdmin) {
     const bidDocs = await Bid.find({ auction: auction._id }).populate("bidder", "name").sort({ amount: -1 }).limit(30);
@@ -191,7 +210,9 @@ router.get("/:id", async (req, res) => {
   });
 });
 
-// --- bidding and wishlist, any logged-in user ------------------------------
+// ---------------------------------------------------------------------------
+// Bidding & wishlist (any logged-in user)
+// ---------------------------------------------------------------------------
 
 // POST /api/auctions/:id/bid  { amount }
 router.post("/:id/bid", requireAuth, async (req, res) => {
@@ -213,7 +234,7 @@ router.post("/:id/bid", requireAuth, async (req, res) => {
       return res.status(400).json({ error: `Bid must be at least ${minNext}.` });
     }
 
-    // Captured before the overwrite - this is who just got outbid.
+    // Captured before we overwrite it - this is who just got outbid.
     const previousLeader = auction.current_bidder;
 
     await Bid.create({ auction: auction._id, bidder: req.user._id, amount });
@@ -347,7 +368,9 @@ router.delete("/wishlist/:itemId", requireAuth, async (req, res) => {
   res.json({ message: "Removed from wishlist." });
 });
 
-// --- admin management ------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Admin management
+// ---------------------------------------------------------------------------
 
 // GET /api/auctions/admin/candidates -> items explicitly marked for auction and not already active
 router.get("/admin/candidates", requireRole("admin"), async (req, res) => {
@@ -365,7 +388,7 @@ router.get("/admin/candidates", requireRole("admin"), async (req, res) => {
 // POST /api/auctions -> create
 router.post("/", requireRole("admin"), async (req, res) => {
   try {
-    const { item, starting_bid, min_increment, deadline, reserve_price, extend_trigger_minutes, extend_by_minutes } = req.body;
+    const { item, starting_bid, min_increment, deadline, reserve_price, source_percentage, source_name, extend_trigger_minutes, extend_by_minutes } = req.body;
 
     if (!item || starting_bid == null || min_increment == null || !deadline) {
       return res.status(400).json({ error: "Artifact, starting bid, minimum increment, and deadline are required." });
@@ -395,6 +418,8 @@ router.post("/", requireRole("admin"), async (req, res) => {
       min_increment: Number(min_increment),
       deadline,
       reserve_price: reserve_price !== "" && reserve_price != null ? Number(reserve_price) : null,
+      source_percentage: source_percentage != null && source_percentage !== "" ? Number(source_percentage) : 0,
+      source_name: source_name || "",
       extend_trigger_minutes: extend_trigger_minutes != null && extend_trigger_minutes !== "" ? Number(extend_trigger_minutes) : 2,
       extend_by_minutes: extend_by_minutes != null && extend_by_minutes !== "" ? Number(extend_by_minutes) : 2,
     });
@@ -422,9 +447,10 @@ router.post("/", requireRole("admin"), async (req, res) => {
   }
 });
 
-// PUT /api/auctions/:id -> edit. Anything goes while bid_count is 0; once
-// bidding starts only the deadline (extend only) and reserve price may
-// change, so the rules cannot shift under the bidders.
+// PUT /api/auctions/:id -> edit
+// Full edit while bid_count === 0. Once bidding has started, only
+// deadline (extend only), reserve_price, source_percentage, and source_name
+// can change - protects bidders from the rules shifting under them.
 router.put("/:id", requireRole("admin"), async (req, res) => {
   const auction = await Auction.findById(req.params.id);
   if (!auction) return res.status(404).json({ error: "Auction not found." });
@@ -432,7 +458,7 @@ router.put("/:id", requireRole("admin"), async (req, res) => {
     return res.status(400).json({ error: "Only active auctions can be edited." });
   }
 
-  const { item, starting_bid, min_increment, deadline, reserve_price, extend_trigger_minutes, extend_by_minutes } = req.body;
+  const { item, starting_bid, min_increment, deadline, reserve_price, source_percentage, source_name, extend_trigger_minutes, extend_by_minutes } = req.body;
 
   if (auction.bid_count === 0) {
     if (item) auction.item = item;
@@ -449,6 +475,8 @@ router.put("/:id", requireRole("admin"), async (req, res) => {
   }
 
   if (reserve_price !== undefined) auction.reserve_price = reserve_price !== "" && reserve_price != null ? Number(reserve_price) : null;
+  if (source_percentage !== undefined) auction.source_percentage = source_percentage !== "" ? Number(source_percentage) : 0;
+  if (source_name !== undefined) auction.source_name = source_name;
 
   await auction.save();
   res.json({ auction });
@@ -469,6 +497,7 @@ router.post("/:id/cancel", requireRole("admin"), async (req, res) => {
   auction.cancel_reason = req.body.reason.trim();
   auction.closed_at = new Date();
   await auction.save();
+  await updateItemLocationForAuction(auction);
 
   // Notification: cancellation alert to everyone who bid or wishlisted it.
   const bidderIds = await Bid.find({ auction: auction._id }).distinct("bidder");

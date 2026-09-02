@@ -1,6 +1,11 @@
-// Navbar bell with an unread count. The panel drills down in three steps:
-// categories -> the notifications in one -> the full notification, whose
-// button opens the page it is about.
+// Role-Based Notification & Reminder System
+//
+// Navbar bell with an unread count, and a floating panel that drills down in
+// three steps: categories -> the notifications in that category -> the full
+// notification, whose button opens the page the notification is about.
+//
+// Government/Admin does not get a bell - unread counts show up as red circles
+// on the Admin Dashboard cards instead (see AdminDashboard.jsx).
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -18,42 +23,24 @@ import {
   CheckCheck,
   ArrowUpRight,
   Inbox,
-  Star,
-  MessagesSquare,
 } from "lucide-react";
 import { api } from "../api";
-import { goToLink } from "../utils/goToLink";
-import { useAuth } from "../context/AuthContext";
 
 // Keep in sync with CATEGORIES in backend/models/Notification.js
 const CATEGORY_LABELS = [
-  { key: "auction", label: "Auction updates", icon: Gavel },
-  { key: "event", label: "Exhibitions & events", icon: CalendarDays },
-  { key: "report", label: "Report status", icon: FileText },
-  { key: "request", label: "Requests & approvals", icon: ClipboardCheck },
-  { key: "assignment", label: "Assignments & transfers", icon: MapPinned },
-  { key: "tender", label: "Tenders & bids", icon: FileSignature },
-  { key: "review", label: "Performance reviews", icon: Star },
-  { key: "reminder", label: "Deadline reminders", icon: Clock },
-  { key: "account", label: "Account & access", icon: UserCheck },
-  { key: "qna", label: "Public questions", icon: MessagesSquare },
+  { key: "auction", label: "Auction Updates", icon: Gavel },
+  { key: "event", label: "Exhibitions & Events", icon: CalendarDays },
+  { key: "report", label: "Report Status", icon: FileText },
+  { key: "request", label: "Requests & Approvals", icon: ClipboardCheck },
+  { key: "assignment", label: "Assignments & Transfers", icon: MapPinned },
+  { key: "tender", label: "Tenders & Bids", icon: FileSignature },
+  { key: "reminder", label: "Deadline Reminders", icon: Clock },
+  { key: "account", label: "Account", icon: UserCheck },
 ];
 
 const CATEGORY_MAP = Object.fromEntries(CATEGORY_LABELS.map((c) => [c.key, c]));
 
-// Keep in sync with CATEGORY_ROLES in backend/models/Notification.js. The
-// backend already blocks these at write time; this also hides older rows that
-// predate the rule.
-const CATEGORY_ROLES = {
-  review: ["archaeologist", "excavation_team"],
-};
-
-function canSeeCategory(category, role) {
-  const allowed = CATEGORY_ROLES[category];
-  return !allowed || allowed.includes(role);
-}
-
-const POLL_MS = 15 * 1000;
+const POLL_MS = 45 * 1000;
 
 function timeAgo(value) {
   if (!value) return "";
@@ -69,20 +56,10 @@ function timeAgo(value) {
 }
 
 export default function NotificationBell() {
-  const { user } = useAuth();
-  const role = user?.role || "";
-
   const [open, setOpen] = useState(false);
   const [summary, setSummary] = useState({ unread: 0, byCategory: {} });
-  const [allNotifications, setAllNotifications] = useState([]);
+  const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(false);
-
-  // Everything below reads the filtered list, so a restricted category cannot
-  // appear in the category rows, the counts, or "Mark read".
-  const notifications = useMemo(
-    () => allNotifications.filter((n) => canSeeCategory(n.category, role)),
-    [allNotifications, role]
-  );
 
   // null = category list, a key = that category's list, plus `selected` for detail
   const [activeCategory, setActiveCategory] = useState(null);
@@ -98,28 +75,21 @@ export default function NotificationBell() {
       .catch(() => {});
   }, []);
 
-  const loadNotifications = useCallback((silent = false) => {
-    if (!silent) setLoading(true);
+  const loadNotifications = useCallback(() => {
+    setLoading(true);
     api
       .get("/notifications?limit=100")
-      .then((data) => setAllNotifications(data.notifications || []))
-      .catch(() => setAllNotifications([]))
-      .finally(() => {
-        if (!silent) setLoading(false);
-      });
+      .then((data) => setNotifications(data.notifications || []))
+      .catch(() => setNotifications([]))
+      .finally(() => setLoading(false));
   }, []);
 
-  // Poll the cheap summary for the badge. While the panel is open, re-poll the
-  // full list on the same tick, or the category counts drift away from the
-  // badge and the two show different numbers.
+  // Poll the cheap summary endpoint; the full list is only fetched on open.
   useEffect(() => {
     loadSummary();
-    const timer = setInterval(() => {
-      loadSummary();
-      if (open) loadNotifications(true);
-    }, POLL_MS);
+    const timer = setInterval(loadSummary, POLL_MS);
     return () => clearInterval(timer);
-  }, [loadSummary, loadNotifications, open]);
+  }, [loadSummary]);
 
   // Close on an outside click or Escape.
   useEffect(() => {
@@ -175,8 +145,8 @@ export default function NotificationBell() {
     setSelected(notification);
     if (notification.read) return;
 
-    // Optimistic: the badge should drop as soon as it is opened.
-    setAllNotifications((prev) =>
+    // Optimistic - the badge should drop the moment it is opened.
+    setNotifications((prev) =>
       prev.map((n) => (n._id === notification._id ? { ...n, read: true } : n))
     );
     setSummary((prev) => ({ ...prev, unread: Math.max((prev.unread || 1) - 1, 0) }));
@@ -190,17 +160,13 @@ export default function NotificationBell() {
 
   function goToNotification(notification) {
     setOpen(false);
-    goToLink(navigate, notification.link);
+    if (notification.link) navigate(notification.link);
   }
 
   async function markAllRead() {
     const body = activeCategory ? { category: activeCategory } : {};
-    setAllNotifications((prev) =>
-      prev.map((n) =>
-        canSeeCategory(n.category, role) && (!activeCategory || n.category === activeCategory)
-          ? { ...n, read: true }
-          : n
-      )
+    setNotifications((prev) =>
+      prev.map((n) => (!activeCategory || n.category === activeCategory ? { ...n, read: true } : n))
     );
     try {
       await api.post("/notifications/read-all", body);
@@ -209,15 +175,7 @@ export default function NotificationBell() {
     }
   }
 
-  // The summary counts every category, so subtract the ones this role cannot
-  // see, or the badge shows a number they can never clear.
-  const unread = useMemo(() => {
-    let total = summary.unread || 0;
-    for (const [key, count] of Object.entries(summary.byCategory || {})) {
-      if (!canSeeCategory(key, role)) total -= count;
-    }
-    return Math.max(total, 0);
-  }, [summary, role]);
+  const unread = summary.unread || 0;
 
   return (
     <div className="notif-wrap" ref={panelRef}>
@@ -227,7 +185,7 @@ export default function NotificationBell() {
         onClick={togglePanel}
         aria-label={`Notifications${unread ? ` (${unread} unread)` : ""}`}
       >
-        <Bell size={19} aria-hidden="true" />
+        <Bell size={17} />
         {unread > 0 && <span className="notif-count">{unread > 99 ? "99+" : unread}</span>}
       </button>
 
@@ -236,11 +194,11 @@ export default function NotificationBell() {
           <div className="notif-panel-head">
             {selected ? (
               <button type="button" className="notif-back" onClick={() => setSelected(null)}>
-                <ChevronLeft size={15} aria-hidden="true" /> Back
+                <ChevronLeft size={15} /> Back
               </button>
             ) : activeCategory ? (
               <button type="button" className="notif-back" onClick={() => setActiveCategory(null)}>
-                <ChevronLeft size={15} aria-hidden="true" /> All categories
+                <ChevronLeft size={15} /> All categories
               </button>
             ) : (
               <strong>Notifications</strong>
@@ -248,17 +206,13 @@ export default function NotificationBell() {
 
             {!selected && (
               <button type="button" className="notif-mark-all" onClick={markAllRead}>
-                <CheckCheck size={14} aria-hidden="true" /> Mark all read
+                <CheckCheck size={14} /> Mark read
               </button>
             )}
           </div>
 
           <div className="notif-panel-body">
-            {loading && (
-              <p className="notif-empty">
-                <span className="spinner" aria-hidden="true" /> Loading notifications
-              </p>
-            )}
+            {loading && <p className="notif-empty">Loading...</p>}
 
             {/* ---- Level 3: one notification in full ---- */}
             {!loading && selected && (
@@ -271,7 +225,7 @@ export default function NotificationBell() {
                 <p className="notif-detail-msg">{selected.message}</p>
                 {selected.deadline_at && (
                   <p className="notif-detail-deadline">
-                    <Clock size={13} aria-hidden="true" /> Due {new Date(selected.deadline_at).toLocaleString()}
+                    <Clock size={13} /> Due {new Date(selected.deadline_at).toLocaleString()}
                   </p>
                 )}
                 {selected.link && (
@@ -280,7 +234,7 @@ export default function NotificationBell() {
                     className="btn-small notif-goto"
                     onClick={() => goToNotification(selected)}
                   >
-                    Open record <ArrowUpRight size={14} aria-hidden="true" />
+                    Go to page <ArrowUpRight size={14} />
                   </button>
                 )}
               </div>
@@ -291,11 +245,11 @@ export default function NotificationBell() {
               <>
                 {categories.length === 0 && (
                   <p className="notif-empty">
-                    <Inbox size={24} aria-hidden="true" />
-                    <span>Nothing outstanding. You are up to date.</span>
+                    <Inbox size={26} />
+                    <span>You're all caught up.</span>
                   </p>
                 )}
-                {categories.map(({ key, label, icon: Icon, unread: catUnread }) => (
+                {categories.map(({ key, label, icon: Icon, total, unread: catUnread }) => (
                   <button
                     type="button"
                     key={key}
@@ -303,13 +257,16 @@ export default function NotificationBell() {
                     onClick={() => setActiveCategory(key)}
                   >
                     <span className="notif-cat-icon">
-                      <Icon size={15} aria-hidden="true" />
+                      <Icon size={16} />
                     </span>
                     <span className="notif-cat-text">
                       <strong>{label}</strong>
+                      <small>
+                        {total} notification{total === 1 ? "" : "s"}
+                      </small>
                     </span>
                     {catUnread > 0 && <span className="notif-pill">{catUnread}</span>}
-                    <ChevronRight size={15} className="notif-chevron" aria-hidden="true" />
+                    <ChevronRight size={15} className="notif-chevron" />
                   </button>
                 ))}
               </>
@@ -319,7 +276,7 @@ export default function NotificationBell() {
             {!loading && !selected && activeCategory && (
               <>
                 <p className="notif-section-title">{CATEGORY_MAP[activeCategory]?.label}</p>
-                {visible.length === 0 && <p className="notif-empty">No entries in this category.</p>}
+                {visible.length === 0 && <p className="notif-empty">Nothing here yet.</p>}
                 {visible.map((n) => (
                   <button
                     type="button"

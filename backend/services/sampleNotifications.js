@@ -1,13 +1,21 @@
-// Demo notifications, so no account opens the bell to an empty panel.
+// Sample notifications, guaranteed present for every account.
 //
-// Rule: a sample may only describe a record that really exists, and its link
-// must lead to a page showing it. Everything here is built from live queries
-// and skipped when the record is missing; anything that cannot be tied to a
-// record becomes a general notice pointing at a list page.
+// The hard rule here: a sample may only ever describe a record that actually
+// exists in the database, and its link must lead to a page where that record is
+// visible. An earlier version used hard-coded fiction, which produced things
+// like "artifact loan ends in 3 days" for a museum with no loans at all - the
+// notification looked real, then "Go to page" landed on an empty table.
 //
-// Built lazily on the first notification read rather than in seed.js, because
-// a reseed gives accounts new _ids. Each dedupe_key embeds the account and
-// record id, so the unique index stops duplicates.
+// So every sample below is built by querying live data and is skipped entirely
+// when the underlying record is missing. Anything that cannot be tied to a
+// record is a general notice pointing at a list page that always exists, and
+// never claims a specific artifact, loan or tender.
+//
+// Persistence across reseeds: scripts/seed.js wipes Users, so accounts return
+// with new _ids and anything seeded beside them would be orphaned. Instead this
+// tops up lazily on the first notification read, and every dedupe_key embeds
+// both the account id and the referenced record id, so a reseed naturally
+// produces a fresh, correct set while the unique index prevents duplicates.
 const Notification = require("../models/Notification");
 const Auction = require("../models/Auction");
 const Exhibition = require("../models/Exhibition");
@@ -34,7 +42,9 @@ function shortDate(d) {
   return d ? new Date(d).toLocaleDateString() : "";
 }
 
-// --- per-role builders, each returning samples for real records ------------
+// ---------------------------------------------------------------------------
+// Per-role builders. Each returns samples for records that genuinely exist.
+// ---------------------------------------------------------------------------
 
 async function forPublic(user) {
   const out = [];
@@ -86,7 +96,7 @@ async function forPublic(user) {
     });
   });
 
-  // Only mention their reports if they filed any.
+  // Only mention the person's own reports if they actually filed any.
   const reports = await DiscoveryReport.find({ reporter: user._id }).sort("-createdAt").limit(2);
   reports.forEach((r, i) => {
     const verified = r.status === "Verified";
@@ -193,7 +203,7 @@ async function forArchaeologist(user) {
 async function forMuseumManager(user) {
   const out = [];
 
-  // Loans into this museum.
+  // Loans *into* this museum - the case that used to be fabricated.
   const incoming = await ArtifactLoan.find({ lending_museum: user._id })
     .populate("item", "name")
     .populate("requesting_museum", "name roleProfile.museum_name")
@@ -280,7 +290,7 @@ async function forMuseumManager(user) {
       type: `item.request.${r.approval_status.toLowerCase()}`,
       title: `Item request ${r.approval_status.toLowerCase()}`,
       message: `Your request for "${r.item?.name || "an artifact"}" is ${r.approval_status}.`,
-      // No link: there is no page listing this manager's own requests.
+      link: "/mm/request-items",
       read: i > 0,
       ageHours: 34 + i * 9,
     });
@@ -538,8 +548,9 @@ const ROLE_HOME = {
   admin: "/admin/dashboard",
 };
 
-// Padding notices. They never name a record, so they cannot point at an empty
-// page. More than MIN_SAMPLES of them, so an empty database still fills up.
+// General notices used only to reach the minimum. They never name a record, so
+// they can never point somewhere empty. There are deliberately more of these
+// than MIN_SAMPLES, so even a completely empty database still fills the panel.
 function generalNotices(user) {
   const isAdmin = user.role === "admin";
   const home = ROLE_HOME[user.role] || "/";
@@ -629,8 +640,8 @@ const BUILDERS = {
   admin: forAdmin,
 };
 
-// Accounts already built in this process. A reseed gives new _ids, which miss
-// the cache and rebuild on their own.
+// Accounts already topped up in this process. A reseed yields new _ids, which
+// miss the cache and get rebuilt automatically.
 const verified = new Set();
 
 async function ensureDemoNotifications(user) {
@@ -639,15 +650,16 @@ async function ensureDemoNotifications(user) {
     const userId = String(user._id);
     if (verified.has(userId)) return;
 
-    // Rebuild rather than top up: an earlier batch may point at an exhibition
-    // or auction since deleted, and topping up would never clear those. This
-    // way a plain server restart is enough to fix them.
-    await Notification.deleteMany({ user: user._id, demo: true });
+    const existing = await Notification.countDocuments({ user: user._id, demo: true });
+    if (existing >= MIN_SAMPLES) {
+      verified.add(userId);
+      return;
+    }
 
     const builder = BUILDERS[user.role] || forPublic;
     let samples = await builder(user);
 
-    // Pad to the minimum with general notices.
+    // Pad to the minimum with record-free general notices.
     if (samples.length < MIN_SAMPLES) {
       samples = samples.concat(generalNotices(user).slice(0, MIN_SAMPLES - samples.length));
     }
@@ -679,28 +691,22 @@ async function ensureDemoNotifications(user) {
       if (err?.code !== 11000 && !err?.writeErrors) throw err;
     });
 
-    // Mongoose stamps createdAt, so backdate afterwards to spread out the
-    // "3h ago" labels. Cosmetic only, hence its own try/catch.
-    const backdateOps = samples
-      .filter((s) => s.ageHours)
-      .map((s) => ({
+    // Mongoose stamps createdAt itself, so backdate afterwards for a realistic
+    // spread of "3h ago" / "2d ago" in the panel.
+    await Notification.bulkWrite(
+      samples.map((s) => ({
         updateOne: {
           filter: { dedupe_key: `sample:${userId}:${s.slug}` },
-          update: { $set: { createdAt: new Date(now - s.ageHours * HOUR) } },
+          update: { $set: { createdAt: new Date(now - (s.ageHours || 1) * HOUR) } },
+          timestamps: false,
         },
-      }));
-
-    if (backdateOps.length > 0) {
-      try {
-        await Notification.collection.bulkWrite(backdateOps, { ordered: false });
-      } catch (backdateErr) {
-        console.error("[sample-notifications] backdating timestamps failed (non-fatal):", backdateErr.message);
-      }
-    }
+      })),
+      { ordered: false }
+    );
 
     verified.add(userId);
   } catch (err) {
-    // Never let demo data break a real request.
+    // Samples are a convenience; never let them break a real request.
     console.error("[sample-notifications] could not build samples:", err.message);
   }
 }

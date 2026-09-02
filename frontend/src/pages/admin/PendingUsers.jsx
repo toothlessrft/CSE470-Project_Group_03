@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 
-const ROLE_LABELS = {
-  archaeologist: "Archaeologist",
-  museum_manager: "Museum authority",
-  excavation_team: "Excavation contractor",
-  public: "Public member",
-};
-
 export default function PendingUsers() {
   const [users, setUsers] = useState([]);
 
@@ -32,54 +25,47 @@ export default function PendingUsers() {
 
   return (
     <div className="page">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Access control</span>
-          <h1>Account approvals</h1>
-          <p className="page-subtitle">
-            Professional registrations awaiting verification. Admitting an account grants it the
-            permissions of its role.
-          </p>
-        </div>
-      </div>
+      <h1>Pending User Approvals</h1>
 
-      <div className="table-wrap">
-        <table className="table">
-          <thead>
-            <tr>
-              <th>Applicant</th>
-              <th>Requested role</th>
-              <th>Email address</th>
-              <th>Decision</th>
+      <table className="table">
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Role</th>
+            <th>Email</th>
+            <th>Approve</th>
+            <th>Reject</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {users.map((u) => (
+            <tr key={u._id}>
+              <td>{u.name}</td>
+              <td>{u.role}</td>
+              <td>{u.email}</td>
+
+              <td>
+                <button
+                  className="btn"
+                  onClick={() => approve(u._id)}
+                >
+                  Approve
+                </button>
+              </td>
+
+              <td>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => reject(u._id)}
+                >
+                  Reject
+                </button>
+              </td>
             </tr>
-          </thead>
-
-          <tbody>
-            {users.map((u) => (
-              <tr key={u._id}>
-                <td>{u.name}</td>
-                <td>{ROLE_LABELS[u.role] || u.role}</td>
-                <td>{u.email}</td>
-                <td className="actions">
-                  <button className="btn-small btn-approve" onClick={() => approve(u._id)}>
-                    Admit
-                  </button>
-                  <button className="btn-small btn-deny" onClick={() => reject(u._id)}>
-                    Decline
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {users.length === 0 && (
-              <tr>
-                <td colSpan={4} className="hint">
-                  No registrations awaiting a decision.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

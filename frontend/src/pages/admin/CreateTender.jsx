@@ -97,30 +97,23 @@ export default function CreateTender() {
   return (
     <div className="page narrow">
       <p>
-        <Link className="back-link" to="/admin/tenders">
-          <ArrowLeft size={14} aria-hidden="true" /> Back to tenders
+        <Link to="/admin/tenders" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+          <ArrowLeft size={14} /> Back to tenders
         </Link>
       </p>
 
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Procurement</span>
-          <h1>Publish an excavation tender</h1>
-          <p className="page-subtitle">
-            Put an excavation contract out to tender so licensed contractors can bid for the work.
-          </p>
-        </div>
-      </div>
+      <h1>Create Excavation Tender</h1>
+      <p className="page-subtitle">
+        Publish an excavation contract so registered excavation teams can bid on it.
+      </p>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
       {sources.length === 0 && !fieldReportId && (
         <div className="alert alert-info">
-          <FileText size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
-          <span>
-            No approved field report is currently awaiting an excavation. You can still publish a
-            standalone tender, but it will not be linked to a reported discovery.
-          </span>
+          <FileText size={14} style={{ verticalAlign: "middle" }} /> No approved field reports are
+          currently waiting on an excavation team. You can still publish a standalone tender below,
+          but it won't be linked to a discovery.
         </div>
       )}
 
@@ -128,7 +121,7 @@ export default function CreateTender() {
         <label>
           Source field report
           <select value={fieldReportId} onChange={(e) => handleSourceChange(e.target.value)}>
-            <option value="">Standalone tender — no linked report</option>
+            <option value="">Standalone tender (no linked report)</option>
             {sources.map((s) => (
               <option key={s._id} value={s._id}>
                 {s.discoveryReport?.material} — {s.discoveryReport?.location?.address || "no address"}
@@ -140,18 +133,16 @@ export default function CreateTender() {
 
         {selected && (
           <div className="alert alert-info" style={{ marginBottom: 0 }}>
-            <span>
-              Linked to the field report filed by <strong>{selected.researcher?.name}</strong>, who
-              recommended a full excavation.
-              {selected.budgetRequested != null && (
-                <> Budget requested: ৳{selected.budgetRequested.toLocaleString()}.</>
-              )}
-            </span>
+            Linked to the field report by <strong>{selected.researcher?.name}</strong>, who requested
+            an excavation team.
+            {selected.budgetRequested != null && (
+              <> Requested budget: ৳{selected.budgetRequested.toLocaleString()}.</>
+            )}
           </div>
         )}
 
         <label>
-          Tender title
+          Tender Title (required)
           <input
             value={form.title}
             onChange={(e) => setForm({ ...form, title: e.target.value })}
@@ -161,29 +152,29 @@ export default function CreateTender() {
         </label>
 
         <label>
-          Scope of work
+          Project Details (required)
           <textarea
             rows={5}
             value={form.project_details}
             onChange={(e) => setForm({ ...form, project_details: e.target.value })}
-            placeholder="Extent of the dig, what has already been verified, expected depth and area"
+            placeholder="Scope of the dig, what has already been verified, expected depth and area..."
             required
           />
         </label>
 
         <label>
-          Contractor requirements
+          Requirements
           <textarea
             rows={4}
             value={form.requirements}
             onChange={(e) => setForm({ ...form, requirements: e.target.value })}
-            placeholder="Equipment, crew size, licences held, recording and conservation standards"
+            placeholder="Equipment, crew size, certifications, conservation standards..."
           />
         </label>
 
-        <div className="form-row">
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
           <label>
-            Bids close
+            Bidding Deadline (required)
             <input
               type="date"
               value={form.deadline}
@@ -192,10 +183,11 @@ export default function CreateTender() {
             />
           </label>
           <label>
-            Estimated budget (৳)
+            Estimated Budget (৳) (required)
             <input
               type="number"
               min="0"
+              step="1000"
               value={form.estimated_budget}
               onChange={(e) => setForm({ ...form, estimated_budget: e.target.value })}
               placeholder="e.g. 500000"
@@ -205,12 +197,12 @@ export default function CreateTender() {
         </div>
 
         <fieldset>
-          <legend>Site location</legend>
+          <legend>Excavation Location</legend>
           {location?.lat != null ? (
             <>
               <p className="hint" style={{ margin: "0 0 0.6rem" }}>
-                Taken from the linked discovery report — this is exactly where the find was
-                reported.
+                Taken automatically from the linked discovery report — this is exactly where the
+                artifact was reported.
               </p>
               <GoogleMapPicker value={location} editable={false} height={240} />
               <p className="hint" style={{ margin: "0.5rem 0 0" }}>
@@ -219,13 +211,13 @@ export default function CreateTender() {
             </>
           ) : (
             <p className="hint" style={{ margin: 0 }}>
-              Choose a source field report above to carry across its verified location.
+              Select a source field report above to pull in its verified location.
             </p>
           )}
         </fieldset>
 
         <button type="submit" className="btn" disabled={busy}>
-          {busy ? "Publishing" : "Publish tender"}
+          {busy ? "Publishing..." : "Publish Tender"}
         </button>
       </form>
     </div>

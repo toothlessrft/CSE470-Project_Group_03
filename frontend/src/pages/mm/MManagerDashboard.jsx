@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { HandCoins, Inbox, CalendarDays, Gavel, Archive, Settings, FileClock } from "lucide-react";
+import { PackageSearch, HandCoins, CalendarDays, Gavel, Archive, Settings } from "lucide-react";
 import { api } from "../../api";
 import ProfileCard from "../../components/ProfileCard";
 import ActionGrid from "../../components/ActionGrid";
@@ -23,27 +23,22 @@ export default function MManagerDashboard() {
     );
   }
 
-  if (!manager)
-    return (
-      <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading your workspace
-        </div>
-      </div>
-    );
+  if (!manager) return <div className="page">Loading...</div>;
 
   const actions = [
-    { to: "/mm/exhibitions", icon: CalendarDays, title: "Exhibitions & events", description: "Schedule and publish exhibitions, tours, and cultural programmes" },
-    { to: "/mm/my-museum-items", icon: Archive, title: "Collection register", description: "Maintain your holdings and their display, storage, or loan status" },
-    { to: "/mm/museum-profile", icon: Settings, title: "Museum profile", description: "Location, opening hours, and admission details shown in the public directory" },
-    { to: "/mm/request-loan", icon: HandCoins, title: "Request a loan", description: "Ask another museum to lend an artifact from its collection" },
-    { to: "/mm/my-loans", icon: FileClock, title: "Outgoing loan requests", description: "Track the loans you have applied for and their outcomes" },
-    { to: "/mm/incoming-loans", icon: Inbox, title: "Incoming loan requests", description: "Decide on requests from other museums to borrow your holdings" },
-    { to: "/auctions", icon: Gavel, title: "Artifact auctions", description: "Bid on lots released for lawful sale" },
+    { to: "/mm/exhibitions", icon: CalendarDays, title: "Exhibition Management", description: "Schedule and publish exhibitions, educational tours, and cultural events" },
+    { to: "/mm/my-museum-items", icon: Archive, title: "My Museum Artifacts", description: "Add, remove, and toggle On Display / In Storage / On Loan status in real time" },
+    { to: "/mm/museum-profile", icon: Settings, title: "Museum Profile", description: "Set your museum's location, operating hours, and ticket info for the public directory" },
+    { to: "/mm/request-items", icon: PackageSearch, title: "Request Items", description: "Ask to borrow artifacts for exhibition" },
+    { to: "/mm/loans", icon: HandCoins, title: "Loans", description: "Manage artifact loans with other museums" },
+    { to: "/auctions", icon: Gavel, title: "Auctions", description: "Bid on artifacts released for auction" },
   ];
 
   return (
     <div className="page">
+      <h1>Museum Manager Dashboard</h1>
+      <p className="page-subtitle">Coordinate artifact loans and exhibitions with your museum.</p>
+
       <ProfileCard
         name={manager.name}
         nid={manager.nid}
@@ -55,9 +50,6 @@ export default function MManagerDashboard() {
         ]}
       />
 
-      <div className="section-head">
-        <h2>Collection management</h2>
-      </div>
       <ActionGrid items={actions} />
     </div>
   );

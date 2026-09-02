@@ -147,18 +147,13 @@ export default function GoogleMapPicker({ value, onChange, editable = true, heig
           <input
             type="text"
             className="map-search"
-            placeholder="Search for a place, district, or address"
+            placeholder="Search for a place or address..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleSearchKeyDown}
           />
-          <button
-            type="button"
-            className="btn-small btn-secondary"
-            disabled={searching}
-            onClick={() => handleSearch()}
-          >
-            {searching ? "Searching" : "Search"}
+          <button type="button" className="btn-small" disabled={searching} onClick={() => handleSearch()}>
+            {searching ? "..." : "Search"}
           </button>
         </div>
       )}
@@ -173,9 +168,7 @@ export default function GoogleMapPicker({ value, onChange, editable = true, heig
       )}
       <div ref={containerRef} className="map-canvas" style={{ height }} />
       {editable && (
-        <p className="hint">
-          Click the map, drag the marker, or search above to set the exact find spot.
-        </p>
+        <p className="hint">Click anywhere on the map, drag the pin, or search above to set the exact spot.</p>
       )}
     </div>
   );

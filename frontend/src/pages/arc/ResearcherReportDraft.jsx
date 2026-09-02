@@ -1,4 +1,4 @@
-// Researcher Report - Ahad
+//Researcher Report: Ahad
 import { useEffect, useState } from "react";
 import { api } from "../../api";
 
@@ -9,13 +9,15 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
     const [success, setSuccess] = useState("");
 
     const [form, setForm] = useState({
+        possibleArtifact: false,
         notes: "",
         budgetRequested: "",
         requestExcavationTeam: false,
     });
 
-    // Ahad_23201016 - finds are logged against the excavation project in
-    // Manage Projects, not on the field report.
+    // Ahad_23201016 - "Add Artifact" no longer lives on the field report. Finds
+    // are now logged against the active excavation project in Manage Projects,
+    // once a team has actually been awarded the dig through the tender process.
 
     const [busy, setBusy] = useState(false);
 
@@ -30,6 +32,7 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
             .then((data) => {
                 setReport(data.report);
                 setForm({
+                    possibleArtifact: data.report.possibleArtifact || false,
                     notes: data.report.notes || "",
                     budgetRequested: data.report.budgetRequested || "",
                     requestExcavationTeam: data.report.requestExcavationTeam || false,
@@ -46,7 +49,7 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
         setBusy(true);
         try {
             const data = await api.post(`/researcher-report/${discoveryId}/save`, { ...form });
-            setSuccess("Draft saved.");
+            setSuccess("Draft saved successfully.");
             setReport(data.report);
         } catch (err) {
             setError(err.message);
@@ -56,20 +59,15 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
     }
 
     async function handleSubmitFinal() {
-        if (
-            !window.confirm(
-                "Submit this field report to the heritage authority? It becomes read-only once submitted."
-            )
-        )
-            return;
+        if (!window.confirm("Are you sure you want to submit the final report? No more edits can be made, and it will be sent to the admin for approval.")) return;
         setError("");
         setSuccess("");
         setBusy(true);
         try {
-            const data = await api.post(`/researcher-report/${discoveryId}/submit`, { ...form });
-            setSuccess("Field report submitted to the heritage authority.");
+            const data = await api.post(`/researcher-report/${discoveryId}/submit`);
+            setSuccess("Final report submitted successfully.");
             setReport(data.report);
-            // Reload the parent list, so an approved card moves to Previous.
+            // Notify parent to reload list so the card moves to Previous Projects once approved
             if (onSubmitted) onSubmitted();
         } catch (err) {
             setError(err.message);
@@ -78,122 +76,84 @@ export default function ResearcherReportDraft({ discoveryId, onSubmitted }) {
         }
     }
 
-    if (loading)
-        return (
-            <p className="loading-state">
-                <span className="spinner" aria-hidden="true" /> Loading field report
-            </p>
-        );
-    if (!report)
-        return <div className="alert alert-danger">{error || "The field report could not be loaded."}</div>;
+    if (loading) return <p className="hint">Loading researcher report...</p>;
+    if (!report) return <div className="alert alert-danger">{error || "Failed to load report"}</div>;
 
     const isDraft = report.status === "Draft";
+    const isPending = report.status === "Pending";
     const isApproved = report.status === "Approved";
     const isLocked = !isDraft; // Pending or Approved - no more edits allowed
 
-    // A submitted report is read-only, so show it as a summary rather than a
-    // locked, empty-looking form.
-    if (isLocked) {
-        return (
-            <div className="panel" style={{ marginTop: "1.25rem" }}>
-                <div className="panel-head">
-                    <h4>Field report</h4>
-                    <span className="chip">{isApproved ? "Approved" : "Under review"}</span>
-                </div>
-                <div className="panel-body">
-                    <div className={`alert ${isApproved ? "alert-success" : "alert-info"}`}>
-                        {isApproved
-                            ? "Approved by the heritage authority. If an excavation team was requested, a tender will be published for the site."
-                            : "Submitted to the heritage authority. You will be notified once it has been reviewed; no further edits can be made."}
-                    </div>
-
-                    <dl className="detail-list" style={{ marginBottom: "1rem" }}>
-                        <div>
-                            <dt>Excavation team requested</dt>
-                            <dd>{report.requestExcavationTeam ? "Yes" : "No"}</dd>
-                        </div>
-                        {report.budgetRequested != null && (
-                            <div>
-                                <dt>Budget requested</dt>
-                                <dd>৳{Number(report.budgetRequested).toLocaleString()}</dd>
-                            </div>
-                        )}
-                        <div>
-                            <dt>Submitted</dt>
-                            <dd>{new Date(report.updatedAt).toLocaleString()}</dd>
-                        </div>
-                    </dl>
-
-                    <span className="stat-label">Findings</span>
-                    <p className="subtle" style={{ whiteSpace: "pre-wrap", margin: "0.25rem 0 0" }}>
-                        {report.notes || "No findings were recorded on this report."}
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        <div className="panel" style={{ marginTop: "1.25rem" }}>
-            <div className="panel-head">
-                <h4>Field report</h4>
-                <span className="chip">Draft</span>
-            </div>
-            <div className="panel-body">
-                <p className="hint" style={{ marginTop: 0 }}>
-                    Build the report up over time and save it as a draft. Once submitted it becomes
-                    read-only. Recovered artifacts are catalogued later, against the excavation
-                    project itself.
-                </p>
+        <div className="card" style={{ marginTop: "1rem", border: "2px dashed #c98a4b", backgroundColor: "#fdf8f2" }}>
+            <h3 style={{ color: "#7c4a2d", marginTop: 0 }}>Researcher Report</h3>
+            <p className="hint">
+                {isApproved
+                    ? "This report has been approved by the Government. If you requested an excavation team, a tender will be published for it."
+                    : isPending
+                        ? "Final report submitted. Waiting for admin approval before this moves to Previous Assignments."
+                        : "Work on your findings below piece by piece. Save as draft until you are completely finished. Artifacts get logged later, against the excavation project itself."
+                }
+            </p>
 
-                {error && <div className="alert alert-danger">{error}</div>}
-                {success && <div className="alert alert-success">{success}</div>}
+            {error && <div className="alert alert-danger">{error}</div>}
+            {success && <div className="alert alert-success">{success}</div>}
 
-                <div className="form">
-                    <label className="checkline">
-                        <input
-                            type="checkbox"
-                            checked={form.requestExcavationTeam}
-                            onChange={(e) => setForm({ ...form, requestExcavationTeam: e.target.checked })}
-                            disabled={busy}
-                        />
-                        Recommend a full excavation of this site
-                    </label>
+            <div className="form">
+                <label style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.5rem", cursor: isLocked ? "not-allowed" : "pointer" }}>
+                    <input
+                        type="checkbox"
+                        checked={form.possibleArtifact}
+                        onChange={(e) => setForm({ ...form, possibleArtifact: e.target.checked })}
+                        disabled={isLocked || busy}
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    <span style={{ fontWeight: 600 }}>Is there a possible artifact here? (Notify Admin)</span>
+                </label>
 
-                    <label>
-                        Budget requested (৳, optional)
-                        <input
-                            type="number"
-                            min="0"
-                            step="1000"
-                            value={form.budgetRequested}
-                            onChange={(e) => setForm({ ...form, budgetRequested: e.target.value })}
-                            disabled={busy}
-                            placeholder="e.g. 50000"
-                        />
-                    </label>
+                <label style={{ display: "flex", flexDirection: "row", alignItems: "center", gap: "0.5rem", cursor: isLocked ? "not-allowed" : "pointer" }}>
+                    <input
+                        type="checkbox"
+                        checked={form.requestExcavationTeam}
+                        onChange={(e) => setForm({ ...form, requestExcavationTeam: e.target.checked })}
+                        disabled={isLocked || busy}
+                        style={{ width: "20px", height: "20px" }}
+                    />
+                    <span style={{ fontWeight: 600 }}>Request an Excavation Team for this site</span>
+                </label>
 
-                    <label>
-                        Findings and recommendations
-                        <textarea
-                            rows={5}
-                            value={form.notes}
-                            onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                            disabled={busy}
-                            placeholder="Site condition, stratigraphy observed, dating evidence, and what you recommend"
-                        />
-                    </label>
+                <label>
+                    Requested Budget (৳) - optional
+                    <input
+                        type="number"
+                        min="0"
+                        step="1000"
+                        value={form.budgetRequested}
+                        onChange={(e) => setForm({ ...form, budgetRequested: e.target.value })}
+                        disabled={isLocked || busy}
+                        placeholder="e.g. 50000"
+                    />
+                </label>
 
+                <label>
+                    Detailed Notes &amp; Draft Information
+                    <textarea
+                        rows={5}
+                        value={form.notes}
+                        onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                        disabled={isLocked || busy}
+                        placeholder="Gradually update your information about the site here..."
+                    />
+                </label>
+
+                {isDraft && (
                     <div className="actions">
-                        <button className="btn btn-secondary" onClick={handleSaveDraft} disabled={busy}>
-                            Save draft
-                        </button>
-                        <button className="btn" onClick={handleSubmitFinal} disabled={busy}>
-                            Submit field report
-                        </button>
+                        <button className="btn" onClick={handleSaveDraft} disabled={busy}>Save Draft</button>
+                        <button className="btn btn-approve" onClick={handleSubmitFinal} disabled={busy}>Submit Final Report</button>
                     </div>
-                </div>
+                )}
             </div>
+
         </div>
     );
 }

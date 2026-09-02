@@ -4,22 +4,23 @@ const express = require("express");
 const Tender = require("../models/Tender");
 const TenderBid = require("../models/TenderBid");
 const ExcavationProject = require("../models/ExcavationProject");
+const DiscoveryReport = require("../models/DiscoveryReport");
 const ResearcherReport = require("../models/ResearcherReport");
 const Site = require("../models/Site");
 const Item = require("../models/Item");
-const Notification = require("../models/Notification");
+const User = require("../models/User");
 const { requireAuth, requireRole } = require("../middleware/auth");
 const { notify, notifyMany, notifyRole, notifyAdmins } = require("../services/notify"); // Role-Based Notification & Reminder System
-const { ensureChatForProject, archiveChatForProject } = require("../services/teamChat"); // Project Team Group Chat
-const { sendReviewRequests } = require("../services/reviewNotifications"); // Cross Feedback & Performance Review
 
 const router = express.Router();
 router.use(requireAuth);
 
-// --- helpers ---------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Ahad_23201016 - helpers
+// ---------------------------------------------------------------------------
 
-// Site.name and ExcavationProject.p_name are unique, so a second dig at the
-// same address would clash. Suffix until the name is free.
+// Site.name and ExcavationProject.p_name are both unique, so a second dig at
+// the same address would otherwise blow up. Suffix until the name is free.
 async function uniqueName(Model, field, base) {
   const clean = (base || "Excavation").trim() || "Excavation";
   let candidate = clean;
@@ -74,10 +75,13 @@ async function announceBid(tender, user, bid, actor) {
   );
 }
 
-// === GOVERNMENT / ADMIN: publish and manage tenders ========================
+// ===========================================================================
+// Ahad_23201016 - GOVERNMENT / ADMIN: publish and manage tenders
+// ===========================================================================
 
-// GET /api/tenders/admin/sources -> approved field reports that asked for an
-// excavation team and have no tender yet. This is what the admin picks from.
+// GET /api/tenders/admin/sources
+// Approved field reports where the archaeologist asked for an excavation team
+// and no tender has been published yet - these are what an admin picks from.
 router.get("/admin/sources", requireRole("admin"), async (req, res) => {
   try {
     const reports = await ResearcherReport.find({
@@ -339,8 +343,8 @@ router.post("/admin/:id/award", requireRole("admin"), async (req, res) => {
       return res.status(400).json({ error: "That bid was withdrawn and can no longer be accepted." });
     }
 
-    // The dig needs a Site with real coordinates so its finds land on the
-    // artifact search map at the reported spot.
+    // The dig needs a Site with real coordinates so every artifact recovered
+    // here lands on the Smart Artifact Search map at the reported spot.
     const address = tender.location?.address || tender.title;
     let site = null;
     if (tender.location?.lat != null && tender.location?.lng != null) {
@@ -378,9 +382,6 @@ router.post("/admin/:id/award", requireRole("admin"), async (req, res) => {
       },
       agreed_timeline_days: winningBid.timeline_days,
     });
-
-    // Both parties are set now, so the group chat can be created.
-    await ensureChatForProject(project);
 
     winningBid.status = "Accepted";
     winningBid.reviewed_by = req.user._id;
@@ -472,7 +473,9 @@ router.post("/admin/bids/:bidId/reject", requireRole("admin"), async (req, res) 
   res.json({ message: "Bid rejected.", bid });
 });
 
-// === EXCAVATION TEAM: browse tenders, bid, edit, withdraw ===================
+// ===========================================================================
+// Ahad_23201016 - EXCAVATION TEAM: browse tenders, bid, edit, withdraw
+// ===========================================================================
 
 // GET /api/tenders/open -> available tenders, each annotated with my own bid
 router.get("/open", requireRole("excavation_team"), async (req, res) => {
@@ -618,9 +621,11 @@ router.delete("/bids/:bidId", requireRole("excavation_team"), async (req, res) =
   res.json({ message: "Bid withdrawn.", bid });
 });
 
-// === SHARED PROJECT WORKSPACE ==============================================
-// Archaeologist, excavation team and admin all read the same project record;
-// each sees only the actions their role allows.
+// ===========================================================================
+// Ahad_23201016 - SHARED PROJECT WORKSPACE
+// The lead archaeologist, the assigned excavation team, and the admin all read
+// the same project record - each just sees the actions their role allows.
+// ===========================================================================
 
 async function loadProjectFor(req, res) {
   const project = await ExcavationProject.findById(req.params.id)
@@ -656,22 +661,22 @@ router.get("/projects/:id", async (req, res) => {
 
   res.json({
     project: { ...project.toObject(), excavation_team: serializeTeam(project.excavation_team) },
-    // Team has read-only access; only the lead records progress and finds.
-    permissions: { isAdmin, isLead, isTeam, canEdit: isLead && !project.end_date },
+    permissions: { isAdmin, isLead, isTeam, canEdit: (isLead || isTeam) && !project.end_date },
   });
 });
 
-// POST /api/tenders/projects/:id/artifacts -> log a recovered artifact.
-// Coordinates come from the project, not the client, so every find is pinned
-// to where the report actually came from.
+// POST /api/tenders/projects/:id/artifacts
+// The "Add Artifact" flow from Smart Artifact Search, moved into the project.
+// The discovery location is taken from the project itself, never from the
+// client, so every find is pinned to where the report actually came from.
 router.post("/projects/:id/artifacts", async (req, res) => {
   try {
     const loaded = await loadProjectFor(req, res);
     if (!loaded) return;
-    const { project, isLead } = loaded;
+    const { project, isLead, isTeam } = loaded;
 
-    if (!isLead) {
-      return res.status(403).json({ error: "Only the lead archaeologist can add artifacts." });
+    if (!isLead && !isTeam) {
+      return res.status(403).json({ error: "Only the project team can add artifacts." });
     }
     if (project.end_date) {
       return res.status(400).json({ error: "This project has been completed and handed over." });
@@ -701,8 +706,8 @@ router.post("/projects/:id/artifacts", async (req, res) => {
       excavationProject: project._id,
     });
 
-    // Atomic push: `artifacts` is populated here, so save() would try to write
-    // whole sub-documents back.
+    // Atomic push - the loaded doc has `artifacts` populated, so mutating it
+    // in place and calling save() would try to write whole sub-documents back.
     await ExcavationProject.updateOne({ _id: project._id }, { $push: { artifacts: item._id } });
 
     res.status(201).json({ item });
@@ -716,9 +721,9 @@ router.post("/projects/:id/artifacts", async (req, res) => {
 router.patch("/projects/:id/artifacts/:itemId", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead } = loaded;
+  const { project, isAdmin } = loaded;
 
-  if (!isLead) return res.status(403).json({ error: "Only the lead archaeologist can edit artifacts." });
+  if (!isAdmin) return res.status(403).json({ error: "Only the heritage authority can edit artifacts." });
   if (project.end_date) return res.status(400).json({ error: "This project has been completed." });
 
   const item = await Item.findOne({ _id: req.params.itemId, excavationProject: project._id });
@@ -739,9 +744,9 @@ router.patch("/projects/:id/artifacts/:itemId", async (req, res) => {
 router.delete("/projects/:id/artifacts/:itemId", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead } = loaded;
+  const { project, isAdmin } = loaded;
 
-  if (!isLead) return res.status(403).json({ error: "Only the lead archaeologist can remove artifacts." });
+  if (!isAdmin) return res.status(403).json({ error: "Only the heritage authority can remove artifacts." });
   if (project.end_date) return res.status(400).json({ error: "This project has been completed." });
 
   const item = await Item.findOne({ _id: req.params.itemId, excavationProject: project._id });
@@ -760,9 +765,9 @@ router.delete("/projects/:id/artifacts/:itemId", async (req, res) => {
 router.patch("/projects/:id/progress", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead } = loaded;
+  const { project, isLead, isTeam } = loaded;
 
-  if (!isLead) return res.status(403).json({ error: "Only the lead archaeologist can update progress." });
+  if (!isLead && !isTeam) return res.status(403).json({ error: "Only the project team can update progress." });
   if (project.end_date) return res.status(400).json({ error: "This project has been completed." });
 
   const allowedProgress = ["Just Started", "In Progress", "Almost Done", "Stalled"];
@@ -774,14 +779,15 @@ router.patch("/projects/:id/progress", async (req, res) => {
   res.json({ message: "Progress updated.", progress: req.body.progress });
 });
 
-// POST /api/tenders/projects/:id/complete -> end the dig and hand the finds to
-// the admin, who allocates each one to a museum or to auction.
+// POST /api/tenders/projects/:id/complete
+// Ends the dig and hands the recovered artifacts to the Government/Admin,
+// who then decides where each one goes (museum storage or auction).
 router.post("/projects/:id/complete", async (req, res) => {
   const loaded = await loadProjectFor(req, res);
   if (!loaded) return;
-  const { project, isLead } = loaded;
+  const { project, isLead, isTeam } = loaded;
 
-  if (!isLead) return res.status(403).json({ error: "Only the lead archaeologist can close this project." });
+  if (!isLead && !isTeam) return res.status(403).json({ error: "Only the project team can close this project." });
   if (project.end_date) return res.status(400).json({ error: "This project is already complete." });
 
   const finishedAt = new Date();
@@ -796,9 +802,6 @@ router.post("/projects/:id/complete", async (req, res) => {
     }
   );
   const updated = await ExcavationProject.findById(project._id);
-
-  // Project Team Group Chat - archived on completion, stays in chat history.
-  await archiveChatForProject(project._id);
 
   // Notification: closure report is with the Government, artifacts need allocating.
   await notifyAdmins({
@@ -823,10 +826,6 @@ router.post("/projects/:id/complete", async (req, res) => {
     },
     [req.user._id]
   );
-
-  // Both sides are asked to rate each other. Whoever clicked "Complete" also
-  // sees the popup inline, but still gets the notification in case they dismiss it.
-  await sendReviewRequests(updated);
 
   res.json({
     message: "Project completed and submitted to the Government for artifact allocation.",

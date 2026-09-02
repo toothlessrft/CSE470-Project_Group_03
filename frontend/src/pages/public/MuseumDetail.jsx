@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { MapPin, Ticket, Clock, ArrowLeft, PackageSearch } from "lucide-react";
+import { MapPin, Ticket, Clock, ArrowLeft } from "lucide-react";
 import { api } from "../../api";
 import StatusBadge from "../../components/StatusBadge";
 
@@ -28,113 +28,80 @@ export default function MuseumDetail() {
       setMuseum(data.museum);
       setItems(data.items || []);
     } catch (err) {
-      setError(err.message || "This museum could not be loaded.");
+      setError(err.message || "Could not load this museum.");
     } finally {
       setLoading(false);
     }
   }
 
-  if (loading && !museum)
-    return (
-      <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading the collection
-        </div>
-      </div>
-    );
+  if (loading && !museum) return <div className="page">Loading...</div>;
   if (error && !museum) return <div className="page"><div className="alert alert-danger">{error}</div></div>;
 
   return (
     <div className="page">
-      <Link className="back-link" to="/museums">
-        <ArrowLeft size={14} aria-hidden="true" /> Back to the directory
+      <Link to="/museums" className="btn-small btn-outline-light" style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", marginBottom: "1rem" }}>
+        <ArrowLeft size={14} /> Back to directory
       </Link>
 
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Museum collection</span>
-          <h1>{museum.museum_name}</h1>
-          <p className="meta-row">
-            {museum.address && (
-              <span>
-                <MapPin size={13} aria-hidden="true" /> {museum.address}
-              </span>
-            )}
-            {museum.operating_hours && (
-              <span>
-                <Clock size={13} aria-hidden="true" /> {museum.operating_hours}
-              </span>
-            )}
-            {museum.ticket_info && (
-              <span>
-                <Ticket size={13} aria-hidden="true" /> {museum.ticket_info}
-              </span>
-            )}
-          </p>
-        </div>
+      <h1>{museum.museum_name}</h1>
+      {museum.address && (
+        <p style={{ display: "flex", alignItems: "center", gap: "0.4rem", color: "#777" }}>
+          <MapPin size={15} /> {museum.address}
+        </p>
+      )}
+      <div style={{ display: "flex", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+        {museum.operating_hours && (
+          <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}><Clock size={15} /> {museum.operating_hours}</span>
+        )}
+        {museum.ticket_info && (
+          <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}><Ticket size={15} /> {museum.ticket_info}</span>
+        )}
       </div>
 
-      <div className="toolbar">
-        {FILTERS.map((f) => (
-          <button
-            key={f || "all"}
-            className={availability === f ? "btn btn-small" : "btn btn-small btn-secondary"}
-            aria-pressed={availability === f}
-            onClick={() => setAvailability(f)}
-          >
-            {f || "All holdings"}
-          </button>
-        ))}
+      <div className="card" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        {FILTERS.map((f) => {
+          const active = availability === f;
+          return (
+            <button
+              key={f || "all"}
+              className="btn btn-small"
+              onClick={() => setAvailability(f)}
+              style={
+                active
+                  ? undefined
+                  : { background: "var(--surface)", color: "var(--primary-dark)", borderColor: "var(--border-strong)" }
+              }
+            >
+              {f || "All"}
+            </button>
+          );
+        })}
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="section-head">
-        <h2>Holdings</h2>
-        <span className="hint">
-          {loading ? "Loading" : `${items.length} artifact${items.length === 1 ? "" : "s"}`}
-        </span>
-      </div>
+      <h3>{loading ? "Loading..." : `${items.length} artifact(s)`}</h3>
 
-      {loading ? (
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading holdings
-        </div>
-      ) : items.length === 0 ? (
-        <div className="empty-state">
-          <PackageSearch size={26} aria-hidden="true" />
-          <h3>Nothing to show</h3>
-          <p>No artifacts in this collection match the selected status.</p>
-        </div>
-      ) : (
-        <div className="artifact-cards">
-          {items.map((item) => (
-            <article key={item._id} className="artifact-card">
-              {item.picture && (
-                <img className="artifact-card-image" src={item.picture} alt={item.name} loading="lazy" />
-              )}
-              <div className="artifact-card-body">
-                <div className="artifact-tile-head">
-                  <strong>{item.name}</strong>
-                  <StatusBadge status={item.availability} />
-                </div>
-                <p className="artifact-tile-class">
-                  {item.Type} · accession {item.artifactId || "not assigned"}
-                </p>
-                {item.description && <p className="artifact-card-desc">{item.description}</p>}
-                {item.location && (
-                  <dl className="artifact-tile-facts">
-                    <div>
-                      <dt>Location</dt>
-                      <dd>{item.location}</dd>
-                    </div>
-                  </dl>
-                )}
-              </div>
-            </article>
-          ))}
-        </div>
-      )}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1rem" }}>
+        {items.map((item) => (
+          <div key={item._id} className="card" style={{ margin: 0 }}>
+            {item.picture && (
+              <img src={item.picture} alt={item.name} style={{ width: "100%", height: "130px", objectFit: "cover", borderRadius: "var(--radius-sm)" }} />
+            )}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginTop: "0.4rem" }}>
+              <h4 style={{ margin: 0 }}>{item.name}</h4>
+              <StatusBadge status={item.availability} />
+            </div>
+            <p className="hint" style={{ margin: "0.25rem 0" }}>{item.Type} &middot; ID: {item.artifactId || "—"}</p>
+            {item.museumName && item.museumName !== museum.museum_name && (
+              <p style={{ margin: "0.3rem 0 0", fontSize: "0.8rem", color: "#777" }}>On loan from {item.museumName}</p>
+            )}
+            {item.description && <p style={{ margin: 0, fontSize: "0.85rem" }}>{item.description}</p>}
+            {item.location && <p style={{ margin: "0.3rem 0 0", fontSize: "0.8rem", color: "#777" }}>Location: {item.location}</p>}
+          </div>
+        ))}
+        {!loading && items.length === 0 && <p>No artifacts match this filter.</p>}
+      </div>
     </div>
   );
 }

@@ -43,33 +43,17 @@ export default function EditSite() {
         architecture,
       });
       setSite(data.site);
-      setSuccess("Site record updated.");
+      setSuccess("Site updated.");
     } catch (err) {
       setError(err.message);
     }
   }
 
-  if (!site)
-    return (
-      <div className="page">
-        <div className="loading-state">
-          <span className="spinner" aria-hidden="true" /> Loading site record
-        </div>
-      </div>
-    );
+  if (!site) return <div className="page">Loading...</div>;
 
   return (
     <div className="page narrow">
-      <div className="page-head">
-        <div>
-          <span className="eyebrow">Site record</span>
-          <h1>{site.name}</h1>
-          <p className="page-subtitle">
-            Keep the gazetteer entry for this site accurate. These details appear in the public
-            record.
-          </p>
-        </div>
-      </div>
+      <h1>Edit Site - {site.name}</h1>
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
       <form onSubmit={handleSubmit} className="form">
@@ -78,36 +62,27 @@ export default function EditSite() {
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} />
         </label>
         <label>
-          Period
-          <input value={era} onChange={(e) => setEra(e.target.value)} placeholder="e.g. Pala, 8th-12th century CE" />
+          Era
+          <input value={era} onChange={(e) => setEra(e.target.value)} />
         </label>
-        <fieldset>
-          <legend>Administrative location</legend>
-          <div className="form-row">
-            <label>
-              Thana
-              <input value={sThana} onChange={(e) => setSThana(e.target.value)} />
-            </label>
-            <label>
-              District
-              <input value={sDistrict} onChange={(e) => setSDistrict(e.target.value)} />
-            </label>
-          </div>
-          <label>
-            Street or landmark
-            <input value={sStreet} onChange={(e) => setSStreet(e.target.value)} />
-          </label>
-        </fieldset>
         <label>
-          Structural evidence
-          <textarea
-            value={architecture}
-            onChange={(e) => setArchitecture(e.target.value)}
-            placeholder="Built remains, construction technique, and phases identified"
-          />
+          Thana
+          <input value={sThana} onChange={(e) => setSThana(e.target.value)} />
+        </label>
+        <label>
+          District
+          <input value={sDistrict} onChange={(e) => setSDistrict(e.target.value)} />
+        </label>
+        <label>
+          Street
+          <input value={sStreet} onChange={(e) => setSStreet(e.target.value)} />
+        </label>
+        <label>
+          Architecture
+          <textarea value={architecture} onChange={(e) => setArchitecture(e.target.value)} />
         </label>
         <button type="submit" className="btn">
-          Save site record
+          Save Changes
         </button>
       </form>
     </div>
