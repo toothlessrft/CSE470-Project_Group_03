@@ -8,21 +8,21 @@ import {
   LayoutDashboard,
   CalendarDays,
   Gavel,
-  FileText,
   LocateFixed,
   Compass,
-  ScanSearch,
-  ShieldCheck,
+  MessagesSquare,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import NotificationBell from "./NotificationBell";
+import ChatBell from "./ChatBell";
 import NavDropdown from "./NavDropdown";
+import BrandMark from "./BrandMark";
 
 const ROLE_LABELS = {
-  admin: "Admin",
+  admin: "Heritage Authority",
   archaeologist: "Archaeologist",
-  museum_manager: "Museum Manager",
-  excavation_team: "Excavation Team",
+  museum_manager: "Museum Authority",
+  excavation_team: "Excavation Contractor",
   public: "Public Member",
 };
 
@@ -35,12 +35,13 @@ const ROLE_HOME = {
 };
 
 const EXPLORE_ITEMS = [
-  { to: "/search", icon: Search, label: "Search Artifacts" },
-  { to: "/knowledge", icon: BookOpen, label: "Knowledge Hub" },
-  { to: "/exhibitions", icon: CalendarDays, label: "Exhibitions & Events" },
-  { to: "/museums", icon: Landmark, label: "Museum Directory" },
-  { to: "/near-me", icon: LocateFixed, label: "Near Me" },
-  { to: "/auctions", icon: Gavel, label: "Auctions" },
+  { to: "/search", icon: Search, label: "Artifact catalogue" },
+  { to: "/knowledge", icon: BookOpen, label: "Knowledge hub" },
+  { to: "/exhibitions", icon: CalendarDays, label: "Exhibitions & events" },
+  { to: "/museums", icon: Landmark, label: "Museum directory" },
+  { to: "/near-me", icon: LocateFixed, label: "Sites near you" },
+  { to: "/auctions", icon: Gavel, label: "Artifact auctions" },
+  { to: "/qna", icon: MessagesSquare, label: "Ask an archaeologist" },
 ];
 
 export default function Navbar() {
@@ -52,49 +53,50 @@ export default function Navbar() {
     navigate("/login");
   }
 
-  const adminItems = [
-    { to: "/admin/reports", icon: ScanSearch, label: "Field Reports" },
-    { to: "/admin/auctions", icon: Gavel, label: "Manage Auctions" },
-    { to: "/admin/tenders", icon: FileText, label: "Tenders" },
-  ];
-
   return (
     <nav className="navbar">
       <Link to="/" className="brand">
-        <Landmark size={20} strokeWidth={2.2} />
-        ArchiveEarth
+        <span className="brand-mark" aria-hidden="true">
+          <BrandMark size="2.05em" />
+        </span>
+        <span className="brand-text">
+          ArchiveEarth
+          <small>Heritage Registry</small>
+        </span>
       </Link>
+
       <div className="nav-right">
         <NavDropdown label="Explore" icon={Compass} items={EXPLORE_ITEMS} />
 
         {user ? (
           <>
-            <Link to="/report-discovery"><MapPin size={15} /> Report Discovery</Link>
+            <Link to="/report-discovery">
+              <MapPin size={15} aria-hidden="true" /> Report a find
+            </Link>
 
-            {user.role === "admin" && <NavDropdown label="Admin Tools" icon={ShieldCheck} items={adminItems} />}
-            {user.role === "excavation_team" && (
-              <Link to="/et/tenders"><FileText size={15} /> Tenders</Link>
-            )}
+            <span className="nav-divider" aria-hidden="true" />
 
+            {(user.role === "archaeologist" || user.role === "excavation_team") && <ChatBell />}
             <NotificationBell />
 
-            <Link
-              to={ROLE_HOME[user.role] || "/"}
-              className="nav-user"
-              style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem" }}
-            >
-              <LayoutDashboard size={14} />
-              <span style={{ display: "flex", flexDirection: "column", lineHeight: 1.2 }}>
-                <span style={{ fontWeight: 600, fontSize: "0.88rem" }}>{ROLE_LABELS[user.role] || user.role}</span>
-                <span style={{ fontSize: "0.65rem", opacity: 0.72 }}>Dashboard</span>
+            <Link to={ROLE_HOME[user.role] || "/"} className="nav-user">
+              <LayoutDashboard size={15} aria-hidden="true" />
+              <span className="nav-user-text">
+                <b>{ROLE_LABELS[user.role] || user.role}</b>
+                <span>Workspace</span>
               </span>
             </Link>
+
             <button className="btn-link nav-logout" onClick={handleLogout}>
-              <LogOut size={15} /> Logout
+              <LogOut size={15} aria-hidden="true" /> Sign out
             </button>
           </>
         ) : (
-          <Link to="/login">Login</Link>
+          <>
+            <span className="nav-divider" aria-hidden="true" />
+            <Link to="/login">Sign in</Link>
+            <Link to="/register">Register</Link>
+          </>
         )}
       </div>
     </nav>

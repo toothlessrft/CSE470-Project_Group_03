@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Search, Heart, Gavel, Ticket, Clock } from "lucide-react";
+import { Search, Heart, Gavel, Ticket, Clock, Info } from "lucide-react";
 import { api } from "../../api";
 import { useAuth } from "../../context/AuthContext";
 import StatusBadge from "../../components/StatusBadge";
 
-// Dynamic time counter component that updates every second
+// Countdown that ticks once a second.
 function TimeCounter({ deadline }) {
   const [display, setDisplay] = useState("");
 
@@ -30,8 +30,6 @@ function TimeCounter({ deadline }) {
 
   return <span>{display}</span>;
 }
-
-const cardStyle = { margin: 0, display: "flex", flexDirection: "column", gap: "0.5rem" };
 
 export default function Auctions() {
   const { user } = useAuth();
@@ -69,151 +67,145 @@ export default function Auctions() {
 
   return (
     <div className="page">
-      <h1>Auctions</h1>
-      <p className="page-subtitle">Bid on artifacts released for auction, and track the ones you care about.</p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Lawful disposal</span>
+          <h1>Artifact auctions</h1>
+          <p className="page-subtitle">
+            Lots released for lawful sale by the heritage authority. Bid, or keep watch on the ones
+            that interest you.
+          </p>
+        </div>
+      </div>
 
       {!user && (
-        <div className="alert alert-success">
-          <a href="/login">Log in</a> or <a href="/register">register</a> to place bids and build a wishlist.
+        <div className="alert alert-info">
+          <Info size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+          <span>
+            <Link to="/login">Sign in</Link> or <Link to="/register">register</Link> to place bids
+            and keep a watchlist.
+          </span>
         </div>
       )}
 
-      {/* Search bar - matches the Smart Artifact Search styling used elsewhere */}
-      <form
-        className="card"
-        style={{ display: "flex", gap: "0.75rem", alignItems: "center", margin: "0 0 1.5rem" }}
-        onSubmit={runSearch}
-      >
-        <Search size={18} style={{ flexShrink: 0, color: "#8a7a68" }} />
-        <input
-          type="text"
-          placeholder="Search live auctions by artifact, civilization, era..."
-          value={q}
-          onChange={(e) => setQ(e.target.value)}
-          style={{
-            flex: 1,
-            padding: "0.65rem 0.8rem",
-            border: "1.5px solid var(--border)",
-            borderRadius: "var(--radius-sm)",
-            fontSize: "0.98rem",
-            fontFamily: "inherit",
-          }}
-        />
+      <form className="home-search-row" onSubmit={runSearch}>
+        <label className="home-search-field">
+          <Search size={17} aria-hidden="true" />
+          <input
+            type="search"
+            placeholder="Search open lots by artifact, civilization, or era"
+            aria-label="Search open auction lots"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </label>
         <button type="submit" className="btn">
           Search
         </button>
       </form>
 
-      {/* Live Auctions (left) and My Bids (right), same card styling throughout */}
-      <div style={{ display: "grid", gridTemplateColumns: user && myBids.length > 0 ? "1fr 1fr" : "1fr", gap: "2rem", alignItems: "start" }}>
+      <div className={user && myBids.length > 0 ? "auction-split" : undefined}>
         <div>
-          <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-            <Gavel size={20} style={{ color: "#8b6f47" }} /> Live Auctions
-          </h3>
-          <div style={{ display: "grid", gap: "1rem" }}>
-            {live.map((a) => (
-              <Link
-                key={a._id}
-                to={`/auctions/${a._id}`}
-                className="card"
-                style={{
-                  ...cardStyle,
-                  textDecoration: "none",
-                  color: "inherit",
-                  borderLeft: "4px solid #8b6f47",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  backgroundColor: "#fafaf8",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow = "0 6px 16px rgba(139, 111, 71, 0.12)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.08)";
-                }}
-              >
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem" }}>
-                  <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{a.item?.name}</h4>
-                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-                    <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#fff", background: "#22c55e", padding: "0.3rem 0.6rem", borderRadius: "12px" }}>ACTIVE</span>
-                  </div>
-                </div>
-                <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: "0.2rem 0" }}>{a.item?.Type}</p>
-                <div style={{ marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: "1px solid #e6d9cc" }}>
-                  <p style={{ fontSize: "0.95rem", margin: "0.3rem 0", fontWeight: 600 }}>
-                    ৳{a.current_bid ?? a.starting_bid}
-                  </p>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "0.8rem", color: "#8a7a68" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                      <Clock size={14} /> <TimeCounter deadline={a.deadline} />
-                    </span>
-                    <span>{a.bid_count} bid(s)</span>
-                  </div>
-                </div>
-              </Link>
-            ))}
-            {live.length === 0 && <p className="hint">No live auctions match your search.</p>}
+          <div className="section-head">
+            <h2>
+              <Gavel size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--primary)" }} />
+              Bidding open
+            </h2>
+            <span className="hint">{live.length} lots</span>
           </div>
+
+          {live.length === 0 ? (
+            <div className="empty-state">
+              <Gavel size={24} aria-hidden="true" />
+              <h3>No open lots</h3>
+              <p>Nothing is currently open for bidding, or no lot matches your search.</p>
+            </div>
+          ) : (
+            <div className="record-list" style={{ display: "block" }}>
+              {live.map((a) => (
+                <Link key={a._id} to={`/auctions/${a._id}`} className="record-row" style={{ textDecoration: "none", color: "inherit" }}>
+                  <div className="record-main">
+                    <h4>{a.item?.name}</h4>
+                    <p className="artifact-tile-class">{a.item?.Type}</p>
+                    <p className="meta-row">
+                      <span>
+                        <Clock size={13} aria-hidden="true" /> <TimeCounter deadline={a.deadline} />
+                      </span>
+                      <span>
+                        {a.bid_count} bid{a.bid_count === 1 ? "" : "s"}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="record-side" style={{ flexDirection: "column", alignItems: "flex-end", gap: "0.3rem" }}>
+                    <span className="stat-label" style={{ margin: 0 }}>
+                      Standing bid
+                    </span>
+                    <strong className="num" style={{ fontFamily: "var(--font-display)", fontSize: "1.15rem", color: "var(--primary-dark)" }}>
+                      ৳{Number(a.current_bid ?? a.starting_bid).toLocaleString()}
+                    </strong>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
         {user && myBids.length > 0 && (
           <div>
-            <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
-              <Ticket size={20} style={{ color: "#8b6f47" }} /> My Bids
-            </h3>
-            <div style={{ display: "grid", gap: "1rem" }}>
+            <div className="section-head">
+              <h2>
+                <Ticket size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--primary)" }} />
+                Your bids
+              </h2>
+              <span className="hint">{myBids.length} placed</span>
+            </div>
+
+            <div style={{ display: "grid", gap: "0.75rem" }}>
               {myBids.map((b) => (
                 <div
                   key={b._id}
                   className="card"
                   style={{
-                    ...cardStyle,
-                    borderLeft: b.secured ? "4px solid #22c55e" : "4px solid #ef4444",
-                    backgroundColor: b.secured ? "#f0fdf4" : "#fef2f2",
-                    transition: "all 0.2s ease",
+                    margin: 0,
+                    borderLeft: `3px solid ${b.secured ? "var(--success)" : "var(--danger)"}`,
                   }}
                 >
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem" }}>
-                    <h4 style={{ margin: 0, fontSize: "1.1rem" }}>{b.item?.name}</h4>
-                    <span
-                      style={{
-                        fontSize: "0.7rem",
-                        fontWeight: 700,
-                        color: "#fff",
-                        background: b.secured ? "#22c55e" : "#ef4444",
-                        padding: "0.35rem 0.7rem",
-                        borderRadius: "12px",
-                      }}
-                    >
-                      {b.secured ? "SECURED" : "NOT SECURED"}
+                  <div className="report-header">
+                    <div style={{ minWidth: 0 }}>
+                      <h4 style={{ margin: 0 }}>{b.item?.name}</h4>
+                      <p className="artifact-tile-class">{b.item?.Type}</p>
+                    </div>
+                    <StatusBadge status={b.secured ? "Secured" : "Not Secured"} />
+                  </div>
+
+                  <p className="meta-row">
+                    <span>
+                      Your bid: <strong className="num">৳{Number(b.my_bid).toLocaleString()}</strong>
                     </span>
-                  </div>
-                  <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: "0.2rem 0" }}>{b.item?.Type}</p>
-                  <div style={{ marginTop: "0.6rem", paddingTop: "0.6rem", borderTop: `1px solid ${b.secured ? "#d1fae5" : "#fee2e2"}` }}>
-                    <p style={{ fontSize: "0.95rem", margin: "0.3rem 0" }}>
-                      Your bid: <strong>৳{b.my_bid}</strong>
-                      {b.current_bid && b.current_bid !== b.my_bid && <span style={{ color: "#8a7a68" }}> · Current: ৳{b.current_bid}</span>}
+                    {b.current_bid && b.current_bid !== b.my_bid && (
+                      <span>
+                        Standing: <span className="num">৳{Number(b.current_bid).toLocaleString()}</span>
+                      </span>
+                    )}
+                  </p>
+
+                  {b.status === "Active" ? (
+                    <div
+                      className="actions"
+                      style={{ marginTop: "0.9rem", justifyContent: "space-between" }}
+                    >
+                      <span className="hint" style={{ display: "inline-flex", alignItems: "center", gap: "0.3rem" }}>
+                        <Clock size={13} aria-hidden="true" /> <TimeCounter deadline={b.deadline} />
+                      </span>
+                      <Link className="btn-small" to={`/auctions/${b.auction_id || b._id}`}>
+                        Raise your bid
+                      </Link>
+                    </div>
+                  ) : (
+                    <p className="hint" style={{ margin: "0.75rem 0 0" }}>
+                      Bidding has closed on this lot.
                     </p>
-                    {b.status === "Active" && (
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.6rem" }}>
-                        <span style={{ fontSize: "0.8rem", color: "#8a7a68", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                          <Clock size={14} /> <TimeCounter deadline={b.deadline} />
-                        </span>
-                        <Link className="btn-small" to={`/auctions/${b.auction_id || b._id}`} style={{ fontSize: "0.85rem" }}>
-                          Bid Higher
-                        </Link>
-                      </div>
-                    )}
-                    {b.status !== "Active" && (
-                      <div style={{ marginTop: "0.6rem" }}>
-                        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#8a7a68", background: "#f3f1ef", padding: "0.25rem 0.5rem", borderRadius: "8px" }}>
-                          CLOSED
-                        </span>
-                      </div>
-                    )}
-                  </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -223,34 +215,56 @@ export default function Auctions() {
 
       {user && wishlist.length > 0 && (
         <>
-          <h3 style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginTop: "2rem", marginBottom: "1rem" }}>
-            <Heart size={20} style={{ color: "#8b6f47" }} /> My Wishlist
-          </h3>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(240px, 1fr))", gap: "1rem" }}>
+          <div className="section-head">
+            <h2>
+              <Heart size={16} aria-hidden="true" style={{ verticalAlign: "-2px", marginRight: "0.4rem", color: "var(--primary)" }} />
+              Watchlist
+            </h2>
+            <span className="hint">{wishlist.length} artifacts</span>
+          </div>
+          <div className="artifact-grid">
             {wishlist.map((w) => (
-              <div key={w._id} className="card" style={{ ...cardStyle, borderTop: "4px solid #8b6f47" }}>
-                <h4 style={{ margin: 0, marginBottom: "0.3rem" }}>{w.item.name}</h4>
-                <p style={{ fontSize: "0.85rem", color: "#8a7a68", margin: "0 0 0.6rem" }}>{w.item.Type}</p>
+              <div key={w._id} className="artifact-tile">
+                <div className="artifact-tile-head">
+                  <strong>{w.item.name}</strong>
+                </div>
+                <p className="artifact-tile-class">{w.item.Type}</p>
+
                 {w.active_auction ? (
                   <>
-                    <div style={{ background: "#fafaf8", padding: "0.6rem", borderRadius: "8px", marginBottom: "0.6rem" }}>
-                      <p style={{ fontSize: "0.9rem", margin: "0.3rem 0", fontWeight: 600 }}>
-                        ৳{w.active_auction.current_bid ?? w.active_auction.starting_bid}
-                      </p>
-                      <p style={{ fontSize: "0.8rem", color: "#8a7a68", margin: "0.3rem 0", display: "flex", alignItems: "center", gap: "0.3rem" }}>
-                        <Clock size={14} /> <TimeCounter deadline={w.active_auction.deadline} />
-                      </p>
+                    <dl className="artifact-tile-facts" style={{ marginBottom: "0.75rem" }}>
+                      <div>
+                        <dt>Standing bid</dt>
+                        <dd className="num">
+                          ৳{Number(w.active_auction.current_bid ?? w.active_auction.starting_bid).toLocaleString()}
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Closes</dt>
+                        <dd>
+                          <TimeCounter deadline={w.active_auction.deadline} />
+                        </dd>
+                      </div>
+                    </dl>
+                    <div className="actions">
+                      <Link className="btn-small" to={`/auctions/${w.active_auction._id}`}>
+                        View lot
+                      </Link>
+                      <button className="btn-small btn-secondary" onClick={() => removeFromWishlist(w.item._id)}>
+                        Remove
+                      </button>
                     </div>
-                    <Link className="btn-small" to={`/auctions/${w.active_auction._id}`} style={{ alignSelf: "flex-start" }}>
-                      View Auction
-                    </Link>
                   </>
                 ) : (
-                  <p className="hint" style={{ margin: "0 0 0.6rem" }}>Not currently up for auction.</p>
+                  <>
+                    <p className="hint" style={{ margin: "0 0 0.75rem" }}>
+                      Not currently offered for sale.
+                    </p>
+                    <button className="btn-small btn-secondary" onClick={() => removeFromWishlist(w.item._id)}>
+                      Remove
+                    </button>
+                  </>
                 )}
-                <button className="btn-link" style={{ alignSelf: "flex-start", fontSize: "0.85rem" }} onClick={() => removeFromWishlist(w.item._id)}>
-                  Remove
-                </button>
               </div>
             ))}
           </div>
@@ -259,27 +273,34 @@ export default function Auctions() {
 
       {user?.role === "admin" && closed.length > 0 && (
         <>
-          <h3 style={{ marginTop: "2rem" }}>Recently Closed (admin only)</h3>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Artifact</th>
-                <th>Final Price</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {closed.map((a) => (
-                <tr key={a._id}>
-                  <td>{a.item?.name}</td>
-                  <td>{a.final_price != null ? `৳${a.final_price}` : "-"}</td>
-                  <td>
-                    <StatusBadge status={a.status.replace("Closed-", "")} />
-                  </td>
+          <div className="section-head">
+            <h2>Recently closed</h2>
+            <span className="hint">Visible to the heritage authority</span>
+          </div>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Lot</th>
+                  <th>Hammer price</th>
+                  <th>Outcome</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {closed.map((a) => (
+                  <tr key={a._id}>
+                    <td>{a.item?.name}</td>
+                    <td className="num">
+                      {a.final_price != null ? `৳${Number(a.final_price).toLocaleString()}` : "—"}
+                    </td>
+                    <td>
+                      <StatusBadge status={a.status.replace("Closed-", "")} />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </div>

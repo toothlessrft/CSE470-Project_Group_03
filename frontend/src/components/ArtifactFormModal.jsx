@@ -1,11 +1,10 @@
-// Ahad_23201016 - Add Artifact, moved out of the field report and into the
-// active excavation project. Same fields as the Smart Artifact Search "Add
-// Artifact" form, except the discovery location is fixed to wherever the
-// original discovery report came from - the team can see it on the map but
-// can't move the pin, so every find stays tied to the reported site.
+// Ahad_23201016 - Add Artifact for an active excavation project. Same fields
+// as the catalogue's own form, except the location is fixed to the discovery
+// report's site: the pin shows on the map but cannot be moved.
 import { useEffect, useState } from "react";
 import { X, MapPin } from "lucide-react";
 import GoogleMapPicker from "./GoogleMapPicker";
+import ArtifactImagePicker from "./ArtifactImagePicker";
 
 const ARTIFACT_TYPES = [
   "Pottery",
@@ -73,36 +72,15 @@ export default function ArtifactFormModal({
   const hasCoords = location?.lat != null && location?.lng != null;
 
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        backgroundColor: "rgba(0,0,0,0.5)",
-        zIndex: 2000,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "1rem",
-      }}
-    >
-      <div
-        className="card"
-        style={{ width: "100%", maxWidth: "620px", maxHeight: "90vh", overflowY: "auto", margin: 0 }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "1rem",
-          }}
-        >
-          <h2 style={{ margin: 0 }}>{initial ? "Edit Artifact" : "Add Artifact"}</h2>
-          <button type="button" className="btn-link" onClick={onClose}>
-            <X size={20} />
+    <div className="modal-overlay">
+      <div className="modal" style={{ maxWidth: 620 }}>
+        <div className="modal-head">
+          <div>
+            <span className="eyebrow">Excavation record</span>
+            <h2>{initial ? "Edit artifact record" : "Catalogue a recovered artifact"}</h2>
+          </div>
+          <button type="button" className="modal-close" onClick={onClose} aria-label="Close">
+            <X size={18} aria-hidden="true" />
           </button>
         </div>
 
@@ -110,17 +88,27 @@ export default function ArtifactFormModal({
 
         <form onSubmit={handleSubmit} className="form">
           <label>
-            Artifact Name (required)
-            <input value={form.name} onChange={(e) => set("name", e.target.value)} required />
+            Artifact name
+            <input
+              value={form.name}
+              onChange={(e) => set("name", e.target.value)}
+              placeholder="e.g. Terracotta votive plaque"
+              required
+            />
           </label>
 
           <label>
             Description
-            <textarea rows={3} value={form.description} onChange={(e) => set("description", e.target.value)} />
+            <textarea
+              rows={3}
+              value={form.description}
+              onChange={(e) => set("description", e.target.value)}
+              placeholder="Condition, dimensions, decoration, and anything notable about the context"
+            />
           </label>
 
           <label>
-            Type
+            Object class
             <select value={form.Type} onChange={(e) => set("Type", e.target.value)}>
               {ARTIFACT_TYPES.map((t) => (
                 <option key={t} value={t}>
@@ -131,7 +119,7 @@ export default function ArtifactFormModal({
           </label>
 
           <label>
-            Discovered Date
+            Date recovered
             <input
               type="date"
               value={form.discovery_date}
@@ -139,7 +127,9 @@ export default function ArtifactFormModal({
             />
           </label>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
+          <ArtifactImagePicker value={form.picture} onChange={(v) => set("picture", v)} />
+
+          <div className="form-row">
             <label>
               Civilization
               <input value={form.civilization} onChange={(e) => set("civilization", e.target.value)} />
@@ -157,16 +147,16 @@ export default function ArtifactFormModal({
               <input value={form.material} onChange={(e) => set("material", e.target.value)} />
             </label>
             <label>
-              Usage
+              Use
               <input value={form.usage} onChange={(e) => set("usage", e.target.value)} />
             </label>
           </div>
 
           <fieldset>
-            <legend>Discovery Location</legend>
+            <legend>Find location</legend>
             <p className="hint" style={{ margin: "0 0 0.6rem" }}>
-              <MapPin size={13} style={{ verticalAlign: "middle" }} /> Set automatically from the
-              discovery report this excavation was raised for{siteName ? ` - ${siteName}` : ""}.
+              <MapPin size={13} style={{ verticalAlign: "middle" }} aria-hidden="true" /> Fixed to
+              the discovery report this excavation was raised for{siteName ? ` — ${siteName}` : ""}.
             </p>
             {hasCoords ? (
               <>
@@ -177,19 +167,24 @@ export default function ArtifactFormModal({
               </>
             ) : (
               <p className="hint" style={{ margin: 0 }}>
-                This project has no map coordinates recorded.
+                No map coordinates are recorded for this project.
               </p>
             )}
           </fieldset>
 
           <div className="alert alert-info" style={{ marginBottom: 0 }}>
-            Artifacts stay with the project until the Government reviews the completed excavation
-            and allocates them to a museum or to auction.
+            Artifacts remain held by the project until the heritage authority reviews the completed
+            excavation and allocates them to a museum or to auction.
           </div>
 
-          <button type="submit" className="btn" disabled={busy}>
-            {busy ? "Saving..." : initial ? "Save Changes" : "Add Artifact"}
-          </button>
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={onClose} disabled={busy}>
+              Cancel
+            </button>
+            <button type="submit" className="btn" disabled={busy}>
+              {busy ? "Saving..." : initial ? "Save changes" : "Add to catalogue"}
+            </button>
+          </div>
         </form>
       </div>
     </div>

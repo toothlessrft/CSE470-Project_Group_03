@@ -18,17 +18,26 @@ export default function ApproveItemRequest() {
 
   return (
     <div className="page">
-      <h1>Approve Item Requests</h1>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Museum acquisitions</span>
+          <h1>Artifact requests</h1>
+          <p className="page-subtitle">
+            Applications from museums to hold a catalogued artifact for exhibition.
+          </p>
+        </div>
+      </div>
       {message && <div className="alert alert-success">{message}</div>}
+      <div className="table-wrap">
       <table className="table">
         <thead>
           <tr>
-            <th>Manager</th>
-            <th>Item</th>
+            <th>Applicant</th>
+            <th>Artifact</th>
             <th>Purpose</th>
-            <th>Dates</th>
+            <th>Requested period</th>
             <th>Insurance</th>
-            <th>Actions</th>
+            <th>Decision</th>
           </tr>
         </thead>
         <tbody>
@@ -46,18 +55,21 @@ export default function ApproveItemRequest() {
                   Approve
                 </button>
                 <button className="btn-small btn-deny" onClick={() => act(r._id, "deny")}>
-                  Deny
+                  Decline
                 </button>
               </td>
             </tr>
           ))}
           {requests.length === 0 && (
             <tr>
-              <td colSpan={6}>No pending requests.</td>
+              <td colSpan={6} className="hint">
+                Nothing awaiting a decision.
+              </td>
             </tr>
           )}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

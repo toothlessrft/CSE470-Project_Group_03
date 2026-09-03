@@ -69,10 +69,10 @@ export default function BrowseTenders() {
       const existing = bidding.my_bid;
       if (existing && existing.status !== "Withdrawn") {
         await api.patch(`/tenders/bids/${existing._id}`, form);
-        setSuccess("Your bid has been updated.");
+        setSuccess("Your bid has been revised.");
       } else {
         await api.post(`/tenders/${bidding._id}/bids`, form);
-        setSuccess("Bid submitted. You can edit or withdraw it until the deadline.");
+        setSuccess("Bid submitted. You may revise or withdraw it until the closing date.");
       }
       setBidding(null);
       load();
@@ -86,25 +86,36 @@ export default function BrowseTenders() {
   if (loading)
     return (
       <div className="page">
-        <p className="hint">Loading tenders...</p>
+        <div className="loading-state">
+          <span className="spinner" aria-hidden="true" /> Loading open tenders
+        </div>
       </div>
     );
 
   return (
     <div className="page">
-      <h1>Available Excavation Tenders</h1>
-      <p className="page-subtitle">
-        Government-published excavation contracts open for bidding. Submit your cost, timeline, and
-        proposal — you can revise or withdraw any bid until the deadline passes.
-      </p>
+      <div className="page-head">
+        <div>
+          <span className="eyebrow">Procurement</span>
+          <h1>Open tenders</h1>
+          <p className="page-subtitle">
+            Excavation contracts published by the heritage authority. Submit your price, programme,
+            and method statement; bids may be revised or withdrawn until the closing date.
+          </p>
+        </div>
+      </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
       {tenders.length === 0 ? (
-        <div className="card" style={{ textAlign: "center", padding: "2rem", color: "var(--muted)" }}>
-          <FileSearch size={28} style={{ marginBottom: "0.5rem" }} />
-          <p style={{ margin: 0 }}>No open tenders right now. Check back soon.</p>
+        <div className="empty-state">
+          <FileSearch size={26} aria-hidden="true" />
+          <h3>No tenders open</h3>
+          <p>
+            Nothing is currently out to tender. New excavation contracts are published here as the
+            heritage authority releases them.
+          </p>
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -115,83 +126,70 @@ export default function BrowseTenders() {
               <div
                 key={t._id}
                 className="card"
-                style={{ margin: 0, borderLeft: `4px solid ${closed ? "var(--muted)" : "var(--accent)"}` }}
+                style={{ margin: 0, borderLeft: `3px solid ${closed ? "var(--border-strong)" : "var(--accent)"}` }}
               >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                    gap: "0.75rem",
-                    flexWrap: "wrap",
-                  }}
-                >
-                  <div>
-                    <h3 style={{ margin: "0 0 0.25rem", fontSize: "1.1rem" }}>{t.title}</h3>
-                    <p className="hint" style={{ margin: 0 }}>
-                      <MapPin size={13} style={{ verticalAlign: "middle" }} />{" "}
-                      {t.location?.address || "Location on file"}
+                <div className="report-header">
+                  <div style={{ minWidth: 0 }}>
+                    <h3 style={{ margin: "0 0 0.2rem" }}>{t.title}</h3>
+                    <p className="meta-row">
+                      <span>
+                        <MapPin size={13} aria-hidden="true" />{" "}
+                        {t.location?.address || "Location held on file"}
+                      </span>
                     </p>
                   </div>
                   {myBid && <StatusBadge status={myBid.status} />}
                 </div>
 
-                <p style={{ fontSize: "0.92rem", marginTop: "0.85rem" }}>{t.project_details}</p>
+                <p style={{ fontSize: "0.9375rem", marginTop: "0.85rem" }}>{t.project_details}</p>
                 {t.requirements && (
-                  <p style={{ fontSize: "0.88rem" }}>
-                    <strong>Requirements:</strong> {t.requirements}
-                  </p>
+                  <div className="subtle" style={{ marginBottom: "1rem" }}>
+                    <span className="stat-label">Requirements</span>
+                    <p style={{ margin: "0.2rem 0 0", fontSize: "0.875rem" }}>{t.requirements}</p>
+                  </div>
                 )}
 
-                <div
-                  style={{
-                    display: "flex",
-                    gap: "1.5rem",
-                    flexWrap: "wrap",
-                    margin: "1rem 0",
-                    fontSize: "0.88rem",
-                    color: "var(--muted)",
-                  }}
-                >
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                    <Banknote size={15} /> Est. budget:{" "}
-                    <strong style={{ color: "var(--text)" }}>
-                      ৳{t.estimated_budget?.toLocaleString()}
-                    </strong>
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                    <CalendarClock size={15} /> Deadline:{" "}
-                    <strong style={{ color: closed ? "var(--danger)" : "var(--text)" }}>
-                      {new Date(t.deadline).toLocaleDateString()} ({daysLeft(t.deadline)})
-                    </strong>
-                  </span>
-                  <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                    <Users size={15} /> {t.bid_count} bid{t.bid_count === 1 ? "" : "s"}
-                  </span>
-                </div>
+                <dl className="detail-list" style={{ margin: "1rem 0" }}>
+                  <div>
+                    <dt>
+                      <Banknote size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Estimated budget
+                    </dt>
+                    <dd className="num">৳{t.estimated_budget?.toLocaleString()}</dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <CalendarClock size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Bids close
+                    </dt>
+                    <dd className="num" style={{ color: closed ? "var(--danger)" : "var(--text)" }}>
+                      {new Date(t.deadline).toLocaleDateString()} · {daysLeft(t.deadline)}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>
+                      <Users size={11} aria-hidden="true" style={{ verticalAlign: "-1px" }} /> Bids received
+                    </dt>
+                    <dd className="num">{t.bid_count}</dd>
+                  </div>
+                </dl>
 
                 {myBid && (
-                  <div className="alert alert-info" style={{ marginBottom: "0.75rem" }}>
-                    <CheckCircle2 size={14} style={{ verticalAlign: "middle" }} /> Your bid: ৳
-                    {myBid.cost?.toLocaleString()} over {myBid.timeline_days} days — status{" "}
-                    <strong>{myBid.status}</strong>.{" "}
-                    <Link to="/et/bids">Manage it here.</Link>
+                  <div className="alert alert-info">
+                    <CheckCircle2 size={15} aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span>
+                      Your bid: ৳{myBid.cost?.toLocaleString()} over {myBid.timeline_days} days ·
+                      status <strong>{myBid.status}</strong>. <Link to="/et/bids">Manage bid</Link>
+                    </span>
                   </div>
                 )}
 
                 <div
-                  style={{
-                    display: "flex",
-                    gap: "0.5rem",
-                    flexWrap: "wrap",
-                    borderTop: "1px solid var(--border)",
-                    paddingTop: "1rem",
-                  }}
+                  className="actions"
+                  style={{ borderTop: "1px solid var(--border)", paddingTop: "1rem" }}
                 >
                   <button className="btn" onClick={() => openBidForm(t)} disabled={closed}>
-                    <Gavel size={14} /> {myBid ? "Revise Bid" : "Submit Bid"}
+                    <Gavel size={14} aria-hidden="true" /> {myBid ? "Revise bid" : "Submit a bid"}
                   </button>
-                  {closed && <span className="hint">Bidding on this tender has closed.</span>}
+                  {closed && <span className="hint">Bidding has closed on this tender.</span>}
                 </div>
               </div>
             );
@@ -200,93 +198,80 @@ export default function BrowseTenders() {
       )}
 
       {bidding && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: "rgba(0,0,0,0.5)",
-            zIndex: 2000,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "1rem",
-          }}
-        >
-          <div
-            className="card"
-            style={{ width: "100%", maxWidth: "620px", maxHeight: "90vh", overflowY: "auto", margin: 0 }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginBottom: "1rem",
-              }}
-            >
-              <h2 style={{ margin: 0 }}>
-                {bidding.my_bid && bidding.my_bid.status !== "Withdrawn" ? "Revise Bid" : "Submit Bid"}
-              </h2>
-              <button className="btn-link" onClick={() => setBidding(null)}>
-                <X size={20} />
+        <div className="modal-overlay">
+          <div className="modal" style={{ maxWidth: 620 }}>
+            <div className="modal-head">
+              <div>
+                <span className="eyebrow">Tender bid</span>
+                <h2>
+                  {bidding.my_bid && bidding.my_bid.status !== "Withdrawn"
+                    ? "Revise your bid"
+                    : "Submit a bid"}
+                </h2>
+              </div>
+              <button className="modal-close" onClick={() => setBidding(null)} aria-label="Close">
+                <X size={18} aria-hidden="true" />
               </button>
             </div>
 
             <p className="hint">
-              {bidding.title} — estimated budget ৳{bidding.estimated_budget?.toLocaleString()}, bids
+              {bidding.title} — estimated budget ৳{bidding.estimated_budget?.toLocaleString()}. Bids
               close {new Date(bidding.deadline).toLocaleString()}.
             </p>
 
             {modalError && <div className="alert alert-danger">{modalError}</div>}
 
             <form onSubmit={submitBid} className="form">
+              <div className="form-row">
+                <label>
+                  Bid price (৳)
+                  <input
+                    type="number"
+                    min="0"
+                    value={form.cost}
+                    onChange={(e) => setForm({ ...form, cost: e.target.value })}
+                    placeholder="e.g. 450000"
+                    required
+                  />
+                </label>
+                <label>
+                  Programme (days)
+                  <input
+                    type="number"
+                    min="1"
+                    value={form.timeline_days}
+                    onChange={(e) => setForm({ ...form, timeline_days: e.target.value })}
+                    placeholder="e.g. 90"
+                    required
+                  />
+                </label>
+              </div>
               <label>
-                Bid Cost (৳) (required)
-                <input
-                  type="number"
-                  min="0"
-                  step="1000"
-                  value={form.cost}
-                  onChange={(e) => setForm({ ...form, cost: e.target.value })}
-                  placeholder="e.g. 450000"
-                  required
-                />
-              </label>
-              <label>
-                Timeline (days) (required)
-                <input
-                  type="number"
-                  min="1"
-                  value={form.timeline_days}
-                  onChange={(e) => setForm({ ...form, timeline_days: e.target.value })}
-                  placeholder="e.g. 90"
-                  required
-                />
-              </label>
-              <label>
-                Proposal (required)
+                Method statement
                 <textarea
                   rows={5}
                   value={form.proposal}
                   onChange={(e) => setForm({ ...form, proposal: e.target.value })}
-                  placeholder="Methodology, equipment, crew composition, and how you'll protect the site..."
+                  placeholder="Excavation methodology, equipment, crew composition, recording standards, and site protection measures"
                   required
                 />
               </label>
 
               {bidding.location?.lat != null && (
                 <fieldset>
-                  <legend>Excavation Site</legend>
+                  <legend>Site location</legend>
                   <GoogleMapPicker value={bidding.location} editable={false} height={200} />
                 </fieldset>
               )}
 
-              <button type="submit" className="btn" disabled={busy}>
-                {busy ? "Submitting..." : "Submit Bid"}
-              </button>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setBidding(null)} disabled={busy}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn" disabled={busy}>
+                  {busy ? "Submitting" : "Submit bid"}
+                </button>
+              </div>
             </form>
           </div>
         </div>

@@ -1,12 +1,9 @@
-// Request Excavation Tools & Field Equipment + Inventory Tracking
+// Equipment requests and inventory tracking.
 //
-// Who may request: the lead archaeologist of an active excavation project, or
-// the excavation team assigned to one. Anyone else gets a 403 - "selected"
-// archaeologists and teams only.
-//
-// Availability is always derived (quantity_total minus everything approved and
-// not yet returned) rather than stored, so this router and the older
-// /api/admin/tool-requests screen can never drift apart on stock levels.
+// Only the lead archaeologist or the assigned team of an active dig may
+// request; anyone else gets a 403. Availability is derived (total minus
+// everything approved and not yet returned) rather than stored, so stock
+// levels cannot drift between this router and the admin screens.
 const express = require("express");
 const Tool = require("../models/Tool");
 const ToolRentalRequest = require("../models/ToolRentalRequest");
@@ -17,19 +14,16 @@ const { notify, notifyAdmins } = require("../services/notify");
 const router = express.Router();
 router.use(requireAuth);
 
-// Older builds carried a unique index on (user, tool), which blocked a team
-// from taking the same tool to a second dig. Drop it once at boot; the catch
-// covers the normal case where it was never created.
+// An old unique index on (user, tool) blocked taking the same tool to a second
+// dig. Drop it at boot; the catch covers the case where it was never created.
 ToolRentalRequest.collection
   .dropIndex("user_1_tool_1")
   .then(() => console.log("[inventory] removed legacy unique (user, tool) index"))
   .catch(() => {});
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+// --- helpers ---------------------------------------------------------------
 
-/** Units currently out on assignment, keyed by tool id. */
+// Units out on assignment, keyed by tool id.
 async function outOnAssignment() {
   const rows = await ToolRentalRequest.aggregate([
     { $match: { approval_status: "Approved", returned_at: null } },
@@ -38,7 +32,7 @@ async function outOnAssignment() {
   return Object.fromEntries(rows.map((r) => [String(r._id), r.units]));
 }
 
-/** Units sitting in open (pending) requests, keyed by tool id. */
+// Units held by pending requests, keyed by tool id.
 async function pendingUnits() {
   const rows = await ToolRentalRequest.aggregate([
     { $match: { approval_status: "Pending" } },
@@ -66,10 +60,8 @@ async function serializeTools(tools) {
   });
 }
 
-/**
- * Projects the current user may raise equipment requests against: active digs
- * where they are the lead archaeologist or the assigned excavation team.
- */
+// Active digs this user leads or is assigned to - the ones they may request
+// equipment against.
 async function eligibleProjects(user) {
   if (user.role === "archaeologist") {
     return ExcavationProject.find({ lead_archaeologist: user._id, end_date: null })
@@ -89,9 +81,7 @@ function describeTool(tool) {
   return `${tool.type} (${tool.model_no})`;
 }
 
-// ---------------------------------------------------------------------------
-// Catalogue - readable by any logged-in user
-// ---------------------------------------------------------------------------
+// --- catalogue, readable by any logged-in user -----------------------------
 
 // GET /api/inventory/tools?category=&available=true&q=
 router.get("/tools", async (req, res) => {
@@ -131,9 +121,7 @@ router.get("/my-projects", async (req, res) => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Requests - archaeologists and excavation teams
-// ---------------------------------------------------------------------------
+// --- requests, for archaeologists and excavation teams ---------------------
 
 // GET /api/inventory/requests/mine
 router.get("/requests/mine", async (req, res) => {
@@ -159,7 +147,7 @@ router.post("/requests", requireRole("archaeologist", "excavation_team"), async 
       return res.status(400).json({ error: "The return date must be after the collection date." });
     }
 
-    // Only the lead archaeologist / assigned team of an active dig may request.
+    // Only the lead or assigned team of an active dig.
     const projects = await eligibleProjects(req.user);
     const project = projects.find((p) => String(p._id) === String(project_id));
     if (!project) {
@@ -206,7 +194,7 @@ router.post("/requests", requireRole("archaeologist", "excavation_team"), async 
       approval_status: "Pending",
     });
 
-    // Action-required alert for the Government/Admin desk.
+    // Action-required alert for the admin desk.
     await notifyAdmins({
       category: "request",
       type: "tool.request.submitted",
@@ -265,9 +253,7 @@ router.post("/requests/:id/return", async (req, res) => {
   res.json({ message: "Equipment marked as returned.", request });
 });
 
-// ---------------------------------------------------------------------------
-// Government/Admin - manage the inventory and assign equipment
-// ---------------------------------------------------------------------------
+// --- admin: manage inventory and assign equipment --------------------------
 
 // GET /api/inventory/requests?status=Pending
 router.get("/requests", requireRole("admin"), async (req, res) => {
